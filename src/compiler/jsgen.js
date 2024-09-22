@@ -918,7 +918,7 @@ class JSGenerator {
         case 'list.add': {
             const list = this.referenceVariable(node.list);
             this.source += `${list}.value.push(${this.descendInput(node.item).asSafe()});\n`;
-            this.source += `${list}._monitorUpToDate = false;\n`;
+            if (enabledMonitorUpdates) { this.source += `${list}._monitorUpToDate = false;\n` };
             break;
         }
         case 'list.delete': {
@@ -927,12 +927,12 @@ class JSGenerator {
             if (index instanceof ConstantInput) {
                 if (index.constantValue === 'last') {
                     this.source += `${list}.value.pop();\n`;
-                    this.source += `${list}._monitorUpToDate = false;\n`;
+                    if (enabledMonitorUpdates) { this.source += `${list}._monitorUpToDate = false;\n` };
                     break;
                 }
                 if (+index.constantValue === 1) {
                     this.source += `${list}.value.shift();\n`;
-                    this.source += `${list}._monitorUpToDate = false;\n`;
+                    if (enabledMonitorUpdates) { this.source += `${list}._monitorUpToDate = false;\n` };
                     break;
                 }
                 // do not need a special case for all as that is handled in IR generation (list.deleteAll)
@@ -952,7 +952,7 @@ class JSGenerator {
             const item = this.descendInput(node.item);
             if (index instanceof ConstantInput && +index.constantValue === 1) {
                 this.source += `${list}.value.unshift(${item.asSafe()});\n`;
-                this.source += `${list}._monitorUpToDate = false;\n`;
+                if (enabledMonitorUpdates) { this.source += `${list}._monitorUpToDate = false;\n` };
                 break;
             }
             this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
@@ -1408,6 +1408,9 @@ class JSGenerator {
      * @returns {Function} The factory function for the script.
      */
     compile () {
+        // Mistwarp specific to disable the monitor updates being compiled if the user specifies
+        const enabledMonitorUpdates = Scratch.vm.enableMonitorUpdates ?? false
+        
         if (this.script.stack) {
             this.descendStack(this.script.stack, new Frame(false));
         }
