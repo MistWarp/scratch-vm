@@ -1411,6 +1411,7 @@ class JSGenerator {
         // Mistwarp specific to disable the monitor updates being compiled if the user specifies
         const enabledMonitorUpdates = Scratch.vm.enableMonitorUpdates ?? false
         
+				// new comment just for funnies
         if (this.script.stack) {
             this.descendStack(this.script.stack, new Frame(false));
         }
