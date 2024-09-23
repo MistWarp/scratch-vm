@@ -2942,6 +2942,11 @@ class Runtime extends EventEmitter {
         this.debug = true;
     }
 
+    disableDebug () {
+        this.resetAllCaches();
+        this.debug = false;
+    }
+
     /**
      * Emit glows/glow clears for scripts after a single tick.
      * Looks at `this.threads` and notices which have turned on/off new glows.

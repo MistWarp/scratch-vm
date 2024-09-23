@@ -31,7 +31,8 @@ class Scratch3DataBlocks {
             data_lengthoflist: this.lengthOfList,
             data_listcontainsitem: this.listContainsItem,
             data_hidelist: this.hideList,
-            data_showlist: this.showList
+            data_showlist: this.showList,
+            data_listjson: this.listjson
         };
     }
 
@@ -211,6 +212,12 @@ class Scratch3DataBlocks {
         // we don't have to worry about this conflicting with the "this item is
         // the first value" number (in JS that is 0, but in Scratch it's 1).
         return 0;
+    }
+
+    listjson (args, util) {
+        const list = util.target.lookupOrCreateList(
+            args.LIST.id, args.LIST.name);
+        return JSON.stringify(list.value);
     }
 
     lengthOfList (args, util) {
