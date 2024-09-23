@@ -266,7 +266,11 @@ class ScriptTreeGenerator {
                 kind: 'list.contents',
                 list: this.descendVariable(block, 'LIST', LIST_TYPE)
             };
-
+        case 'data_listjson':
+            return {
+                kind: 'list.json',
+                list: this.descendVariable(block, 'LIST', LIST_TYPE)
+            };
         case 'event_broadcast_menu': {
             const broadcastOption = block.fields.BROADCAST_OPTION;
             const broadcastVariable = this.target.lookupBroadcastMsg(broadcastOption.id, broadcastOption.value);
@@ -444,6 +448,16 @@ class ScriptTreeGenerator {
                 kind: 'op.mod',
                 left: this.descendInputOfBlock(block, 'NUM1'),
                 right: this.descendInputOfBlock(block, 'NUM2')
+            };
+        case 'operator_pi':
+            return {
+                kind: 'constant',
+                value: Math.PI,
+            }
+        case 'operator_newline':
+            return {
+                kind: 'constant',
+                value: '\n'
             };
         case 'operator_multiply':
             return {
