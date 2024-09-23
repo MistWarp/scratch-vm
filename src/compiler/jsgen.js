@@ -9,6 +9,9 @@ const environment = require('./environment');
 // eslint-disable-next-line no-unused-vars
 const {IntermediateScript, IntermediateRepresentation} = require('./intermediate');
 
+// Mistwarp specific to disable the monitor updates being compiled if the user specifies
+const enabledMonitorUpdates = true
+
 /**
  * @fileoverview Convert intermediate representations to JavaScript functions.
  */
@@ -1408,10 +1411,9 @@ class JSGenerator {
      * @returns {Function} The factory function for the script.
      */
     compile () {
-        // Mistwarp specific to disable the monitor updates being compiled if the user specifies
-        const enabledMonitorUpdates = Scratch.vm.enableMonitorUpdates ?? false
+			
+				enabledMonitorUpdates = vm.enableMonitorUpdates ?? false
         
-				// new comment just for funnies
         if (this.script.stack) {
             this.descendStack(this.script.stack, new Frame(false));
         }
