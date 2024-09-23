@@ -78,7 +78,7 @@
     "lodash.defaultsdeep": "4.6.1",
     "pngjs": "3.3.3",
     "scratch-audio": "0.1.0-prerelease.20231221012053",
-    "scratch-blocks": "github:MistBolt/scratch-blocks#develop",
+    "scratch-blocks": "github:MistBolt/scratch-blocks#develop-builds",
     "scratch-l10n": "3.16.20231222031921",
     "scratch-render": "0.1.0-prerelease.20231220210403",
     "scratch-render-fonts": "1.0.0-prerelease.20231017225105",
