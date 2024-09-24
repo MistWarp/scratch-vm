@@ -3082,7 +3082,7 @@ class Runtime extends EventEmitter {
      * @param {string} value Value to show associated with the block.
      */
     visualReport (blockId, value) {
-        this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: String(value)});
+        this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: value});
     }
 
     /**
