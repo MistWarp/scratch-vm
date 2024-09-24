@@ -192,6 +192,15 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
 
+        monitorId = `${shirtSprite.id}_costumes`;
+        monitorRecord = vm.runtime._monitorState.get(monitorId);
+        monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
+        t.equal(monitorRecord.opcode, 'looks_costumes');
+        t.equal(monitorRecord.mode, 'large');
+        t.equal(monitorRecord.visible, true);
+        t.equal(monitorRecord.spriteName, 'Shirt-T');
+        t.equal(monitorRecord.targetId, shirtSprite.id);
+
         // The monitor IDs for the sensing_current block should be unique
         // to the parameter that is selected on the block being monitored.
         // The paramater portion of the id should be lowercase even
