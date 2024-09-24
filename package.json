@@ -25,7 +25,8 @@
     "tap:integration": "tap ./test/integration/*.js",
     "test": "npm run lint && npm run tap",
     "watch": "webpack --progress --colors --watch",
-    "version": "json -f package.json -I -e \"this.repository.sha = '$(git log -n1 --pretty=format:%H)'\""
+    "version": "json -f package.json -I -e \"this.repository.sha = '$(git log -n1 --pretty=format:%H)'\"",
+    "fix-js": "eslint-auto-fix"
   },
   "tap": {
     "branches": 60,

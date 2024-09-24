@@ -10,6 +10,7 @@ const compatBlocks = require('./compat-blocks');
  * @fileoverview Generate intermediate representations from Scratch blocks.
  */
 
+
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
 
@@ -452,8 +453,8 @@ class ScriptTreeGenerator {
         case 'operator_pi':
             return {
                 kind: 'constant',
-                value: Math.PI,
-            }
+                value: Math.PI
+            };
         case 'operator_newline':
             return {
                 kind: 'constant',
