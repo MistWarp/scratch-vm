@@ -455,7 +455,11 @@ class JSGenerator {
                 const index = this.descendInput(node.index);
                 if (environment.supportsNullishCoalescing) {
                     if (index.isAlwaysNumberOrNaN()) {
-                        return new TypedInput(`(${this.referenceVariable(node.list)}.value[(${index.asNumber()} | 0) - 1] ?? "")`, TYPE_UNKNOWN);
+                        if (!isNaN(index)) {
+                            return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index - 1}] ?? "")`, TYPE_UNKNOWN);
+                        } else {
+                            return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asNumber()} - 1] ?? "")`, TYPE_UNKNOWN);
+                        }
                     }
                     if (index instanceof ConstantInput && index.constantValue === 'last') {
                         return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPE_UNKNOWN);
@@ -467,7 +471,6 @@ class JSGenerator {
                 return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER);
             case 'list.length':
                 return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER);
-
             case 'list.json':
                 return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
 
@@ -602,7 +605,10 @@ class JSGenerator {
                 return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
             }
             case 'op.letterOf':
-                return new TypedInput(`((${this.descendInput(node.string).asString()})[(${this.descendInput(node.letter).asNumber()} | 0) - 1] || "")`, TYPE_STRING);
+                const letter_of_index = this.descendInput(node.letter).asNumber();
+                let after = "";
+                if (!isNaN(letter_of_index)) { after = `[${letter_of_index - 1}]` } else { after = `[${letter_of_index} - 1]` }
+                return new TypedInput(`(${this.descendInput(node.string).asString()}${after} || "")`, TYPE_STRING);
             case 'op.ln':
                 // Needs to be marked as NaN because Math.log(-1) == NaN
                 return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
@@ -1191,7 +1197,6 @@ class JSGenerator {
 
             case 'visualReport': {
                 const value = this.localVariables.next();
-                console.log(node);
                 this.source += `const ${value} = ${this.descendInput(node.input).asUnknown()};`;
                 // blocks like legacy no-ops can return a literal `undefined`
                 this.source += `runtime.visualReport("${sanitize(this.script.topBlockId)}", typeof ${value} === "object" ? JSON.stringify(${value}) : typeof ${value} === "undefined" ? "undefined" : ${value});\n`;
