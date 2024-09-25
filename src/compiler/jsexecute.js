@@ -507,8 +507,8 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  * @returns {number} The 1-indexed index of the item in the list, otherwise 0
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
-    for (let i = 0; i < list.value.length; i++) {
-        if (compareEqual(list.value[i], item)) {
+for (let i = 0; i < list.value.length; i++) {
+     if (compareEqual(list.value[i], item)) {
             return i + 1;
         }
     }
