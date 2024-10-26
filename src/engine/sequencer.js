@@ -166,7 +166,7 @@ class Sequencer {
 
             // tw: Detect timer here so the sequencer won't break when FPS is greater than 1000
             // and performance.now() is not available.
-            if (this.timer.timeElapsed() < WORK_TIME) break;
+            if (this.timer.timeElapsed() >= WORK_TIME) break;
         }
 
         this.activeThread = null;
