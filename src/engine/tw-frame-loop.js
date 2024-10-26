@@ -62,16 +62,14 @@ class FrameLoop {
     }
 
     stepCallback () {
-        const now = this.now();
         this.runtime._step();
-        this._lastStepTime = now;
+        this._lastStepTime = this.now();
     }
 
     stepImmediateCallback () {
-        const now = this.now();
-        if (now - this._lastStepTime >= this.runtime.currentStepTime) {
+        if (this.now() - this._lastStepTime >= this.runtime.currentStepTime) {
             this.runtime._step();
-            this._lastStepTime = now;
+            this._lastStepTime = this.now();
         }
     }
 

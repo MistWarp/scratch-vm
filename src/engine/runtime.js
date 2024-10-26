@@ -2477,7 +2477,7 @@ class Runtime extends EventEmitter {
     }
 
     _renderInterpolatedPositions () {
-        const frameStarted = this.frameLoop._lastRenderTime;
+        const frameStarted = this.frameLoop._lastStepTime;
         const now = this.frameLoop.now();
         const timeSinceStart = now - frameStarted;
         const progressInFrame = Math.min(1, Math.max(0, timeSinceStart / this.currentStepTime));
@@ -2564,10 +2564,6 @@ class Runtime extends EventEmitter {
             this.profiler.stop();
             this.profiler.reportFrames();
         }
-
-        // if (this.interpolationEnabled) {
-        //     this._lastStepTime = Date.now();
-        // }
     }
 
     /**
