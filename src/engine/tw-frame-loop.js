@@ -20,9 +20,9 @@ const _cancelAnimationFrame =
 const taskWrapper = (callback, requestFn, cancelFn, manualInterval) => {
     let id;
     let cancelled = false;
-    const handle = (...args) => {
+    const handle = () => {
         if (manualInterval) id = requestFn(handle);
-        callback(...args);
+        callback();
     };
     const cancel = () => {
         if (!cancelled) cancelFn(id);
@@ -123,10 +123,10 @@ class FrameLoop {
         this.running = true;
         if (this.framerate === 0) {
             this._stepInterval = this._renderInterval = taskWrapper(
-                () => {
+                (() => {
                     this.stepCallback();
                     this.renderCallback();
-                },
+                }),
                 _requestAnimationFrame,
                 _cancelAnimationFrame,
                 true
@@ -139,8 +139,8 @@ class FrameLoop {
                 _cancelAnimationFrame,
                 true
             );
-            if (this.framerate > 250) {
-                // High precision implementation via setImmediate
+            if (this.framerate > 250 && global.setImmediate && global.clearImmediate) {
+                // High precision implementation via setImmediate (polyfilled)
                 // bug: very unfriendly to DevTools
                 this._stepInterval = taskWrapper(
                     this.stepImmediateCallback.bind(this),
