@@ -194,6 +194,11 @@ class ScriptTreeGenerator {
                         kind: 'tw.lastKeyPressed'
                     };
                 }
+                if (name.toLowerCase() === 'screen refresh time') {
+                    return {
+                        kind: 'tw.screenRefreshTime'
+                    };
+                }
             }
             if (index === -1) {
                 return {

@@ -739,6 +739,9 @@ class JSGenerator {
         case 'tw.lastKeyPressed':
             return new TypedInput('runtime.ioDevices.keyboard.getLastKeyPressed()', TYPE_STRING);
 
+        case 'tw.screenRefreshTime':
+            return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPE_NUMBER);
+
         case 'var.get':
             return this.descendVariable(node.variable);
 

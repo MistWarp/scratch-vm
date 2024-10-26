@@ -439,6 +439,14 @@ class Runtime extends EventEmitter {
          */
         this.platform = Object.assign({}, platform);
 
+        /**
+         * Screen refresh time speculated from screen refresh rate, in milliseconds.
+         * Indicates time passed between two screen refreshments.
+         * Based on site isolation status, the resolution could be ~0.1ms or lower.
+         * @type {!number}
+         */
+        this.screenRefreshTime = 0;
+
         this._initScratchLink();
 
         this.resetRunId();
@@ -463,7 +471,6 @@ class Runtime extends EventEmitter {
 
         this.debug = false;
 
-        this._lastStepTime = Date.now();
         this.interpolationEnabled = false;
 
         this._defaultStoredSettings = this._generateAllProjectOptions();
@@ -2470,8 +2477,8 @@ class Runtime extends EventEmitter {
     }
 
     _renderInterpolatedPositions () {
-        const frameStarted = this._lastStepTime;
-        const now = Date.now();
+        const frameStarted = this.frameLoop._lastRenderTime;
+        const now = this.frameLoop.now();
         const timeSinceStart = now - frameStarted;
         const progressInFrame = Math.min(1, Math.max(0, timeSinceStart / this.currentStepTime));
 
@@ -2576,9 +2583,9 @@ class Runtime extends EventEmitter {
             this.profiler.reportFrames();
         }
 
-        if (this.interpolationEnabled) {
-            this._lastStepTime = Date.now();
-        }
+        // if (this.interpolationEnabled) {
+        //     this._lastStepTime = Date.now();
+        // }
     }
 
     /**
@@ -2639,7 +2646,7 @@ class Runtime extends EventEmitter {
     setFramerate (framerate) {
         // Setting framerate to anything greater than this is unnecessary and can break the sequencer
         // Additionally, the JS spec says intervals can't run more than once every 4ms (250/s) anyways
-        if (framerate > 250) framerate = 250;
+        // if (framerate > 250) framerate = 250;
         // Convert negative framerates to 1FPS
         // Note that 0 is a special value which means "matching device screen refresh rate"
         if (framerate < 0) framerate = 1;

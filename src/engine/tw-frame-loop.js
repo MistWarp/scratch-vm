@@ -17,12 +17,12 @@ const _cancelAnimationFrame =
         cancelAnimationFrame :
         clearTimeout;
 
-const taskWrapper = (callback, requestFn, cancelFn) => {
+const taskWrapper = (callback, requestFn, cancelFn, manualInterval) => {
     let id;
     let cancelled = false;
-    const handle = () => {
-        id = requestFn(handle);
-        callback();
+    const handle = (...args) => {
+        if (manualInterval) id = requestFn(handle);
+        callback(...args);
     };
     const cancel = () => {
         if (!cancelled) cancelFn(id);
@@ -33,18 +33,6 @@ const taskWrapper = (callback, requestFn, cancelFn) => {
         cancel
     };
 };
-// const animationFrameWrapper = callback => {
-//     let id;
-//     const handle = () => {
-//         id = _requestAnimationFrame(handle);
-//         callback();
-//     };
-//     const cancel = () => _cancelAnimationFrame(id);
-//     id = _requestAnimationFrame(handle);
-//     return {
-//         cancel
-//     };
-// };
 
 class FrameLoop {
     constructor (runtime) {
@@ -53,18 +41,14 @@ class FrameLoop {
         this.setFramerate(30);
         this.setInterpolation(false);
         this._lastRenderTime = 0;
+        this._lastStepTime = 0;
 
         this._stepInterval = null;
-        // this._interpolationAnimation = null;
         this._renderInterval = null;
     }
 
-    _updateRenderTime () {
-        this._lastRenderTime = this._getRenderTime();
-    }
-
-    _getRenderTime () {
-        return (global.performance || Date).now();
+    now () {
+        return (performance || Date).now();
     }
 
     setFramerate (fps) {
@@ -78,17 +62,28 @@ class FrameLoop {
     }
 
     stepCallback () {
+        const now = this.now();
         this.runtime._step();
+        this._lastStepTime = now;
+    }
+
+    stepImmediateCallback () {
+        const now = this.now();
+        if (now - this._lastStepTime >= this.runtime.currentStepTime) {
+            this.runtime._step();
+            this._lastStepTime = now;
+        }
     }
 
     renderCallback () {
         if (this.runtime.renderer) {
+            const renderTime = this.now();
             if (this.interpolation && this.framerate !== 0) {
                 if (!document.hidden) {
                     this.runtime._renderInterpolatedPositions();
                 }
             } else if (
-                this._getRenderTime() - this._lastRenderTime >=
+                renderTime - this._lastRenderTime >=
                 this.runtime.currentStepTime
             ) {
                 // @todo: Only render when this.redrawRequested or clones rendered.
@@ -109,11 +104,11 @@ class FrameLoop {
                     this.runtime.profiler.stop();
                 }
             }
+            this.runtime.screenRefreshTime = renderTime - this._lastRenderTime; // Screen refresh time (from rate)
             if (this.framerate === 0) {
-                this.runtime.currentStepTime =
-                    this._getRenderTime() - this._lastRenderTime;
+                this.runtime.currentStepTime = this.runtime.screenRefreshTime;
             }
-            this._updateRenderTime();
+            this._lastRenderTime = renderTime;
         }
     }
 
@@ -127,41 +122,48 @@ class FrameLoop {
     start () {
         this.running = true;
         if (this.framerate === 0) {
-            this._stepInterval = this.renderInterval = taskWrapper(
+            this._stepInterval = this._renderInterval = taskWrapper(
                 () => {
                     this.stepCallback();
                     this.renderCallback();
                 },
                 _requestAnimationFrame,
-                _cancelAnimationFrame
+                _cancelAnimationFrame,
+                true
             );
         } else {
             // Interpolation should never be enabled when framerate === 0 as that's just redundant
             this._renderInterval = taskWrapper(
-                () => this.renderCallback(),
+                this.renderCallback.bind(this),
                 _requestAnimationFrame,
-                _cancelAnimationFrame
+                _cancelAnimationFrame,
+                true
             );
-            this._stepInterval = taskWrapper(
-                this.stepCallback,
-                fn => setInterval(fn, 1000 / this.framerate),
-                clearInterval
-            );
+            if (this.framerate > 250) {
+                // High precision implementation via setImmediate
+                // bug: very unfriendly to DevTools
+                this._stepInterval = taskWrapper(
+                    this.stepImmediateCallback.bind(this),
+                    global.setImmediate,
+                    global.clearImmediate,
+                    true
+                );
+            } else {
+                this._stepInterval = taskWrapper(
+                    this.stepCallback.bind(this),
+                    fn => setInterval(fn, 1000 / this.framerate),
+                    clearInterval,
+                    false
+                );
+            }
             this.runtime.currentStepTime = 1000 / this.framerate;
         }
     }
 
     stop () {
         this.running = false;
-        clearInterval(this._stepInterval);
-        if (this._interpolationAnimation) {
-            this._interpolationAnimation.cancel();
-        }
-        if (this._stepAnimation) {
-            this._stepAnimation.cancel();
-        }
-        this._interpolationAnimation = null;
-        this._stepAnimation = null;
+        this._renderInterval.cancel();
+        this._stepInterval.cancel();
     }
 }
 
