@@ -80,6 +80,8 @@ class FrameLoop {
                 if (!document.hidden) {
                     this.runtime._renderInterpolatedPositions();
                 }
+                this.runtime.screenRefreshTime = renderTime - this._lastRenderTime; // Screen refresh time (from rate)
+                this._lastRenderTime = renderTime;
             } else if (
                 renderTime - this._lastRenderTime >=
                 this.runtime.currentStepTime
@@ -101,12 +103,12 @@ class FrameLoop {
                 if (this.runtime.profiler !== null) {
                     this.runtime.profiler.stop();
                 }
+                this.runtime.screenRefreshTime = renderTime - this._lastRenderTime; // Screen refresh time (from rate)
+                this._lastRenderTime = renderTime;
+                if (this.framerate === 0) {
+                    this.runtime.currentStepTime = this.runtime.screenRefreshTime;
+                }
             }
-            this.runtime.screenRefreshTime = renderTime - this._lastRenderTime; // Screen refresh time (from rate)
-            if (this.framerate === 0) {
-                this.runtime.currentStepTime = this.runtime.screenRefreshTime;
-            }
-            this._lastRenderTime = renderTime;
         }
     }
 
