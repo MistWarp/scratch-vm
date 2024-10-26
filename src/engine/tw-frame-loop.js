@@ -131,6 +131,7 @@ class FrameLoop {
                 _cancelAnimationFrame,
                 true
             );
+            this.runtime.currentStepTime = 0;
         } else {
             // Interpolation should never be enabled when framerate === 0 as that's just redundant
             this._renderInterval = taskWrapper(

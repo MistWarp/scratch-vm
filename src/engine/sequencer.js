@@ -82,6 +82,9 @@ class Sequencer {
         // Whether `stepThreads` has run through a full single tick.
         let ranFirstTick = false;
         const doneThreads = [];
+
+        // tw: If this happens, the runtime is in initialization, do not execute any thread.
+        if (this.runtime.currentStepTime === 0) return [];
         // Conditions for continuing to stepping threads:
         // 1. We must have threads in the list, and some must be active.
         // 2. Time elapsed must be less than WORK_TIME.
