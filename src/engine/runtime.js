@@ -194,12 +194,6 @@ let stepProfilerId = -1;
 let stepThreadsProfilerId = -1;
 
 /**
- * Numeric ID for RenderWebGL.draw in Profiler instances.
- * @type {number}
- */
-let rendererDrawProfilerId = -1;
-
-/**
  * Manages targets, scripts, and the sequencer.
  * @constructor
  */
@@ -2548,24 +2542,24 @@ class Runtime extends EventEmitter {
         // Store threads that completed this iteration for testing and other
         // internal purposes.
         this._lastStepDoneThreads = doneThreads;
-        if (this.renderer) {
-            // @todo: Only render when this.redrawRequested or clones rendered.
-            if (this.profiler !== null) {
-                if (rendererDrawProfilerId === -1) {
-                    rendererDrawProfilerId = this.profiler.idByName('RenderWebGL.draw');
-                }
-                this.profiler.start(rendererDrawProfilerId);
-            }
-            // tw: do not draw if document is hidden or a rAF loop is running
-            // Checking for the animation frame loop is more reliable than using
-            // interpolationEnabled in some edge cases
-            if (!document.hidden && !this.frameLoop._interpolationAnimation) {
-                this.renderer.draw();
-            }
-            if (this.profiler !== null) {
-                this.profiler.stop();
-            }
-        }
+        // if (this.renderer) {
+        //     // @todo: Only render when this.redrawRequested or clones rendered.
+        //     if (this.profiler !== null) {
+        //         if (rendererDrawProfilerId === -1) {
+        //             rendererDrawProfilerId = this.profiler.idByName('RenderWebGL.draw');
+        //         }
+        //         this.profiler.start(rendererDrawProfilerId);
+        //     }
+        //     // tw: do not draw if document is hidden or a rAF loop is running
+        //     // Checking for the animation frame loop is more reliable than using
+        //     // interpolationEnabled in some edge cases
+        //     if (!document.hidden && !this.frameLoop._interpolationAnimation) {
+        //         this.renderer.draw();
+        //     }
+        //     if (this.profiler !== null) {
+        //         this.profiler.stop();
+        //     }
+        // }
 
         if (this._refreshTargets) {
             this.emit(Runtime.TARGETS_UPDATE, false /* Don't emit project changed */);
