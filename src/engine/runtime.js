@@ -2622,9 +2622,6 @@ class Runtime extends EventEmitter {
      * @param {number} framerate Target frames per second
      */
     setFramerate (framerate) {
-        // Setting framerate to anything greater than this is unnecessary and can break the sequencer
-        // Additionally, the JS spec says intervals can't run more than once every 4ms (250/s) anyways
-        // if (framerate > 250) framerate = 250;
         // Convert negative framerates to 1FPS
         // Note that 0 is a special value which means "matching device screen refresh rate"
         if (framerate < 0) framerate = 1;
