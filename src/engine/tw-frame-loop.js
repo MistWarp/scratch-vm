@@ -83,6 +83,7 @@ class FrameLoop {
                 this.runtime.screenRefreshTime = renderTime - this._lastRenderTime; // Screen refresh time (from rate)
                 this._lastRenderTime = renderTime;
             } else if (
+                this.framerate === 0 ||
                 renderTime - this._lastRenderTime >=
                 this.runtime.currentStepTime
             ) {
