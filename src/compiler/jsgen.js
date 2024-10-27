@@ -724,6 +724,8 @@ class JSGenerator {
         }
         case 'sensing.second':
             return new TypedInput(`(new Date().getSeconds())`, TYPE_NUMBER);
+        case 'sensing.refreshTime':
+            return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPE_NUMBER);
         case 'sensing.touching':
             return new TypedInput(`target.isTouchingObject(${this.descendInput(node.object).asUnknown()})`, TYPE_BOOLEAN);
         case 'sensing.touchingColor':
@@ -738,9 +740,6 @@ class JSGenerator {
 
         case 'tw.lastKeyPressed':
             return new TypedInput('runtime.ioDevices.keyboard.getLastKeyPressed()', TYPE_STRING);
-
-        case 'tw.screenRefreshTime':
-            return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPE_NUMBER);
 
         case 'var.get':
             return this.descendVariable(node.variable);

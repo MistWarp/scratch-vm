@@ -103,13 +103,9 @@ class Scratch3ProcedureBlocks {
     argumentReporterStringNumber (args, util) {
         const value = util.getParam(args.VALUE);
         if (value === null) {
-            // tw: support legacy block and screen refresh time
-            const lowercaseValue = String(args.VALUE).toLowerCase();
-            if (lowercaseValue === 'last key pressed') {
+            // tw: support legacy block
+            if (String(args.VALUE).toLowerCase() === 'last key pressed') {
                 return util.ioQuery('keyboard', 'getLastKeyPressed');
-            }
-            if (lowercaseValue === 'screen refresh time') {
-                return this.runtime.screenRefreshTime;
             }
             // When the parameter is not found in the most recent procedure
             // call, the default is always 0.

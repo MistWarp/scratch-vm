@@ -194,11 +194,6 @@ class ScriptTreeGenerator {
                         kind: 'tw.lastKeyPressed'
                     };
                 }
-                if (name.toLowerCase() === 'screen refresh time') {
-                    return {
-                        kind: 'tw.screenRefreshTime'
-                    };
-                }
             }
             if (index === -1) {
                 return {
@@ -588,6 +583,10 @@ class ScriptTreeGenerator {
             case 'second':
                 return {
                     kind: 'sensing.second'
+                };
+            case 'refreshtime':
+                return {
+                    kind: 'sensing.refrehTime'
                 };
             }
             return {
