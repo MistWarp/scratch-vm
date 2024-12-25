@@ -91,7 +91,7 @@ class FrameLoop {
                 if (this.runtime.profiler !== null) {
                     if (rendererDrawProfilerId === -1) {
                         rendererDrawProfilerId =
-                            this.profiler.idByName('RenderWebGL.draw');
+                            this.runtime.profiler.idByName('RenderWebGL.draw');
                     }
                     this.runtime.profiler.start(rendererDrawProfilerId);
                 }
