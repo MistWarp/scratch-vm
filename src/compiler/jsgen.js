@@ -604,15 +604,16 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.letterOf':
-            const letter_of_index = this.descendInput(node.letter).asNumber();
+        case 'op.letterOf': {
+            const letterOfIndex = this.descendInput(node.letter).asNumber();
             let after = '';
-            if (!isNaN(letter_of_index)) {
-                after = `[${letter_of_index - 1}]`;
+            if (isNaN(letterOfIndex)) {
+                after = `[${letterOfIndex} - 1]`;
             } else {
-                after = `[${letter_of_index} - 1]`;
+                after = `[${letterOfIndex - 1}]`;
             }
             return new TypedInput(`(${this.descendInput(node.string).asString()}${after} || "")`, TYPE_STRING);
+        }
         case 'op.ln':
             // Needs to be marked as NaN because Math.log(-1) == NaN
             return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);

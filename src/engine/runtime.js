@@ -1346,6 +1346,11 @@ class Runtime extends EventEmitter {
             colourSecondary: blockInfo.color2 ?? categoryInfo.color2,
             colourTertiary: blockInfo.color3 ?? categoryInfo.color3
         };
+
+        if (blockInfo.code) {
+            blockJSON.code = blockInfo.code;
+        }
+
         const context = {
             // TODO: store this somewhere so that we can map args appropriately after translation.
             // This maps an arg name to its relative position in the original (usually English) block text.
