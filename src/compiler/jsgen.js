@@ -1075,10 +1075,10 @@ class JSGenerator {
             this.source += `target.setDirection(${this.descendInput(node.direction).asNumber()});\n`;
             break;
         case 'motion.pointtowards_xy':
-            this.source += `target.setDirection(((Math.atan((${this.descendInput(node.x).asNumber()} - target.x) / (${this.descendInput(node.y).asNumber()} - target.y)) * 180 / Math.PI) + (${this.descendInput(node.y).asNumber()} > target.y ? 180 : 0)));\n`;
+            this.source += `target.setDirection(180 + ((Math.atan((${this.descendInput(node.x).asNumber()} - target.x) / (${this.descendInput(node.y).asNumber()} - target.y)) * 180 / Math.PI) + (${this.descendInput(node.y).asNumber()} > target.y ? 180 : 0)));\n`;
             break;
         case 'motion.pointtowards_xyfrom':
-            this.source += `target.setDirection(((Math.atan((${this.descendInput(node.x).asNumber()} - ${this.descendInput(node.fromx).asNumber()}) / (${this.descendInput(node.y).asNumber()} - ${this.descendInput(node.fromy).asNumber()})) * 180 / Math.PI) + (${this.descendInput(node.y).asNumber()} > ${this.descendInput(node.fromy).asNumber()} ? 180 : 0)));\n`;
+            this.source += `target.setDirection(180 + ((Math.atan((${this.descendInput(node.x).asNumber()} - ${this.descendInput(node.fromx).asNumber()}) / (${this.descendInput(node.y).asNumber()} - ${this.descendInput(node.fromy).asNumber()})) * 180 / Math.PI) + (${this.descendInput(node.y).asNumber()} > ${this.descendInput(node.fromy).asNumber()} ? 180 : 0)));\n`;
             break;
         case 'motion.setRotationStyle':
             this.source += `target.setRotationStyle("${sanitize(node.style)}");\n`;
