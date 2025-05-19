@@ -3082,6 +3082,13 @@ class Runtime extends EventEmitter {
      * @param {string} value Value to show associated with the block.
      */
     visualReport (blockId, value) {
+        if (typeof value === 'object') {
+            value = ExtendedJSON.stringify(value);
+        }
+        if (value.length > 1000) {
+            value = `${value.substr(0, 1000)}...`;
+        }
+        console.log(value);
         this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: value});
     }
 
