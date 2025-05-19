@@ -1199,7 +1199,7 @@ class JSGenerator {
                 const value = this.localVariables.next();
                 this.source += `const ${value} = ${this.descendInput(node.input).asUnknown()};`;
                 // blocks like legacy no-ops can return a literal `undefined`
-                this.source += `runtime.visualReport("${sanitize(this.script.topBlockId)}", typeof ${value} === "object" ? JSON.stringify(${value}) : typeof ${value} === "undefined" ? "undefined" : ${value});\n`;
+                this.source += `runtime.visualReport("${sanitize(this.script.topBlockId)}", ${value});\n`;
                 break;
             }
 

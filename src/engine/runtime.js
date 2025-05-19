@@ -459,7 +459,8 @@ class Runtime extends EventEmitter {
         this.runtimeOptions = {
             maxClones: Runtime.MAX_CLONES,
             miscLimits: true,
-            fencing: true
+            fencing: true,
+            caseSensitiveLists: false
         };
 
         this.compilerOptions = {
@@ -3083,12 +3084,14 @@ class Runtime extends EventEmitter {
      */
     visualReport (blockId, value) {
         if (typeof value === 'object') {
-            value = ExtendedJSON.stringify(value);
+            value = JSON.stringify(value);
         }
-        if (value.length > 1000) {
-            value = `${value.substr(0, 1000)}...`;
+        if (typeof value === 'undefined') {
+            value = 'undefined';
         }
-        console.log(value);
+        if (value.length > 10000) {
+            value = `${value.substr(0, 10000)}...`;
+        }
         this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: value});
     }
 
