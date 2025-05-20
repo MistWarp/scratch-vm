@@ -490,9 +490,9 @@ class JSGenerator {
         case 'motion.direction':
             return new TypedInput('target.direction', TYPE_NUMBER);
         case 'motion.x':
-            return new TypedInput('limitPrecision(target.x)', TYPE_NUMBER);
+            return new TypedInput('target.x', TYPE_NUMBER);
         case 'motion.y':
-            return new TypedInput('limitPrecision(target.y)', TYPE_NUMBER);
+            return new TypedInput('target.y', TYPE_NUMBER);
 
         case 'mouse.down':
             return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
@@ -533,15 +533,10 @@ class JSGenerator {
             let right = this.descendInput(node.right);
             // When both operands are known to never be numbers, only use string comparison to avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
-                left = left.asString();
-                right = right.asString();
-                // do not convert to lowercase if the values are known to be boolean
-                if (['true', 'false'].indexOf(left.toLowerCase()) === -1) {
-                    left += '.toLowerCase()';
-                }
-                if (['true', 'false'].indexOf(right.toLowerCase()) === -1) {
-                    right += '.toLowerCase()';
-                }
+                if (left.safe) left = left.asString().toLowerCase();
+                else left = `${left.asString()}.toLowerCase()`;
+                if (right.safe) right = right.asString().toLowerCase();
+                else right = `${right.asString()}.toLowerCase()`;
                 return new TypedInput(`(${left} === ${right})`, TYPE_BOOLEAN);
             }
             const leftAlwaysNumber = left.isAlwaysNumber();
@@ -1413,9 +1408,9 @@ class JSGenerator {
         let script = '';
 
         // Setup the factory
-        script += `(function ${this.getScriptFactoryName()}(thread) { `;
-        script += 'const target = thread.target; ';
-        script += 'const runtime = target.runtime; ';
+        script += `(function ${this.getScriptFactoryName()}(thread) {\n`;
+        script += 'const target = thread.target;\n';
+        script += 'const runtime = target.runtime;\n';
         script += 'const stage = runtime.getTargetForStage();\n';
         for (const varValue of Object.keys(this._setupVariables)) {
             const varName = this._setupVariables[varValue];

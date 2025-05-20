@@ -25,9 +25,10 @@ const runtimeFunctions = {};
  */
 baseRuntime += `let stuckCounter = 0;
 const isStuck = () => {
+    return false;
     // The real time is not checked on every call for performance.
     stuckCounter++;
-    if (stuckCounter === 100) {
+    if (stuckCounter === 500) {
         stuckCounter = 0;
         return globalState.thread.target.runtime.sequencer.timer.timeElapsed() > 500;
     }
@@ -360,7 +361,8 @@ runtimeFunctions.timer = `const timer = () => {
  */
 // Date.UTC(2000, 0, 1) === 946684800000
 // Hardcoding it is marginally faster
-runtimeFunctions.daysSince2000 = `const daysSince2000 = () => (Date.now() - 946684800000) / (24 * 60 * 60 * 1000)`;
+runtimeFunctions.daysSince2000 = `const MS_PER_DAY = 24 * 60 * 60 * 1000;
+daysSince2000 = () => (Date.now() - 946684800000) / MS_PER_DAY`;
 
 /**
  * Determine distance to a sprite or point.
@@ -374,8 +376,9 @@ runtimeFunctions.distance = `const distance = menu => {
     let targetX = 0;
     let targetY = 0;
     if (menu === '_mouse_') {
-        targetX = thread.target.runtime.ioDevices.mouse.getScratchX();
-        targetY = thread.target.runtime.ioDevices.mouse.getScratchY();
+        const mouse = thread.target.runtime.ioDevices.mouse;
+        targetX = mouse.getScratchX();
+        targetY = mouse.getScratchY();
     } else {
         const distTarget = thread.target.runtime.getSpriteTargetByName(menu);
         if (!distTarget) return 10000;
@@ -385,7 +388,7 @@ runtimeFunctions.distance = `const distance = menu => {
 
     const dx = thread.target.x - targetX;
     const dy = thread.target.y - targetY;
-    return Math.sqrt((dx * dx) + (dy * dy));
+    return Math.hypot(dx, dy);
 }`;
 
 /**
@@ -400,23 +403,20 @@ baseRuntime += `const listIndexSlow = (index, length) => {
     if (index === 'last') {
         return length - 1;
     } else if (index === 'random' || index === 'any') {
-        if (length > 0) {
-            return (Math.random() * length) | 0;
-        }
+        if (length > 0) return Math.floor(Math.random() * length);
         return -1;
     }
     index = (+index || 0) | 0;
-    if (index < 1 || index > length) {
-        return -1;
-    }
+    if (index < 1 || index > length) return -1;
     return index - 1;
 };
 const listIndex = (index, length) => {
-    if (typeof index !== 'number') {
-      return listIndexSlow(index, length);
+    // Fast path for common number case
+    if (typeof index === 'number') {
+        index = index | 0;
+        return index < 1 || index > length ? -1 : index - 1;
     }
-    index = index | 0;
-    return index < 1 || index > length ? -1 : index - 1;
+    return listIndexSlow(index, length);
 };`;
 
 /**
@@ -427,10 +427,7 @@ const listIndex = (index, length) => {
  */
 runtimeFunctions.listGet = `const listGet = (list, idx) => {
     const index = listIndex(idx, list.length);
-    if (index === -1) {
-        return '';
-    }
-    return list[index];
+    return index === -1 ? '' : list[index];
 }`;
 
 /**
@@ -440,13 +437,13 @@ runtimeFunctions.listGet = `const listGet = (list, idx) => {
  * @param {*} value The new value.
  */
 runtimeFunctions.listReplace = `const listReplace = (list, idx, value) => {
-    const index = listIndex(idx, list.value.length);
-    if (index === -1) {
-        return;
+    const values = list.value;
+    const index = listIndex(idx, values.length);
+    if (index !== -1) {
+        values[index] = value;
+        list._monitorUpToDate = false;
     }
-    list.value[index] = value;
-    list._monitorUpToDate = false;
-}`;
+};`;
 
 /**
  * Insert a value in a list.
@@ -455,13 +452,13 @@ runtimeFunctions.listReplace = `const listReplace = (list, idx, value) => {
  * @param {*} value The value to insert.
  */
 runtimeFunctions.listInsert = `const listInsert = (list, idx, value) => {
-    const index = listIndex(idx, list.value.length + 1);
-    if (index === -1) {
-        return;
+    const values = list.value;
+    const index = listIndex(idx, values.length + 1);
+    if (index !== -1) {
+        values.splice(index, 0, value);
+        list._monitorUpToDate = false;
     }
-    list.value.splice(index, 0, value);
-    list._monitorUpToDate = false;
-}`;
+};`;
 
 /**
  * Delete a value from a list.
@@ -469,17 +466,18 @@ runtimeFunctions.listInsert = `const listInsert = (list, idx, value) => {
  * @param {*} idx The Scratch index in the list.
  */
 runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
+    const values = list.value;
     if (idx === 'all') {
         list.value = [];
+        list._monitorUpToDate = false;
         return;
     }
-    const index = listIndex(idx, list.value.length);
-    if (index === -1) {
-        return;
+    const index = listIndex(idx, values.length);
+    if (index !== -1) {
+        values.splice(index, 1);
+        list._monitorUpToDate = false;
     }
-    list.value.splice(index, 1);
-    list._monitorUpToDate = false;
-}`;
+};`;
 
 /**
  * Return whether a list contains a value.
@@ -488,17 +486,12 @@ runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
  * @returns {boolean} True if the list contains the item
  */
 runtimeFunctions.listContains = `const listContains = (list, item) => {
-    // TODO: evaluate whether indexOf is worthwhile here
-    if (list.value.indexOf(item) !== -1) {
-        return true;
-    }
-    for (let i = 0; i < list.value.length; i++) {
-        if (compareEqual(list.value[i], item)) {
-            return true;
-        }
+    if (list.value.indexOf(item) !== -1) return true;
+    for (let i = 0, len = list.value.length; i < len; i++) {
+        if (compareEqual(list.value[i], item)) return true;
     }
     return false;
-}`;
+};`;
 
 /**
  * Find the 1-indexed index of an item in a list.
@@ -507,16 +500,14 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  * @returns {number} The 1-indexed index of the item in the list, otherwise 0
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
-const index = list.value.indexOf(item) + 1; // check the conventional indexOf first
-if (index > 0) return index;
+    const index = list.value.indexOf(item) + 1;
+    if (index > 0) return index;
 
-for (let i = 0; i < list.value.length; i++) {
-     if (compareEqual(list.value[i], item)) {
-            return i + 1;
-        }
+    for (let i = 0, len = list.value.length; i < len; i++) {
+        if (compareEqual(list.value[i], item)) return i + 1;
     }
     return 0;
-}`;
+};`;
 
 /**
  * Get the stringified form of a list.
@@ -533,7 +524,7 @@ runtimeFunctions.listContents = `const listContents = list => {
         }
     }
     return list.value.join('');
-}`;
+};`;
 
 /**
  * Convert a color to an RGB list
@@ -552,7 +543,7 @@ runtimeFunctions.mod = `const mod = (n, modulus) => {
     let result = n % modulus;
     if (result / modulus < 0) result += modulus;
     return result;
-}`;
+};`;
 
 /**
  * Implements Scratch tangent.
@@ -560,12 +551,16 @@ runtimeFunctions.mod = `const mod = (n, modulus) => {
  * @returns {number} value of tangent or Infinity or -Infinity
  */
 runtimeFunctions.tan = `const tan = (angle) => {
-    switch (angle % 360) {
-    case -270: case 90: return Infinity;
-    case -90: case 270: return -Infinity;
-    }
-    return Math.round(Math.tan((Math.PI * angle) / 180) * 1e10) / 1e10;
-}`;
+    const mod = angle % 360;
+    // Special cases for improved precision and performance
+    if (mod === 90 || mod === -270) return Infinity;
+    if (mod === -90 || mod === 270) return -Infinity;
+    if (mod === 0 || mod === 180 || mod === -180) return 0;
+    
+    // Convert to radians and calculate tangent
+    const radians = (Math.PI * angle) / 180;
+    return Math.round(Math.tan(radians) * 1e10) / 1e10;
+};`;
 
 /**
  * @param {function} callback The function to run
@@ -575,7 +570,7 @@ runtimeFunctions.tan = `const tan = (angle) => {
 runtimeFunctions.yieldThenCall = `const yieldThenCall = function* (callback, ...args) {
     yield;
     return callback(...args);
-}`;
+};`;
 
 /**
  * @param {function} callback The generator function to run
@@ -585,7 +580,7 @@ runtimeFunctions.yieldThenCall = `const yieldThenCall = function* (callback, ...
 runtimeFunctions.yieldThenCallGenerator = `const yieldThenCallGenerator = function* (callback, ...args) {
     yield;
     return yield* callback(...args);
-}`;
+};`;
 
 /**
  * Step a compiled thread.

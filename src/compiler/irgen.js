@@ -673,7 +673,6 @@ class ScriptTreeGenerator {
             };
 
         default: {
-            console.log(`IR: Unknown input: ${block.opcode}`, block);
             const opcodeFunction = this.runtime.getOpcodeFunction(block.opcode);
             if (opcodeFunction) {
                 // It might be a non-compiled primitive from a standard category
@@ -1183,7 +1182,6 @@ class ScriptTreeGenerator {
             };
 
         default: {
-            console.log('descendStackedBlock', block);
             const opcodeFunction = this.runtime.getOpcodeFunction(block.opcode);
             if (opcodeFunction) {
                 // It might be a non-compiled primitive from a standard category
