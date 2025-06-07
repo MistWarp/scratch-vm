@@ -153,17 +153,91 @@ const teardownUnsandboxedExtensionAPI = () => {
  * @returns {Promise<object[]>} Resolves with a list of extension objects if the extension was loaded successfully.
  */
 const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, reject) => {
-    setupUnsandboxedExtensionAPI(vm).then(resolve);
+    let isResolved = false;
+    let extensionAPIPromise;
+    
+    // Add timeout to setupUnsandboxedExtensionAPI to catch scripts that load but don't register
+    const setupWithTimeout = () => {
+        return new Promise((setupResolve, setupReject) => {
+            const setupTimeout = setTimeout(() => {
+                setupReject(new Error(`Extension did not register within timeout period`));
+            }, 10000); // 10 second timeout for extension registration
+            
+            setupUnsandboxedExtensionAPI(vm).then(extensionObjects => {
+                clearTimeout(setupTimeout);
+                setupResolve(extensionObjects);
+            }).catch(setupReject);
+        });
+    };
+    
+    extensionAPIPromise = setupWithTimeout().then(extensionObjects => {
+        if (!isResolved) {
+            isResolved = true;
+            resolve(extensionObjects);
+        }
+    }).catch(error => {
+        if (!isResolved) {
+            isResolved = true;
+            error.url = extensionURL;
+            error.type = 'registration-timeout';
+            console.error(`Extension registration timeout for ${extensionURL}:`, error);
+            reject(error);
+        }
+    });
 
     const script = document.createElement('script');
-    script.onerror = () => {
-        reject(new Error(`Error in unsandboxed script ${extensionURL}. Check the console for more information.`));
+    
+    // Enhanced error handling
+    script.onerror = (event) => {
+        if (!isResolved) {
+            isResolved = true;
+            const error = new Error(`Failed to load extension script from ${extensionURL}`);
+            error.url = extensionURL;
+            error.event = event;
+            error.type = 'script-load-error';
+            console.error(`Error loading unsandboxed script ${extensionURL}:`, error);
+            reject(error);
+        }
     };
+    
+    // Handle load success but potential runtime errors
+    script.onload = () => {
+        console.log(`Successfully loaded extension script from ${extensionURL}`);
+    };
+    
+    // Add overall timeout to catch hanging scripts
+    const overallTimeout = setTimeout(() => {
+        if (!isResolved) {
+            isResolved = true;
+            const error = new Error(`Overall timeout loading extension script from ${extensionURL}`);
+            error.url = extensionURL;
+            error.type = 'overall-timeout';
+            console.error(`Overall timeout loading unsandboxed script ${extensionURL}`);
+            reject(error);
+        }
+    }, 30000); // 30 second overall timeout
+    
+    // Clear timeout if promise resolves
+    const originalResolve = resolve;
+    resolve = (...args) => {
+        clearTimeout(overallTimeout);
+        return originalResolve(...args);
+    };
+    
+    const originalReject = reject;
+    reject = (...args) => {
+        clearTimeout(overallTimeout);
+        return originalReject(...args);
+    };
+    
     script.src = extensionURL;
     document.body.appendChild(script);
 }).then(objects => {
     teardownUnsandboxedExtensionAPI();
     return objects;
+}).catch(error => {
+    teardownUnsandboxedExtensionAPI();
+    throw error;
 });
 
 // Because loading unsandboxed extensions requires messing with global state (global.Scratch),
