@@ -785,6 +785,8 @@ const parseScratchObject = function (object, runtime, extensions, topLevel, zip,
 
     Promise.all(costumePromises).then(costumes => {
         sprite.costumes = costumes;
+        // Request targets update to refresh GUI when costumes are loaded
+        runtime.requestTargetsUpdate(target);
     });
 
     Promise.all(soundPromises).then(sounds => {
