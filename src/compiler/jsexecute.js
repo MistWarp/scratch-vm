@@ -25,12 +25,11 @@ const runtimeFunctions = {};
  */
 baseRuntime += `let stuckCounter = 0;
 const isStuck = () => {
-    return false;
     // The real time is not checked on every call for performance.
     stuckCounter++;
-    if (stuckCounter === 500) {
+    if (stuckCounter === 100) {
         stuckCounter = 0;
-        return globalState.thread.target.runtime.sequencer.timer.timeElapsed() > 500;
+        return globalState.thread.target.runtime.sequencer.timer.timeElapsed() > 1000;
     }
     return false;
 };`;
