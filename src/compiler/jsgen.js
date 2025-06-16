@@ -1135,13 +1135,7 @@ class JSGenerator {
             this.source += `${PEN_EXT}._stamp(target);\n`;
             break;
         case 'pen.printText':
-            this.source += `${PEN_EXT}._printText(`;
-            this.descendInput(node.text);
-            this.source += `, `;
-            this.descendInput(node.x);
-            this.source += `, `;
-            this.descendInput(node.y);
-            this.source += `, target);\n`;
+            this.source += `${PEN_EXT}._printText(${this.descendInput(node.text).asSafe()}, ${this.descendInput(node.x).asNumber()}, ${this.descendInput(node.y).asNumber()}, target);\n`;
             break;
         case 'pen.up':
             this.source += `${PEN_EXT}._penUp(target);\n`;
