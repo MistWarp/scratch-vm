@@ -1159,7 +1159,9 @@ class Scratch3PenBlocks {
         
         // Create or update bitmap skin
         if (this.bitmapSkinID < 0 && this.runtime.renderer.createBitmapSkin) {
-            this.bitmapSkinID = this.runtime.renderer.createBitmapSkin();
+            // Create initial empty imageData with canvas dimensions
+            const initialImageData = context.createImageData(width, height);
+            this.bitmapSkinID = this.runtime.renderer.createBitmapSkin(initialImageData, 1);
             this.bitmapDrawableID = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
             this.runtime.renderer.updateDrawableSkinId(this.bitmapDrawableID, this.bitmapSkinID);
         }
