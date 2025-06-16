@@ -1154,6 +1154,13 @@ class ScriptTreeGenerator {
             return {
                 kind: 'pen.stamp'
             };
+        case 'pen_printText':
+            return {
+                kind: 'pen.printText',
+                text: this.descendInputOfBlock(block, 'TEXT'),
+                x: this.descendInputOfBlock(block, 'X'),
+                y: this.descendInputOfBlock(block, 'Y')
+            };
 
         case 'procedures_call': {
             const procedureCode = block.mutation.proccode;

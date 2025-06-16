@@ -1338,14 +1338,18 @@ class Runtime extends EventEmitter {
     _convertBlockForScratchBlocks (blockInfo, categoryInfo) {
         const extendedOpcode = `${categoryInfo.id}_${blockInfo.opcode}`;
 
+        if (!blockInfo.color1) blockInfo.color1 = categoryInfo.color1;
+        if (!blockInfo.color2) blockInfo.color2 = categoryInfo.color2;
+        if (!blockInfo.color3) blockInfo.color3 = categoryInfo.color3;
+
         const blockJSON = {
             type: extendedOpcode,
             inputsInline: true,
             category: categoryInfo.name,
             extensions: [],
-            colour: blockInfo.color1 ?? categoryInfo.color1,
-            colourSecondary: blockInfo.color2 ?? categoryInfo.color2,
-            colourTertiary: blockInfo.color3 ?? categoryInfo.color3
+            colour: blockInfo.color1,
+            colourSecondary: blockInfo.color2,
+            colourTertiary: blockInfo.color3
         };
 
         if (blockInfo.code) {
@@ -1479,11 +1483,14 @@ class Runtime extends EventEmitter {
             )
         ) {
             // Add icon to the bottom right of a loop block
+
+            if (!blockInfo.branchIconURI) blockInfo.branchIconURI = 'media://repeat.svg';
+
             blockJSON[`lastDummyAlign${outLineNum}`] = 'RIGHT';
             blockJSON[`message${outLineNum}`] = '%1';
             blockJSON[`args${outLineNum}`] = [{
                 type: 'field_image',
-                src: blockInfo.branchIconURI ?? 'media://repeat.svg',
+                src: blockInfo.branchIconURI,
                 width: 24,
                 height: 24,
                 alt: '*', // TODO remove this since we don't use collapsed blocks in scratch
