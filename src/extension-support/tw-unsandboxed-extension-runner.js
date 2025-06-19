@@ -110,6 +110,51 @@ const setupUnsandboxedExtensionAPI = vm => new Promise(resolve => {
         return fetch(url, options);
     };
 
+    Scratch.download = async (url, file) => {
+        if (!await Scratch.canFetch(url)) {
+            throw new Error(`Permission to fetch ${url} rejected.`);
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        
+        // Create download link
+        const downloadLink = document.createElement('a');
+        document.body.appendChild(downloadLink);
+        
+        try {
+            if ('download' in HTMLAnchorElement.prototype) {
+                const objectUrl = window.URL.createObjectURL(blob);
+                downloadLink.href = objectUrl;
+                downloadLink.download = file;
+                downloadLink.type = blob.type;
+                downloadLink.click();
+                
+                // Clean up after a timeout to prevent iOS 13 Safari crash
+                window.setTimeout(() => {
+                    document.body.removeChild(downloadLink);
+                    window.URL.revokeObjectURL(objectUrl);
+                }, 1000);
+            } else {
+                // Fallback for older browsers
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const popup = window.open('', '_blank');
+                    popup.location.href = reader.result;
+                };
+                reader.readAsDataURL(blob);
+                document.body.removeChild(downloadLink);
+            }
+        } catch (error) {
+            document.body.removeChild(downloadLink);
+            throw error;
+        }
+    };
+
     Scratch.openWindow = async (url, features) => {
         if (!await Scratch.canOpenWindow(url)) {
             throw new Error(`Permission to open tab ${url} rejected.`);
@@ -129,10 +174,8 @@ const setupUnsandboxedExtensionAPI = vm => new Promise(resolve => {
 
     Scratch.translate = createTranslate(vm);
 
+    // Assign the Scratch object to global so extensions can access it
     global.Scratch = Scratch;
-    global.ScratchExtensions = createScratchX(Scratch);
-
-    vm.emit('CREATE_UNSANDBOXED_EXTENSION_API', Scratch);
 });
 
 /**
@@ -140,10 +183,12 @@ const setupUnsandboxedExtensionAPI = vm => new Promise(resolve => {
  * This helps debug poorly designed extensions.
  */
 const teardownUnsandboxedExtensionAPI = () => {
-    // We can assume global.Scratch already exists.
-    global.Scratch.extensions.register = () => {
-        throw new Error('Too late to register new extensions.');
-    };
+    // Check if global.Scratch exists before trying to access it
+    if (global.Scratch && global.Scratch.extensions) {
+        global.Scratch.extensions.register = () => {
+            throw new Error('Too late to register new extensions.');
+        };
+    }
 };
 
 /**
