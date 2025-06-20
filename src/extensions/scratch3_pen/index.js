@@ -466,6 +466,7 @@ class Scratch3PenBlocks {
                     },
                     filter: [TargetType.SPRITE]
                 },
+                "---",
                 {
                     opcode: 'setPrintFont',
                     blockType: BlockType.COMMAND,
