@@ -344,6 +344,18 @@ class Frame {
          * @type {boolean}
          */
         this.isLastBlock = false;
+
+        /**
+         * Whether the current frame can be broken out of (switch/case blocks)
+         * @type {boolean}
+         */
+        this.isBreakable = false;
+
+        /**
+         * The variable name holding the switch value (for switch frames)
+         * @type {string}
+         */
+        this.switchValue = null;
     }
 }
 
@@ -1203,6 +1215,36 @@ class JSGenerator {
             this.source += `const ${value} = ${this.descendInput(node.input).asUnknown()};`;
             // blocks like legacy no-ops can return a literal `undefined`
             this.source += `runtime.visualReport("${sanitize(this.script.topBlockId)}", ${value});\n`;
+            break;
+        }
+
+        case 'control.switch': {
+            console.log(node)
+            this.source += `switch (${this.descendInput(node.value).asString()}) {\n`;
+            this.descendStack(node.do, new Frame(true));
+            this.source += `}\n`;
+            break;
+        }
+        case 'control.case': {
+            this.source += `case ${this.descendInput(node.value).asString()}: {\n`;
+            
+            this.descendStack(node.do, new Frame(true));
+            this.source += 'break; }\n';
+            break;
+        }
+        case 'control.default': {
+            this.source += `default:\n`;
+            
+            this.descendStack(node.do, new Frame(true));
+            break;
+        }
+        case 'control.break': {
+            this.source += 'break;\n';
+            break;
+        }
+        case 'control.case_fallthrough': {
+            this.source += `case ${this.descendInput(node.value).asString()}:\n`;
+            // No break statement - allows fallthrough to next case
             break;
         }
 

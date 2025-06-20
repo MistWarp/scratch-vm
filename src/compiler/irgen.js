@@ -842,6 +842,32 @@ class ScriptTreeGenerator {
                 // We should consider analyzing this like we do for control_repeat_until
                 warpTimer: false
             };
+        case 'control_switch':
+            return {
+                kind: 'control.switch',
+                value: this.descendInputOfBlock(block, 'VALUE'),
+                do: this.descendSubstack(block, 'SUBSTACK')
+            };
+        case 'control_case':
+            return {
+                kind: 'control.case',
+                value: this.descendInputOfBlock(block, 'VALUE'),
+                do: this.descendSubstack(block, 'SUBSTACK')
+            };
+        case 'control_default':
+            return {
+                kind: 'control.default',
+                do: this.descendSubstack(block, 'SUBSTACK')
+            };
+        case 'control_break':
+            return {
+                kind: 'control.break'
+            };
+        case 'control_case_fallthrough':
+            return {
+                kind: 'control.case_fallthrough',
+                value: this.descendInputOfBlock(block, 'VALUE')
+            };
 
         case 'data_addtolist':
             return {
