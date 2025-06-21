@@ -29,7 +29,7 @@ const isStuck = () => {
     stuckCounter++;
     if (stuckCounter === 100) {
         stuckCounter = 0;
-        return globalState.thread.target.runtime.sequencer.timer.timeElapsed() > 1000;
+        return globalState.thread.target.runtime.sequencer.timer.timeElapsed() > 500;
     }
     return false;
 };`;
