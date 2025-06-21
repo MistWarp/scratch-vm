@@ -1221,21 +1221,21 @@ class JSGenerator {
         case 'control.switch': {
             console.log(node)
             this.source += `switch (${this.descendInput(node.value).asString()}) {\n`;
-            this.descendStack(node.do, new Frame(true));
+            this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
         }
         case 'control.case': {
             this.source += `case ${this.descendInput(node.value).asString()}: {\n`;
             
-            this.descendStack(node.do, new Frame(true));
+            this.descendStack(node.do, new Frame(false));
             this.source += 'break; }\n';
             break;
         }
         case 'control.default': {
             this.source += `default:\n`;
             
-            this.descendStack(node.do, new Frame(true));
+            this.descendStack(node.do, new Frame(false));
             break;
         }
         case 'control.break': {
