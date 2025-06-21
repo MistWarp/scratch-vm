@@ -1219,7 +1219,6 @@ class JSGenerator {
         }
 
         case 'control.switch': {
-            console.log(node)
             this.source += `switch (${this.descendInput(node.value).asString()}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
