@@ -374,7 +374,7 @@ class Scratch3ControlBlocks {
         
         // Remove blocks from stack until we reach the breakable block
         while (thread.stack.length > 0 && thread.peekStack() !== loopFrameBlock) {
-            if (blocks.getBlock(thread.peekStack())?.opcode === 'procedures_call') return;
+            if (blocks.getBlock(thread.peekStack()).opcode === 'procedures_call') return;
             thread.popStack();
         }
         
@@ -389,193 +389,11 @@ class Scratch3ControlBlocks {
         }
     }
 
-    caseFallthrough (args, util) {
+    caseFallthrough () {
         // This is a marker block for fallthrough cases
         // It doesn't execute anything - just provides the case value
         // The actual logic is handled by the switch block
         return;
-    }
-
-    /**
-     * The "switch" block begins a switch-case construct.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    switch (args, util) {
-        const frame = util.stackFrame;
-        if (!frame.switchExecuted) {
-            frame.switchExecuted = true;
-            frame.switchValue = Cast.toString(args.VALUE);
-            frame.isSwitch = true;
-            frame.isBreakable = true;
-            frame.caseMatched = false;
-            frame.hasDefaultRun = false;
-            util.startBranch(1, false);
-        }
-    }
-
-    /**
-     * The "case" block compares a value to the switch value.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    case (args, util) {
-        const frame = util.stackFrame;
-        const parentFrame = this._getParentSwitchFrame(util.thread);
-        
-        if (!parentFrame || !parentFrame.isSwitch) return;
-        
-        if (!frame.caseExecuted) {
-            frame.caseExecuted = true;
-            frame.isBreakable = true;
-            frame.caseValue = Cast.toString(args.VALUE);
-            
-            // Check if this case matches or if we're falling through
-            const shouldExecute = (parentFrame.switchValue === frame.caseValue) || parentFrame.caseMatched;
-            
-            if (shouldExecute) {
-                parentFrame.caseMatched = true;
-                util.startBranch(1, false);
-            }
-        }
-    }
-
-    /**
-     * The "default" block runs when no case has matched.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    default (args, util) {
-        const frame = util.stackFrame;
-        const parentFrame = this._getParentSwitchFrame(util.thread);
-        
-        if (!parentFrame || !parentFrame.isSwitch) return;
-        
-        if (!frame.defaultExecuted) {
-            frame.defaultExecuted = true;
-            frame.isBreakable = true;
-            
-            // Execute default only if no case has matched and we haven't run it yet
-            if (!parentFrame.caseMatched && !parentFrame.hasDefaultRun) {
-                parentFrame.hasDefaultRun = true;
-                parentFrame.caseMatched = true;
-                util.startBranch(1, false);
-            }
-        }
-    }
-
-    /**
-     * The "break" block exits the current breakable construct.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    break (args, util) {
-        this._breakCurrentLoop(util.thread);
-    }
-
-    /**
-     * The "continue" block continues to the next iteration of a loop.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    continue (args, util) {
-        this._continueCurrentLoop(util.thread);
-    }
-
-    /**
-     * Get the switch value in the current switch construct.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     * @returns {string} The switch value or empty string if not in a switch.
-     */
-    switchValue (args, util) {
-        const parentFrame = this._getParentSwitchFrame(util.thread);
-        return parentFrame && parentFrame.switchValue ? parentFrame.switchValue : '';
-    }
-
-    /**
-     * Get the case value in the current case construct.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     * @returns {string} The case value or empty string if not in a case.
-     */
-    caseValue (args, util) {
-        const frame = this._getParentCaseFrame(util.thread);
-        return frame && frame.caseValue ? frame.caseValue : '';
-    }
-
-    /**
-     * Helper method to find the parent switch frame.
-     * @param {Thread} thread - the thread to search.
-     * @returns {object|null} The switch frame or null if not found.
-     * @private
-     */
-    _getParentSwitchFrame (thread) {
-        const frames = thread.stackFrames;
-        for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].isSwitch) {
-                return frames[i];
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Helper method to find the parent case frame.
-     * @param {Thread} thread - the thread to search.
-     * @returns {object|null} The case frame or null if not found.
-     * @private
-     */
-    _getParentCaseFrame (thread) {
-        const frames = thread.stackFrames;
-        for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].caseValue) {
-                return frames[i];
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Helper method to break out of the current breakable construct.
-     * @param {Thread} thread - the thread to break.
-     * @private
-     */
-    _breakCurrentLoop (thread) {
-        const blocks = thread.blockContainer;
-        const frames = thread.stackFrames;
-        
-        // Find the nearest breakable frame
-        let loopFrameIndex = -1;
-        let loopFrameBlock = null;
-        
-        for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].isLoop || frames[i].isBreakable) {
-                loopFrameIndex = i;
-                loopFrameBlock = frames[i].op ? frames[i].op.id : null;
-                break;
-            }
-        }
-        
-        if (loopFrameIndex === -1 || !loopFrameBlock) return;
-        
-        const afterLoop = blocks.getBlock(loopFrameBlock).next;
-        
-        // Remove blocks from stack until we reach the breakable block
-        while (thread.stack.length > 0 && thread.peekStack() !== loopFrameBlock) {
-            if (blocks.getBlock(thread.peekStack())?.opcode === 'procedures_call') return;
-            thread.popStack();
-        }
-        
-        // Remove the breakable block itself
-        if (thread.stack.length > 0) {
-            thread.popStack();
-        }
-        
-        // Continue after the breakable block if there's a next block
-        if (afterLoop) {
-            thread.pushStack(afterLoop);
-        }
     }
 
     /**
@@ -601,7 +419,7 @@ class Scratch3ControlBlocks {
         
         // Remove blocks from stack until we reach the loop block
         while (thread.stack.length > 0 && thread.peekStack() !== loopFrameBlock) {
-            if (blocks.getBlock(thread.peekStack())?.opcode === 'procedures_call') return;
+            if (blocks.getBlock(thread.peekStack()).opcode === 'procedures_call') return;
             thread.popStack();
         }
         
