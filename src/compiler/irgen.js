@@ -1500,7 +1500,7 @@ class ScriptTreeGenerator {
             inputs,
             fields,
             substacks,
-            code: block.code
+            code: block.code ?? null
         };
     }
 
