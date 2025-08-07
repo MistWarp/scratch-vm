@@ -1492,6 +1492,8 @@ class ScriptTreeGenerator {
             }
         }
 
+        if (!block.code) block.code = null;
+
         return {
             kind: 'compat',
             id: block.id,
@@ -1500,7 +1502,7 @@ class ScriptTreeGenerator {
             inputs,
             fields,
             substacks,
-            code: block.code ?? null
+            code: block.code
         };
     }
 
