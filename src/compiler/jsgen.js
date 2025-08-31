@@ -399,7 +399,11 @@ class JSGenerator {
             const list = this.referenceVariable(node.list);
             const idx = this.descendInput(node.item);
             if (idx instanceof ConstantInput) {
-                return new TypedInput(`${list}.value.indexOf(${idx.constantValue})+1`, TYPE_NUMBER);
+                let val = idx.constantValue;
+                if (idx.isAlwaysNumberOrNaN()) val = idx.asNumber();
+                else if (idx.isNeverNumber()) val = idx.asString();
+                else val = idx.asUnknown();
+                return new TypedInput(`${list}.value.indexOf(${val})+1`, TYPE_NUMBER);
             }
             return new TypedInput(`listIndexOf(${list},${idx})`, TYPE_NUMBER);
         }
