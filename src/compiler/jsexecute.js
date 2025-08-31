@@ -413,7 +413,8 @@ const listIndex = (index, length) => {
     // Fast path for common number case
     if (typeof index === 'number') {
         index = index | 0;
-        return index < 1 || index > length ? -1 : index - 1;
+        if (index < 1 || index > length) return -1;
+        return index - 1;
     }
     return listIndexSlow(index, length);
 };`;
@@ -485,11 +486,16 @@ runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
  * @returns {boolean} True if the list contains the item
  */
 runtimeFunctions.listContains = `const listContains = (list, item) => {
-    if (list.value.indexOf(item) !== -1) return true;
-    for (let i = 0, len = list.value.length; i < len; i++) {
-        if (compareEqual(list.value[i], item)) return true;
+    const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    if (caseSensitive) {
+        return list.value.indexOf(item) !== -1;
+    } else {
+        if (list.value.indexOf(item) !== -1) return true;
+        for (let i = 0, len = list.value.length; i < len; i++) {
+            if (compareEqual(list.value[i], item)) return true;
+        }
+        return false;
     }
-    return false;
 };`;
 
 /**
@@ -499,13 +505,18 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  * @returns {number} The 1-indexed index of the item in the list, otherwise 0
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
-    const index = list.value.indexOf(item) + 1;
-    if (index > 0) return index;
-
-    for (let i = 0, len = list.value.length; i < len; i++) {
-        if (compareEqual(list.value[i], item)) return i + 1;
+    const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    if (caseSensitive) {
+        const index = list.value.indexOf(item) + 1;
+        return index > 0 ? index : 0;
+    } else {
+        const index = list.value.indexOf(item) + 1;
+        if (index > 0) return index;
+        for (let i = 0, len = list.value.length; i < len; i++) {
+            if (compareEqual(list.value[i], item)) return i + 1;
+        }
+        return 0;
     }
-    return 0;
 };`;
 
 /**
