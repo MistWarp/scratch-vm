@@ -405,7 +405,7 @@ class JSGenerator {
                 else val = idx.asUnknown();
                 return new TypedInput(`${list}.value.indexOf(${val})+1`, TYPE_NUMBER);
             }
-            return new TypedInput(`listIndexOf(${list},${idx})`, TYPE_NUMBER);
+            return new TypedInput(`listIndexOf(${list},${idx.asUnknown()})`, TYPE_NUMBER);
         }
         case 'list.length':
             return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER);
@@ -1129,7 +1129,7 @@ class JSGenerator {
             {
                 const xNum = this.descendInput(node.x).asNumber();
                 const yNum = this.descendInput(node.y).asNumber();
-                this.source += `target.setDirection(180 + ((atan((${xNum} - target.x) / (${yNum} - target.y)) * RAD_TO_DEG) + (${yNum} > target.y ? 180 : 0))));\n`;
+                this.source += `target.setDirection(180 + ((atan((${xNum} - target.x) / (${yNum} - target.y)) * RAD_TO_DEG) + (${yNum} > target.y ? 180 : 0)));\n`;
             }
             break;
         case 'motion.pointtowards_xyfrom':
@@ -1140,7 +1140,7 @@ class JSGenerator {
                 const yNum = this.descendInput(node.y).asNumber();
                 const fromXNum = this.descendInput(node.fromx).asNumber();
                 const fromYNum = this.descendInput(node.fromy).asNumber();
-                this.source += `target.setDirection(180 + ((atan((${xNum} - ${fromXNum}) / (${yNum} - ${fromYNum})) * RAD_TO_DEG) + (${yNum} > ${fromYNum} ? 180 : 0))));\n`;
+                this.source += `target.setDirection(180 + ((atan((${xNum} - ${fromXNum}) / (${yNum} - ${fromYNum})) * RAD_TO_DEG) + (${yNum} > ${fromYNum} ? 180 : 0)));\n`;
             }
             break;
         case 'motion.setRotationStyle':
