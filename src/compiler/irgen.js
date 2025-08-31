@@ -603,6 +603,10 @@ class ScriptTreeGenerator {
                 return {
                     kind: 'sensing.second'
                 };
+            case 'refreshtime':
+                return {
+                    kind: 'sensing.refrehTime'
+                };
             }
             return {
                 kind: 'constant',
