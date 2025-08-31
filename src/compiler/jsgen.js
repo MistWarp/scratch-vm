@@ -403,7 +403,7 @@ class JSGenerator {
                 if (idx.isAlwaysNumberOrNaN()) val = idx.asNumber();
                 else if (idx.isNeverNumber()) val = idx.asString();
                 else val = idx.asUnknown();
-                return new TypedInput(`${list}.value.indexOf(${val})+1`, TYPE_NUMBER);
+                return new TypedInput(`(${list}.value.indexOf(${val})+1)`, TYPE_NUMBER);
             }
             return new TypedInput(`listIndexOf(${list},${idx.asUnknown()})`, TYPE_NUMBER);
         }
