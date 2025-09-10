@@ -490,9 +490,9 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
     if (caseSensitive) {
         return list.value.indexOf(item) !== -1;
     } else {
-        if (list.value.indexOf(item) !== -1) return true;
         for (let i = 0, len = list.value.length; i < len; i++) {
-            if (compareEqual(list.value[i], item)) return true;
+            const cur = list.value[i];
+            if (cur === item || compareEqual(cur, item)) return true;
         }
         return false;
     }
@@ -510,10 +510,9 @@ runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
         const index = list.value.indexOf(item) + 1;
         return index > 0 ? index : 0;
     } else {
-        const index = list.value.indexOf(item) + 1;
-        if (index > 0) return index;
         for (let i = 0, len = list.value.length; i < len; i++) {
-            if (compareEqual(list.value[i], item)) return i + 1;
+            const cur = list.value[i];
+            if (cur === item || compareEqual(cur, item)) return i + 1;
         }
         return 0;
     }
