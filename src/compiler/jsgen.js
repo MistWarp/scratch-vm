@@ -81,6 +81,11 @@ class TypedInput {
         return `(+${this.source} || 0)`;
     }
 
+    asInt () {
+        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
+        return `(+${this.source} | 0)`;
+    }
+
     asNumberOrNaN () {
         if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return this.source;
         return `(+${this.source})`;
@@ -144,6 +149,17 @@ class ConstantInput {
             return numberValue.toString();
         }
         // numberValue is one of 0, -0, or NaN
+        if (Object.is(numberValue, -0)) {
+            return '-0';
+        }
+        return '0';
+    }
+
+    asInt () {
+        const numberValue = +this.constantValue;
+        if (numberValue) {
+            return (numberValue | 0).toString();
+        }
         if (Object.is(numberValue, -0)) {
             return '-0';
         }
@@ -259,6 +275,12 @@ class VariableInput {
         if (this.type === TYPE_NUMBER) return this.source;
         if (this.type === TYPE_NUMBER_NAN) return `(${this.source} || 0)`;
         return `(+${this.source} || 0)`;
+    }
+
+    asInt () {
+        if (this.type === TYPE_NUMBER ||
+            this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
+        return `(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
@@ -394,7 +416,8 @@ const MATH_CACHE = {
     LN10: 'const LN10=Math.LN10;',
     pow: 'const pow=Math.pow;',
     max: 'const max=Math.max;',
-    min: 'const min=Math.min;'
+    min: 'const min=Math.min;',
+    random: 'const random=runtime.ext_scratch3_operators._random;'
 };
 
 class JSGenerator {
@@ -505,12 +528,14 @@ class JSGenerator {
         case 'list.get': {
             const index = this.descendInput(node.index);
             if (environment.supportsNullishCoalescing) {
+                if (index instanceof ConstantInput && index.isAlwaysNumber()) {
+                    const indexValue = +index.constantValue;
+                    if (!isNaN(indexValue)) return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(indexValue | 0) - 1}] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[(${index.asInt()}) - 1] ?? "")`, TYPE_UNKNOWN);
+                }
                 if (index.isAlwaysNumberOrNaN()) {
-                    if (!isNaN(index)) {
-                        return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index - 1}] ?? "")`, TYPE_UNKNOWN);
-                    }
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asNumber()} - 1] ?? "")`, TYPE_UNKNOWN);
-                    
+                    if (!isNaN(index)) return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(index - 1) | 0}] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPE_UNKNOWN);
                 }
                 if (index instanceof ConstantInput && index.constantValue === 'last') {
                     return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPE_UNKNOWN);
@@ -564,9 +589,58 @@ class JSGenerator {
             this.usedMathFunctions.add('acos');
             this.usedMathFunctions.add('RAD_TO_DEG');
             return new TypedInput(`(acos(${this.descendInput(node.value).asNumber()})*RAD_TO_DEG)`, TYPE_NUMBER_NAN);
-        case 'op.add':
+        case 'op.add': {
             // Needs to be marked as NaN because Infinity + -Infinity === NaN
-            return new TypedInput(`(${this.descendInput(node.left).asNumber()} + ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left instanceof ConstantInput && right instanceof ConstantInput && left.isAlwaysNumber() && right.isAlwaysNumber()) {
+                const value = +left.constantValue + +right.constantValue;
+                if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
+
+                return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
+        case 'op.subtract': {
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left instanceof ConstantInput && right instanceof ConstantInput && left.isAlwaysNumber() && right.isAlwaysNumber()) {
+                const value = +left.constantValue - +right.constantValue;
+                if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
+
+                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            // Needs to be marked as NaN because Infinity - Infinity === NaN
+            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
+        case 'op.multiply': {
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (right instanceof ConstantInput && right.isAlwaysNumber() && +right.constantValue !== 0) {
+                if (left instanceof ConstantInput && left.isAlwaysNumber()) {
+                    const value = +left.constantValue * +right.constantValue;
+                    if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
+
+                    return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
+                }
+            }
+            // Needs to be marked as NaN because Infinity * 0 === NaN
+            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
+        case 'op.divide': {
+            // Needs to be marked as NaN because 0 / 0 === NaN
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (right instanceof ConstantInput && right.isAlwaysNumber() && +right.constantValue !== 0) {
+                if (left instanceof ConstantInput && left.isAlwaysNumber()) {
+                    const value = +left.constantValue / +right.constantValue;
+                    // at this point we know it cant be NaN because right is nonzero
+                    return new ConstantInput(value.toString(), TYPE_NUMBER);
+                }
+                return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
         case 'op.and':
             return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
         case 'op.asin':
@@ -588,9 +662,6 @@ class JSGenerator {
             this.usedMathFunctions.add('round');
             this.usedMathFunctions.add('PI');
             return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
-        case 'op.divide':
-            // Needs to be marked as NaN because 0 / 0 === NaN
-            return new TypedInput(`(${this.descendInput(node.left).asNumber()} / ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.equals': {
             let left = this.descendInput(node.left);
             let right = this.descendInput(node.right);
@@ -604,6 +675,10 @@ class JSGenerator {
             const rightAlwaysNumber = right.isAlwaysNumber();
             // When both operands are known to be numbers, we can use ===
             if (leftAlwaysNumber && rightAlwaysNumber) {
+                if (left instanceof ConstantInput && right instanceof ConstantInput) {
+                    const value = +left.constantValue === +right.constantValue;
+                    if (!isNaN(value)) return new TypedInput(value.toString(), TYPE_BOOLEAN);
+                }
                 return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
             }
             // In certain conditions, we can use === when one of the operands is known to be a safe number.
@@ -688,9 +763,6 @@ class JSGenerator {
             return new TypedInput('PI', TYPE_NUMBER);
         case 'op.newline':
             return new TypedInput('"\n"', TYPE_STRING);
-        case 'op.multiply':
-            // Needs to be marked as NaN because Infinity * 0 === NaN
-            return new TypedInput(`(${this.descendInput(node.left).asNumber()} * ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.not':
             return new TypedInput(`!${this.descendInput(node.operand).asBoolean()}`, TYPE_BOOLEAN);
         case 'op.or':
@@ -703,7 +775,8 @@ class JSGenerator {
             if (node.useFloats) {
                 return new TypedInput(`randomFloat(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER_NAN);
             }
-            return new TypedInput(`runtime.ext_scratch3_operators._random(${this.descendInput(node.low).asUnknown()}, ${this.descendInput(node.high).asUnknown()})`, TYPE_NUMBER_NAN);
+            this.usedMathFunctions.add('random');
+            return new TypedInput(`random(${this.descendInput(node.low).asUnknown()}, ${this.descendInput(node.high).asUnknown()})`, TYPE_NUMBER_NAN);
         case 'op.round':
             this.usedMathFunctions.add('round');
             return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
@@ -715,10 +788,11 @@ class JSGenerator {
         case 'op.sqrt':
             // Needs to be marked as NaN because Math.sqrt(-1) === NaN
             this.usedMathFunctions.add('sqrt');
+            if (node.value instanceof ConstantInput && node.value.isAlwaysNumber()) {
+                if (+node.value.constantValue < 0) return new TypedInput('0', TYPE_NUMBER);
+                return new TypedInput(Math.sqrt(+node.value.constantValue).toString(), TYPE_NUMBER);
+            }
             return new TypedInput(`sqrt(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.subtract':
-            // Needs to be marked as NaN because Infinity - Infinity === NaN
-            return new TypedInput(`(${this.descendInput(node.left).asNumber()} - ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.tan':
             return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.10^':

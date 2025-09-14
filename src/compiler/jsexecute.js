@@ -426,8 +426,23 @@ const listIndex = (index, length) => {
  * @returns {*} The list item, otherwise empty string if it does not exist.
  */
 runtimeFunctions.listGet = `const listGet = (list, idx) => {
-    const index = listIndex(idx, list.length);
-    return index === -1 ? '' : list[index];
+    const len = list.length;
+    if (typeof idx === 'number') {
+        idx = idx | 0; // fast int
+        if (idx < 1 || idx > len) return '';
+        return list[idx - 1];
+    }
+    if (idx === 'last') {
+        return len === 0 ? '' : list[len - 1];
+    }
+    if (idx === 'random' || idx === 'any') {
+        if (len === 0) return '';
+        return list[(Math.random() * len) | 0];
+    }
+    // Fallback slow path (string/other -> number coercion & bounds)
+    idx = (+idx || 0) | 0;
+    if (idx < 1 || idx > len) return '';
+    return list[idx - 1];
 }`;
 
 /**
@@ -438,11 +453,25 @@ runtimeFunctions.listGet = `const listGet = (list, idx) => {
  */
 runtimeFunctions.listReplace = `const listReplace = (list, idx, value) => {
     const values = list.value;
-    const index = listIndex(idx, values.length);
-    if (index !== -1) {
-        values[index] = value;
-        list._monitorUpToDate = false;
+    let len = values.length;
+    let index;
+    if (typeof idx === 'number') {
+        idx = idx | 0;
+        if (idx < 1 || idx > len) return; // invalid
+        index = idx - 1;
+    } else if (idx === 'last') {
+        if (len === 0) return;
+        index = len - 1;
+    } else if (idx === 'random' || idx === 'any') {
+        if (len === 0) return;
+        index = (Math.random() * len) | 0;
+    } else {
+        idx = (+idx || 0) | 0;
+        if (idx < 1 || idx > len) return;
+        index = idx - 1;
     }
+    values[index] = value;
+    list._monitorUpToDate = false;
 };`;
 
 /**
@@ -453,11 +482,32 @@ runtimeFunctions.listReplace = `const listReplace = (list, idx, value) => {
  */
 runtimeFunctions.listInsert = `const listInsert = (list, idx, value) => {
     const values = list.value;
-    const index = listIndex(idx, values.length + 1);
-    if (index !== -1) {
-        values.splice(index, 0, value);
-        list._monitorUpToDate = false;
+    let len = values.length;
+    let index;
+    if (typeof idx === 'number') {
+        idx = idx | 0;
+        if (idx < 1 || idx > len + 1) return; // invalid
+        index = idx - 1;
+    } else if (idx === 'last') {
+        // Insert at end
+        index = len;
+    } else if (idx === 'random' || idx === 'any') {
+        // Insert at random position including end
+        index = len === 0 ? 0 : (Math.random() * (len + 1)) | 0;
+    } else {
+        idx = (+idx || 0) | 0;
+        if (idx < 1 || idx > len + 1) return;
+        index = idx - 1;
     }
+    // Fast paths
+    if (index === 0) {
+        values.unshift(value);
+    } else if (index === len) {
+        values.push(value);
+    } else {
+        values.splice(index, 0, value);
+    }
+    list._monitorUpToDate = false;
 };`;
 
 /**
@@ -467,16 +517,38 @@ runtimeFunctions.listInsert = `const listInsert = (list, idx, value) => {
  */
 runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
     const values = list.value;
+    let len = values.length;
     if (idx === 'all') {
-        list.value = [];
-        list._monitorUpToDate = false;
+        if (len) {
+            list.value = [];
+            list._monitorUpToDate = false;
+        }
         return;
     }
-    const index = listIndex(idx, values.length);
-    if (index !== -1) {
-        values.splice(index, 1);
-        list._monitorUpToDate = false;
+    let index;
+    if (typeof idx === 'number') {
+        idx = idx | 0;
+        if (idx < 1 || idx > len) return;
+        index = idx - 1;
+    } else if (idx === 'last') {
+        if (!len) return;
+        index = len - 1;
+    } else if (idx === 'random' || idx === 'any') {
+        if (!len) return;
+        index = (Math.random() * len) | 0;
+    } else {
+        idx = (+idx || 0) | 0;
+        if (idx < 1 || idx > len) return;
+        index = idx - 1;
     }
+    if (index === 0) {
+        values.shift();
+    } else if (index === len - 1) {
+        values.pop();
+    } else {
+        values.splice(index, 1);
+    }
+    list._monitorUpToDate = false;
 };`;
 
 /**
@@ -487,15 +559,19 @@ runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
  */
 runtimeFunctions.listContains = `const listContains = (list, item) => {
     const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    const values = list.value;
     if (caseSensitive) {
-        return list.value.indexOf(item) !== -1;
-    } else {
-        for (let i = 0, len = list.value.length; i < len; i++) {
-            const cur = list.value[i];
-            if (cur === item || compareEqual(cur, item)) return true;
-        }
-        return false;
+        return values.indexOf(item) !== -1;
     }
+    // Non case-sensitive: attempt ultra-fast primitive checks first.
+    // Hoist length & avoid repeated property lookups.
+    for (let i = 0, len = values.length; i < len; i++) {
+        const cur = values[i];
+        if (cur === item) return true; // exact equal (covers numbers & same ref)
+        // Fallback to Scratch semantics compare if types differ or strings with casing differences.
+        if (compareEqual(cur, item)) return true;
+    }
+    return false;
 };`;
 
 /**
@@ -506,16 +582,17 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
     const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    const values = list.value;
     if (caseSensitive) {
-        const index = list.value.indexOf(item) + 1;
+        const index = values.indexOf(item) + 1;
         return index > 0 ? index : 0;
-    } else {
-        for (let i = 0, len = list.value.length; i < len; i++) {
-            const cur = list.value[i];
-            if (cur === item || compareEqual(cur, item)) return i + 1;
-        }
-        return 0;
     }
+    for (let i = 0, len = values.length; i < len; i++) {
+        const cur = values[i];
+        if (cur === item) return i + 1;
+        if (compareEqual(cur, item)) return i + 1;
+    }
+    return 0;
 };`;
 
 /**
