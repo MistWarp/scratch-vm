@@ -30,6 +30,7 @@ const TYPE_BOOLEAN = 3;
 const TYPE_UNKNOWN = 4;
 const TYPE_NUMBER_NAN = 5;
 const TYPE_LOWER_STRING = 6;
+const TYPE_INT = 7;
 
 // Pen-related constants
 const PEN_EXT = 'runtime.ext_pen';
@@ -55,6 +56,8 @@ const generatorNameVariablePool = new VariablePool('gen');
  * @property {() => string} asNumber
  * @property {() => string} asNumberOrNaN
  * @property {() => string} asString
+ * @property {() => string} asStringOrEmpty
+ * @property {() => string} asInt
  * @property {() => string} asLowerString
  * @property {() => string} asBoolean
  * @property {() => string} asColor
@@ -63,6 +66,7 @@ const generatorNameVariablePool = new VariablePool('gen');
  * @property {() => boolean} isAlwaysNumber
  * @property {() => boolean} isAlwaysNumberOrNaN
  * @property {() => boolean} isNeverNumber
+ * @property {() => number} getType
  */
 
 /**
@@ -76,18 +80,19 @@ class TypedInput {
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_INT) return this.source;
         if (this.type === TYPE_NUMBER_NAN) return `(${this.source} || 0)`;
         return `(+${this.source} || 0)`;
     }
 
     asInt () {
+        if (this.type === TYPE_INT) return this.source;
         if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
         return `(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_INT || this.type === TYPE_NUMBER_NAN) return this.source;
         return `(+${this.source})`;
     }
 
@@ -119,15 +124,19 @@ class TypedInput {
     }
 
     isAlwaysNumber () {
-        return this.type === TYPE_NUMBER;
+        return this.type === TYPE_NUMBER || this.type === TYPE_INT;
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN;
+        return this.type === TYPE_NUMBER || this.type === TYPE_INT || this.type === TYPE_NUMBER_NAN;
     }
 
     isNeverNumber () {
         return false;
+    }
+
+    getType () {
+        return this.type;
     }
 }
 
@@ -213,15 +222,7 @@ class ConstantInput {
     }
 
     isAlwaysNumber () {
-        const value = +this.constantValue;
-        if (Number.isNaN(value)) {
-            return false;
-        }
-        // Empty strings evaluate to 0 but should not be considered a number.
-        if (value === 0) {
-            return this.constantValue.toString().trim() !== '';
-        }
-        return true;
+        return !Number.isNaN(+this.constantValue);
     }
 
     isAlwaysNumberOrNaN () {
@@ -230,6 +231,16 @@ class ConstantInput {
 
     isNeverNumber () {
         return Number.isNaN(+this.constantValue);
+    }
+
+    getType () {
+        if (this.isAlwaysNumber()) {
+            return TYPE_NUMBER;
+        }
+        if (this.isAlwaysNumberOrNaN()) {
+            return TYPE_NUMBER_NAN;
+        }
+        return TYPE_STRING;
     }
 }
 
@@ -264,20 +275,17 @@ class VariableInput {
             }
         }
         this._value = input;
-        if (input instanceof TypedInput) {
-            this.type = input.type;
-        } else {
-            this.type = TYPE_UNKNOWN;
-        }
+        this.type = input.getType();
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_INT) return this.source;
         if (this.type === TYPE_NUMBER_NAN) return `(${this.source} || 0)`;
         return `(+${this.source} || 0)`;
     }
 
     asInt () {
+        if (this.type === TYPE_INT) return this.source;
         if (this.type === TYPE_NUMBER ||
             this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
         return `(+${this.source} | 0)`;
@@ -334,6 +342,13 @@ class VariableInput {
             return this._value.isNeverNumber();
         }
         return false;
+    }
+
+    getType () {
+        if (this._value) {
+            return this._value.getType();
+        }
+        return TYPE_UNKNOWN;
     }
 }
 
@@ -392,6 +407,35 @@ class Frame {
          * @type {string}
          */
         this.switchValue = null;
+
+        /**
+         * Cache of variable types.
+         * @type {Map<string, string>}
+         */
+        this._variableTypes = new Map();
+    }
+
+    /**
+     * @param {string} name
+     * @param {string} type
+     */
+    setVariableType (name, type) {
+        this._variableTypes.set(name, type);
+    }
+
+    /**
+     * @param {string} name
+     * @returns {string|undefined}
+     */
+    getVariableType (name) {
+        return this._variableTypes.get(name);
+    }
+
+    /**
+     * Clear the variable type cache.
+     */
+    clearVariableTypes () {
+        this._variableTypes.clear();
     }
 }
 
@@ -544,15 +588,15 @@ class JSGenerator {
             return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPE_UNKNOWN);
         }
         case 'list.indexOf':
-            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER);
+            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_INT);
         case 'list.length':
-            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER);
+            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_INT);
         case 'list.json':
             return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
 
         case 'looks.size':
             this.usedMathFunctions.add('round');
-            return new TypedInput('round(target.size)', TYPE_NUMBER);
+            return new TypedInput('round(target.size)', TYPE_INT);
         case 'looks.backdropName':
             return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPE_STRING);
         case 'looks.backdropNumber':
@@ -574,9 +618,9 @@ class JSGenerator {
         case 'mouse.down':
             return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
         case 'mouse.x':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_INT);
         case 'mouse.y':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_INT);
 
         case 'noop':
             return new TypedInput('""', TYPE_STRING);
@@ -654,7 +698,7 @@ class JSGenerator {
             return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
         case 'op.ceiling':
             this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`ceil(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
         case 'op.contains':
             return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
         case 'op.cos':
@@ -694,7 +738,7 @@ class JSGenerator {
             return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
         case 'op.floor':
             this.usedMathFunctions.add('floor');
-            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
         case 'op.greater': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -716,7 +760,7 @@ class JSGenerator {
         case 'op.join':
             return new TypedInput(`(${this.descendInput(node.left).asString()} + ${this.descendInput(node.right).asString()})`, TYPE_STRING);
         case 'op.length':
-            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_NUMBER);
+            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_INT);
         case 'op.less': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -754,10 +798,12 @@ class JSGenerator {
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
             return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPE_NUMBER_NAN);
-        case 'op.mod':
+        case 'op.mod': {
             this.descendedIntoModulo = true;
+            const left = this.descendInput(node.left).asNumber();
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
-            return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`mod(${left}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
+        }
         case 'op.pi':
             this.usedMathFunctions.add('PI');
             return new TypedInput('PI', TYPE_NUMBER);
@@ -770,7 +816,7 @@ class JSGenerator {
         case 'op.random':
             if (node.useInts) {
                 // Both inputs are ints, so we know neither are NaN
-                return new TypedInput(`randomInt(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER);
+                return new TypedInput(`randomInt(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_INT);
             }
             if (node.useFloats) {
                 return new TypedInput(`randomFloat(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER_NAN);
@@ -779,7 +825,7 @@ class JSGenerator {
             return new TypedInput(`random(${this.descendInput(node.low).asUnknown()}, ${this.descendInput(node.high).asUnknown()})`, TYPE_NUMBER_NAN);
         case 'op.round':
             this.usedMathFunctions.add('round');
-            return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
         case 'op.sin':
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
@@ -1318,6 +1364,7 @@ class JSGenerator {
             this.source += ');\n';
 
             this.resetVariableInputs();
+            this.currentFrame.clearVariableTypes();
             break;
         }
         case 'procedures.return':
@@ -1339,6 +1386,8 @@ class JSGenerator {
             const variable = this.descendVariable(node.variable);
             const value = this.descendInput(node.value);
             variable.setInput(value);
+            const valueType = value.getType();
+            this.currentFrame.setVariableType(node.variable.name, valueType);
             this.source += `${variable.source} = ${value.asSafe()};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${variable.source});\n`;
@@ -1526,6 +1575,7 @@ class JSGenerator {
         }
         // Control may have been yielded to another script -- all bets are off.
         this.resetVariableInputs();
+        this.currentFrame.clearVariableTypes();
     }
 
     /**
