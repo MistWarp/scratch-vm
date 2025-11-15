@@ -267,10 +267,11 @@ class ScriptTreeGenerator {
                 kind: 'list.contents',
                 list: this.descendVariable(block, 'LIST', LIST_TYPE)
             };
-        case 'data_listjson':
+        case 'data_get_list_as':
             return {
-                kind: 'list.json',
-                list: this.descendVariable(block, 'LIST', LIST_TYPE)
+                kind: 'list.as',
+                list: this.descendVariable(block, 'LIST', LIST_TYPE),
+                format: block.fields.FORMAT.value
             };
         case 'event_broadcast_menu': {
             const broadcastOption = block.fields.BROADCAST_OPTION;
@@ -878,6 +879,12 @@ class ScriptTreeGenerator {
                 kind: 'list.add',
                 list: this.descendVariable(block, 'LIST', LIST_TYPE),
                 item: this.descendInputOfBlock(block, 'ITEM')
+            };
+        case 'data_set_list_to_array':
+            return {
+                kind: 'list.setArray',
+                list: this.descendVariable(block, 'LIST', LIST_TYPE),
+                array: this.descendInputOfBlock(block, 'ARRAY')
             };
         case 'data_changevariableby': {
             const variable = this.descendVariable(block, 'VARIABLE', SCALAR_TYPE);
@@ -1757,13 +1764,288 @@ class IRGenerator {
             }
         }
 
-        // Analyze scripts until no changes are made.
         while (this.analyzeScript(entry));
+
+        this.optimizeScript(entry);
+        for (const code of Object.keys(this.procedures)) {
+            this.optimizeScript(this.procedures[code]);
+        }
 
         const ir = new IntermediateRepresentation();
         ir.entry = entry;
         ir.procedures = this.procedures;
         return ir;
+    }
+
+    optimizeScript (script) {
+        const optimizeStack = nodes => {
+            if (!nodes || !nodes.length) return [];
+            const out = [];
+            let prev = null;
+            for (let i = 0; i < nodes.length; i++) {
+                const chain = this._tryConvertEqualsIfChain(nodes, i);
+                if (chain) {
+                    const {converted, count} = chain;
+                    for (const nn of converted) {
+                        if (!this._isDuplicate(prev, nn)) {
+                            out.push(nn);
+                            prev = nn;
+                        }
+                    }
+                    i += (count - 1);
+                    continue;
+                }
+                const node = nodes[i];
+                const n = this.optimizeNode(node);
+                if (!n) continue;
+                if (Array.isArray(n)) {
+                    for (const nn of n) {
+                        if (!nn) continue;
+                        if (!this._isDuplicate(prev, nn)) {
+                            out.push(nn);
+                            prev = nn;
+                        }
+                    }
+                    continue;
+                }
+                if (!this._isDuplicate(prev, n)) {
+                    out.push(n);
+                    prev = n;
+                }
+            }
+            return out;
+        };
+        script.stack = optimizeStack(script.stack);
+    }
+
+    optimizeNode (node) {
+        if (!node) return null;
+        switch (node.kind) {
+        case 'noop':
+            return null;
+        case 'control.if': {
+            const cond = node.condition;
+            if (cond && cond.kind === 'constant') {
+                if (cond.value) return this._optimizeSubstack(node.whenTrue);
+                return this._optimizeSubstack(node.whenFalse || []);
+            }
+            node.whenTrue = this._optimizeSubstack(node.whenTrue);
+            if (node.whenFalse) node.whenFalse = this._optimizeSubstack(node.whenFalse);
+            return node;
+        }
+        case 'control.repeat': {
+            const t = node.times;
+            if (t && t.kind === 'constant') {
+                const c = +t.value;
+                if (Number.isFinite(c)) {
+                    if (c <= 0) return null;
+                    if (c === 1) return this._optimizeSubstack(node.do);
+                }
+            }
+            node.do = this._optimizeSubstack(node.do);
+            return node;
+        }
+        case 'control.while': {
+            const cond = node.condition;
+            if (cond && cond.kind === 'constant') {
+                const v = !!cond.value;
+                if (!v) return null;
+            }
+            node.do = this._optimizeSubstack(node.do);
+            return node;
+        }
+        case 'control.switch':
+        case 'control.case':
+        case 'control.default': {
+            node.do = this._optimizeSubstack(node.do);
+            return node;
+        }
+        case 'var.set': {
+            node.value = this.optimizeInput(node.value);
+            return node;
+        }
+        case 'list.add':
+        case 'list.insert':
+        case 'list.replace': {
+            node.index = this.optimizeInput(node.index);
+            node.item = this.optimizeInput(node.item);
+            return node;
+        }
+        default:
+            return this.optimizeInputs(node);
+        }
+    }
+
+    _optimizeSubstack (stack) {
+        if (!stack || !stack.length) return [];
+        const out = [];
+        let prev = null;
+        for (const node of stack) {
+            const n = this.optimizeNode(node);
+            if (!n) continue;
+            if (Array.isArray(n)) {
+                for (const nn of n) {
+                    if (!nn) continue;
+                    if (!this._isDuplicate(prev, nn)) {
+                        out.push(nn);
+                        prev = nn;
+                    }
+                }
+            } else {
+                if (!this._isDuplicate(prev, n)) {
+                    out.push(n);
+                    prev = n;
+                }
+            }
+        }
+        return out;
+    }
+
+    _isDuplicate (prev, next) {
+        if (!prev || !next) return false;
+        if (prev.kind !== next.kind) return false;
+        switch (next.kind) {
+        case 'list.deleteAll':
+            return prev.list && next.list && prev.list.id === next.list.id;
+        case 'list.show':
+        case 'list.hide':
+            return prev.list && next.list && prev.list.id === next.list.id;
+        case 'var.show':
+        case 'var.hide':
+            return prev.variable && next.variable && prev.variable.id === next.variable.id;
+        case 'looks.clearEffects':
+        case 'looks.goToFront':
+        case 'looks.goToBack':
+        case 'looks.show':
+        case 'looks.hide':
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    _nodeKey (node) {
+        try {
+            return JSON.stringify(node);
+        } catch (_e) {
+            return '';
+        }
+    }
+
+    _isEmptyStack (stack) {
+        return !stack || (Array.isArray(stack) && stack.length === 0);
+    }
+
+    _tryConvertEqualsIfChain (nodes, startIndex) {
+        const first = nodes[startIndex];
+        if (!first || first.kind !== 'control.if') return null;
+        const cond = first.condition;
+        if (!cond || cond.kind !== 'op.equals') return null;
+        if (first.whenFalse && first.whenFalse.length) return null;
+        const leftKey = this._nodeKey(cond.left);
+        const cases = [];
+        let i = startIndex;
+        while (i < nodes.length) {
+            const n = nodes[i];
+            if (!n || n.kind !== 'control.if') break;
+            const c = n.condition;
+            if (!c || c.kind !== 'op.equals') break;
+            if (this._nodeKey(c.left) !== leftKey) break;
+            if (!c.right || c.right.kind !== 'constant') break;
+            if (n.whenFalse && n.whenFalse.length) break;
+            cases.push({value: c.right, body: this._optimizeSubstack(n.whenTrue)});
+            i += 1;
+        }
+        if (cases.length < 2) return null;
+        const switchBody = [];
+        let allNumbers = true;
+        for (const cs of cases) {
+            let cur = cs.value;
+            if (cur.kind !== 'constant') {
+                return null;
+            }
+            const asNum = +cur.value;
+            if (!Number.isNaN(asNum)) {
+                cur.value = asNum;
+            } else {
+                allNumbers = false;
+            }
+            switchBody.push({kind: 'control.case', value: cur, do: cs.body});
+            const last = cs.body[cs.body.length - 1];
+            if (last && (last.kind !== 'control.break' && last.kind !== 'control.stopScript')) {
+                // we cant turn this if chain into a switch case if the code doesnt handle fallthrough
+                return null;
+            }
+        }
+
+        for (const cs of switchBody) {
+            cs.useNumbers = allNumbers;
+        }
+
+        const switchNode = {kind: 'control.switch', value: JSON.parse(leftKey), do: switchBody, useNumbers: allNumbers};
+        return {converted: [switchNode], count: cases.length};
+    }
+
+    optimizeInput (input) {
+        if (!input) return input;
+        switch (input.kind) {
+        case 'op.add':
+        case 'op.subtract':
+        case 'op.multiply':
+        case 'op.divide':
+        case 'op.mod':
+            return this._optimizeArithmetic(input);
+        case 'op.length':
+            return this._optimizeLength(input);
+        default:
+            return this.optimizeInputs(input);
+        }
+    }
+
+    optimizeInputs (node) {
+        if (!node) return node;
+        for (const k of Object.keys(node)) {
+            const v = node[k];
+            if (v && typeof v === 'object' && v.kind) {
+                node[k] = this.optimizeInput(v);
+            }
+        }
+        return node;
+    }
+
+    _optimizeArithmetic (node) {
+        const left = this.optimizeInput(node.left);
+        const right = this.optimizeInput(node.right);
+        node.left = left;
+        node.right = right;
+        if (left && right && left.kind === 'constant' && right.kind === 'constant') {
+            const a = +left.value;
+            const b = +right.value;
+            if (Number.isFinite(a) && Number.isFinite(b)) {
+                switch (node.kind) {
+                case 'op.add':
+                    return {kind: 'constant', value: (a + b).toString()};
+                case 'op.subtract':
+                    return {kind: 'constant', value: (a - b).toString()};
+                case 'op.multiply':
+                    return {kind: 'constant', value: (a * b).toString()};
+                case 'op.divide':
+                    return {kind: 'constant', value: (a / b).toString()};
+                case 'op.mod':
+                    return {kind: 'constant', value: (a % b).toString()};
+                }
+            }
+        }
+        return node;
+    }
+
+    _optimizeLength (node) {
+        const s = this.optimizeInput(node.string);
+        node.string = s;
+        if (s && s.kind === 'constant') {
+            return {kind: 'constant', value: (('' + s.value).length).toString()};
+        }
+        return node;
     }
 }
 

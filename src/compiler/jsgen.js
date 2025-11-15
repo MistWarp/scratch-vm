@@ -30,7 +30,8 @@ const TYPE_BOOLEAN = 3;
 const TYPE_UNKNOWN = 4;
 const TYPE_NUMBER_NAN = 5;
 const TYPE_LOWER_STRING = 6;
-const TYPE_INT = 7;
+
+let CURRENT_GENERATOR = null;
 
 // Pen-related constants
 const PEN_EXT = 'runtime.ext_pen';
@@ -57,7 +58,6 @@ const generatorNameVariablePool = new VariablePool('gen');
  * @property {() => string} asNumberOrNaN
  * @property {() => string} asString
  * @property {() => string} asStringOrEmpty
- * @property {() => string} asInt
  * @property {() => string} asLowerString
  * @property {() => string} asBoolean
  * @property {() => string} asColor
@@ -66,7 +66,6 @@ const generatorNameVariablePool = new VariablePool('gen');
  * @property {() => boolean} isAlwaysNumber
  * @property {() => boolean} isAlwaysNumberOrNaN
  * @property {() => boolean} isNeverNumber
- * @property {() => number} getType
  */
 
 /**
@@ -77,23 +76,25 @@ class TypedInput {
         if (typeof type !== 'number') throw new Error('type is invalid');
         this.source = source;
         this.type = type;
+        this._generator = CURRENT_GENERATOR;
+        this._cacheVar = null;
+        this._lastLinePos = -1;
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_INT) return this.source;
-        if (this.type === TYPE_NUMBER_NAN) return `(${this.source} || 0)`;
-        return `(+${this.source} || 0)`;
-    }
-
-    asInt () {
-        if (this.type === TYPE_INT) return this.source;
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
-        return `(+${this.source} | 0)`;
+        if (this.type === TYPE_NUMBER) return this.source;
+        const expr = (this.type === TYPE_NUMBER_NAN) ? `(${this.source} || 0)` : `(+${this.source} || 0)`;
+        return expr;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_INT || this.type === TYPE_NUMBER_NAN) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return this.source;
         return `(+${this.source})`;
+    }
+
+    asStringOrEmpty () {
+        if (this.type === TYPE_STRING) return this.source;
+        return `("" + ${this.source})`;
     }
 
     asString () {
@@ -124,19 +125,15 @@ class TypedInput {
     }
 
     isAlwaysNumber () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_INT;
+        return this.type === TYPE_NUMBER;
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_INT || this.type === TYPE_NUMBER_NAN;
+        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN;
     }
 
     isNeverNumber () {
         return false;
-    }
-
-    getType () {
-        return this.type;
     }
 }
 
@@ -158,17 +155,6 @@ class ConstantInput {
             return numberValue.toString();
         }
         // numberValue is one of 0, -0, or NaN
-        if (Object.is(numberValue, -0)) {
-            return '-0';
-        }
-        return '0';
-    }
-
-    asInt () {
-        const numberValue = +this.constantValue;
-        if (numberValue) {
-            return (numberValue | 0).toString();
-        }
         if (Object.is(numberValue, -0)) {
             return '-0';
         }
@@ -233,15 +219,6 @@ class ConstantInput {
         return Number.isNaN(+this.constantValue);
     }
 
-    getType () {
-        if (this.isAlwaysNumber()) {
-            return TYPE_NUMBER;
-        }
-        if (this.isAlwaysNumberOrNaN()) {
-            return TYPE_NUMBER_NAN;
-        }
-        return TYPE_STRING;
-    }
 }
 
 /**
@@ -251,6 +228,9 @@ class VariableInput {
     constructor (source) {
         this.source = source;
         this.type = TYPE_UNKNOWN;
+        this._generator = CURRENT_GENERATOR;
+        this._cacheVar = null;
+        this._lastLinePos = -1;
         /**
          * The value this variable was most recently set to, if any.
          * @type {Input}
@@ -275,20 +255,16 @@ class VariableInput {
             }
         }
         this._value = input;
-        this.type = input.getType();
+        if (input instanceof TypedInput) {
+            this.type = input.type;
+        } else {
+            this.type = TYPE_UNKNOWN;
+        }
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_INT) return this.source;
-        if (this.type === TYPE_NUMBER_NAN) return `(${this.source} || 0)`;
-        return `(+${this.source} || 0)`;
-    }
-
-    asInt () {
-        if (this.type === TYPE_INT) return this.source;
-        if (this.type === TYPE_NUMBER ||
-            this.type === TYPE_NUMBER_NAN) return `(${this.source} | 0)`;
-        return `(+${this.source} | 0)`;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER) return this.source;
+        return (this.type === TYPE_NUMBER_NAN) ? `(${this.source} || 0)` : `(+${this.source} || 0)`;
     }
 
     asNumberOrNaN () {
@@ -342,13 +318,6 @@ class VariableInput {
             return this._value.isNeverNumber();
         }
         return false;
-    }
-
-    getType () {
-        if (this._value) {
-            return this._value.getType();
-        }
-        return TYPE_UNKNOWN;
     }
 }
 
@@ -415,7 +384,7 @@ class Frame {
         this._variableTypes = new Map();
     }
 
-    /**
+     /**
      * @param {string} name
      * @param {string} type
      */
@@ -503,6 +472,13 @@ class JSGenerator {
         this._setupVariablesPool = new VariablePool('b');
         this._setupVariables = {};
         this.usedMathFunctions = new Set();
+        this.numberCachePool = new VariablePool('n');
+        this._numberTempsDecl = new Set();
+        this._currentExprCache = new Map();
+        this.stringCachePool = new VariablePool('s');
+        this._stringTempsDecl = new Set();
+        this.booleanCachePool = new VariablePool('q');
+        this._booleanTempsDecl = new Set();
 
 
         this.descendedIntoModulo = false;
@@ -512,6 +488,59 @@ class JSGenerator {
         this._cachedProperties = new Map();
         // Cache environment feature flags locally to avoid repeated global lookups.
         this.supportsNullishCoalescing = environment.supportsNullishCoalescing;
+    }
+
+    _registerNumberTemp (name) {
+        this._numberTempsDecl.add(name);
+    }
+
+    _emitNumberCached (expr, tag) {
+        const key = `${tag}:${expr}`;
+        const entry = this._currentExprCache.get(key);
+        if (!entry) {
+            this._currentExprCache.set(key, {count: 1, varName: null, expr});
+            return expr;
+        }
+        if (entry.varName === null) {
+            const v = this.numberCachePool.next();
+            this._registerNumberTemp(v);
+            entry.varName = v;
+            entry.count++;
+            return `(${v} = ${expr})`;
+        }
+        entry.count++;
+        return entry.varName;
+    }
+
+    _emitGenericCached (expr, tag) {
+        const key = `${tag}:${expr}`;
+        const entry = this._currentExprCache.get(key);
+        if (!entry) {
+            this._currentExprCache.set(key, {count: 1, varName: null, expr, tag});
+            return expr;
+        }
+        if (entry.varName === null) {
+            let v;
+            if (tag === 'S' || tag === 'LS') {
+                v = this.stringCachePool.next();
+                this._stringTempsDecl.add(v);
+            } else if (tag === 'B') {
+                v = this.booleanCachePool.next();
+                this._booleanTempsDecl.add(v);
+            } else {
+                v = this.numberCachePool.next();
+                this._registerNumberTemp(v);
+            }
+            entry.varName = v;
+            entry.count++;
+            return `(${v} = ${expr})`;
+        }
+        entry.count++;
+        return entry.varName;
+    }
+
+    resetExprCaches () {
+        this._currentExprCache.clear();
     }
 
     /**
@@ -575,11 +604,12 @@ class JSGenerator {
                 if (index instanceof ConstantInput && index.isAlwaysNumber()) {
                     const indexValue = +index.constantValue;
                     if (!isNaN(indexValue)) return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(indexValue | 0) - 1}] ?? "")`, TYPE_UNKNOWN);
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[(${index.asInt()}) - 1] ?? "")`, TYPE_UNKNOWN);
+                    const idxInt = index.asNumber();
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${idxInt} - 1] ?? "")`, TYPE_UNKNOWN);
                 }
                 if (index.isAlwaysNumberOrNaN()) {
-                    if (!isNaN(index)) return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(index - 1) | 0}] ?? "")`, TYPE_UNKNOWN);
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPE_UNKNOWN);
+                    const idxInt = index.asNumber();
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${idxInt} - 1] ?? "")`, TYPE_UNKNOWN);
                 }
                 if (index instanceof ConstantInput && index.constantValue === 'last') {
                     return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPE_UNKNOWN);
@@ -588,15 +618,19 @@ class JSGenerator {
             return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPE_UNKNOWN);
         }
         case 'list.indexOf':
-            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_INT);
+            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER);
         case 'list.length':
-            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_INT);
-        case 'list.json':
-            return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
+            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER);
+        case 'list.as':
+            if (node.format === 'JSON') {
+                return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
+            } else if (node.format === 'STRING') {
+                return new TypedInput(`(${this.referenceVariable(node.list)}.value.join(", "))`, TYPE_STRING);
+            }
 
         case 'looks.size':
             this.usedMathFunctions.add('round');
-            return new TypedInput('round(target.size)', TYPE_INT);
+            return new TypedInput('round(target.size)', TYPE_NUMBER);
         case 'looks.backdropName':
             return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPE_STRING);
         case 'looks.backdropNumber':
@@ -618,9 +652,9 @@ class JSGenerator {
         case 'mouse.down':
             return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
         case 'mouse.x':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_INT);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER);
         case 'mouse.y':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_INT);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER);
 
         case 'noop':
             return new TypedInput('""', TYPE_STRING);
@@ -698,7 +732,7 @@ class JSGenerator {
             return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
         case 'op.ceiling':
             this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
+            return new TypedInput(`ceil(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
         case 'op.contains':
             return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
         case 'op.cos':
@@ -738,7 +772,7 @@ class JSGenerator {
             return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
         case 'op.floor':
             this.usedMathFunctions.add('floor');
-            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
+            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
         case 'op.greater': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -760,7 +794,7 @@ class JSGenerator {
         case 'op.join':
             return new TypedInput(`(${this.descendInput(node.left).asString()} + ${this.descendInput(node.right).asString()})`, TYPE_STRING);
         case 'op.length':
-            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_INT);
+            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_NUMBER);
         case 'op.less': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -798,12 +832,10 @@ class JSGenerator {
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
             return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPE_NUMBER_NAN);
-        case 'op.mod': {
+        case 'op.mod':
             this.descendedIntoModulo = true;
-            const left = this.descendInput(node.left).asNumber();
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
-            return new TypedInput(`mod(${left}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
-        }
+            return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.pi':
             this.usedMathFunctions.add('PI');
             return new TypedInput('PI', TYPE_NUMBER);
@@ -816,7 +848,7 @@ class JSGenerator {
         case 'op.random':
             if (node.useInts) {
                 // Both inputs are ints, so we know neither are NaN
-                return new TypedInput(`randomInt(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_INT);
+                return new TypedInput(`randomInt(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER);
             }
             if (node.useFloats) {
                 return new TypedInput(`randomFloat(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER_NAN);
@@ -825,7 +857,7 @@ class JSGenerator {
             return new TypedInput(`random(${this.descendInput(node.low).asUnknown()}, ${this.descendInput(node.high).asUnknown()})`, TYPE_NUMBER_NAN);
         case 'op.round':
             this.usedMathFunctions.add('round');
-            return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_INT);
+            return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
         case 'op.sin':
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
@@ -1004,6 +1036,7 @@ class JSGenerator {
             if (isLastInLoop) {
                 this.source += 'if (hasResumedFromPromise) {hasResumedFromPromise = false;continue;}\n';
             }
+            this.resetExprCaches();
             break;
         }
 
@@ -1024,6 +1057,7 @@ class JSGenerator {
             this.source += `while (${index} < ${this.descendInput(node.count).asNumber()}) { `;
             this.source += `${index}++; `;
             this.source += `${this.referenceVariable(node.variable)}.value = ${index};\n`;
+            this.currentFrame.setVariableType(node.variable.name, TYPE_NUMBER);
             this.descendStack(node.do, new Frame(true));
             this.yieldLoop();
             this.source += '}\n';
@@ -1184,12 +1218,31 @@ class JSGenerator {
             this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
             break;
         }
-        case 'list.replace':
-            this.source += `listReplace(${this.referenceVariable(node.list)}, ${this.descendInput(node.index).asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
+        case 'list.replace': {
+                const listRef = this.referenceVariable(node.list);
+                const idxInput = this.descendInput(node.index);
+                const itemNode = node.item;
+                if (itemNode && itemNode.kind === 'list.get' && itemNode.list && itemNode.list.id === node.list.id) {
+                    const itemIdxInput = this.descendInput(itemNode.index);
+                    const idxStr = idxInput.asUnknown();
+                    const itemIdxStr = itemIdxInput.asUnknown();
+                    if (idxStr === itemIdxStr) {
+                        this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${idxStr}));\n`;
+                    } else {
+                        this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${itemIdxStr}));\n`;
+                    }
+                } else {
+                    this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
+                }
+            }
             break;
         case 'list.show':
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
+        
+        case 'list.setArray':
+                this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInput(node.array).asString()}) }catch{};\n`;
+                break;
 
         case 'looks.backwardLayers':
             if (!this.target.isStage) {
@@ -1365,6 +1418,7 @@ class JSGenerator {
 
             this.resetVariableInputs();
             this.currentFrame.clearVariableTypes();
+            this.resetExprCaches();
             break;
         }
         case 'procedures.return':
@@ -1386,12 +1440,13 @@ class JSGenerator {
             const variable = this.descendVariable(node.variable);
             const value = this.descendInput(node.value);
             variable.setInput(value);
-            const valueType = value.getType();
+            const valueType = value.type;
             this.currentFrame.setVariableType(node.variable.name, valueType);
             this.source += `${variable.source} = ${value.asSafe()};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${variable.source});\n`;
             }
+            this.resetExprCaches();
             break;
         }
         case 'var.show':
@@ -1407,13 +1462,15 @@ class JSGenerator {
         }
 
         case 'control.switch': {
-            this.source += `switch (${this.descendInput(node.value).asString()}) {\n`;
+            const value = this.descendInput(node.value);
+            this.source += `switch (${node.useNumbers ? value.asNumber() : value.asString()}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
         }
         case 'control.case': {
-            this.source += `case ${this.descendInput(node.value).asString()}: {\n`;
+            const value = this.descendInput(node.value);
+            this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}: {\n`;
             
             this.descendStack(node.do, new Frame(false));
             this.source += 'break; }\n';
@@ -1464,6 +1521,7 @@ class JSGenerator {
         // Entering a stack -- all bets are off.
         // TODO: allow if/else to inherit values
         this.resetVariableInputs();
+        this.resetExprCaches();
         this.pushFrame(frame);
 
         for (let i = 0; i < nodes.length; i++) {
@@ -1474,6 +1532,7 @@ class JSGenerator {
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
         this.resetVariableInputs();
+        this.resetExprCaches();
         this.popFrame();
     }
 
@@ -1483,6 +1542,8 @@ class JSGenerator {
         }
         const input = new VariableInput(`${this.referenceVariable(variable)}.value`);
         this.variableInputs[variable.id] = input;
+        const cachedType = this.currentFrame && this.currentFrame.getVariableType(variable.name);
+        if (typeof cachedType !== 'undefined') input.type = cachedType;
         return input;
     }
 
@@ -1576,6 +1637,7 @@ class JSGenerator {
         // Control may have been yielded to another script -- all bets are off.
         this.resetVariableInputs();
         this.currentFrame.clearVariableTypes();
+        this.resetExprCaches();
     }
 
     /**
@@ -1663,6 +1725,16 @@ class JSGenerator {
             }
         }
 
+        if (this._numberTempsDecl && this._numberTempsDecl.size) {
+            script += `let ${Array.from(this._numberTempsDecl).join(',')};\n`;
+        }
+        if (this._stringTempsDecl && this._stringTempsDecl.size) {
+            script += `let ${Array.from(this._stringTempsDecl).join(',')};\n`;
+        }
+        if (this._booleanTempsDecl && this._booleanTempsDecl.size) {
+            script += `let ${Array.from(this._booleanTempsDecl).join(',')};\n`;
+        }
+
         for (const varValue of Object.keys(this._setupVariables)) {
             const varName = this._setupVariables[varValue];
             script += `const ${varName} = ${varValue};\n`;
@@ -1698,9 +1770,9 @@ class JSGenerator {
      * @returns {Function} The factory function for the script.
      */
     compile () {
+        CURRENT_GENERATOR = this;
         // Mistwarp specific to disable the monitor updates being compiled if the user specifies
         if (typeof vm.enableMonitorUpdates === 'undefined') {
-            console.log('Set Montior updates on vm');
             vm.enableMonitorUpdates = true;
         }
 
@@ -1720,6 +1792,7 @@ class JSGenerator {
             JSGenerator.testingApparatus.report(this, factory);
         }
 
+        CURRENT_GENERATOR = null;
         return fn;
     }
 }
@@ -1748,3 +1821,4 @@ JSGenerator.unstable_exports = {
 JSGenerator.testingApparatus = null;
 
 module.exports = JSGenerator;
+
