@@ -339,7 +339,7 @@ const getNamesOfCostumesAndSounds = runtime => {
 
 const isSafeConstantForEqualsOptimization = input => {
     const numberValue = +input.constantValue;
-    // Do not optimize 0
+    // Do not optimize 0 (+"" === 0 would be true)
     if (!numberValue) {
         return false;
     }
@@ -384,7 +384,7 @@ class Frame {
         this._variableTypes = new Map();
     }
 
-     /**
+    /**
      * @param {string} name
      * @param {string} type
      */
@@ -627,7 +627,7 @@ class JSGenerator {
             } else if (node.format === 'STRING') {
                 return new TypedInput(`(${this.referenceVariable(node.list)}.value.join(", "))`, TYPE_STRING);
             }
-
+            break;
         case 'looks.size':
             this.usedMathFunctions.add('round');
             return new TypedInput('round(target.size)', TYPE_NUMBER);
@@ -1219,30 +1219,30 @@ class JSGenerator {
             break;
         }
         case 'list.replace': {
-                const listRef = this.referenceVariable(node.list);
-                const idxInput = this.descendInput(node.index);
-                const itemNode = node.item;
-                if (itemNode && itemNode.kind === 'list.get' && itemNode.list && itemNode.list.id === node.list.id) {
-                    const itemIdxInput = this.descendInput(itemNode.index);
-                    const idxStr = idxInput.asUnknown();
-                    const itemIdxStr = itemIdxInput.asUnknown();
-                    if (idxStr === itemIdxStr) {
-                        this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${idxStr}));\n`;
-                    } else {
-                        this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${itemIdxStr}));\n`;
-                    }
+            const listRef = this.referenceVariable(node.list);
+            const idxInput = this.descendInput(node.index);
+            const itemNode = node.item;
+            if (itemNode && itemNode.kind === 'list.get' && itemNode.list && itemNode.list.id === node.list.id) {
+                const itemIdxInput = this.descendInput(itemNode.index);
+                const idxStr = idxInput.asUnknown();
+                const itemIdxStr = itemIdxInput.asUnknown();
+                if (idxStr === itemIdxStr) {
+                    this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${idxStr}));\n`;
                 } else {
-                    this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
+                    this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${itemIdxStr}));\n`;
                 }
+            } else {
+                this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
             }
             break;
+        }
         case 'list.show':
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
         
         case 'list.setArray':
-                this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInput(node.array).asString()}) }catch{};\n`;
-                break;
+            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInput(node.array).asString()}) }catch{};\n`;
+            break;
 
         case 'looks.backwardLayers':
             if (!this.target.isStage) {
@@ -1821,4 +1821,3 @@ JSGenerator.unstable_exports = {
 JSGenerator.testingApparatus = null;
 
 module.exports = JSGenerator;
-
