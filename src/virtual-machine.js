@@ -519,10 +519,12 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
+     * @param {object} [options] Options for saving the project
+     * @param {boolean} [options.allowOptimization=true] Whether to optimize block and comment IDs
      * @returns {JSZip} JSZip zip object representing the sb3.
      */
-    _saveProjectZip () {
-        const projectJson = this.toJSON();
+    _saveProjectZip (options = {}) {
+        const projectJson = this.toJSON(undefined, options);
 
         // TODO want to eventually move zip creation out of here, and perhaps
         // into scratch-storage
@@ -546,10 +548,12 @@ class VirtualMachine extends EventEmitter {
 
     /**
      * @param {JSZip.OutputType} [type] JSZip output type. Defaults to 'blob' for Scratch compatibility.
+     * @param {object} [options] Options for saving the project
+     * @param {boolean} [options.allowOptimization=true] Whether to optimize block and comment IDs
      * @returns {Promise<unknown>} Compressed sb3 file in a type determined by the type argument.
      */
-    saveProjectSb3 (type) {
-        return this._saveProjectZip().generateAsync({
+    saveProjectSb3 (type, options) {
+        return this._saveProjectZip(options).generateAsync({
             type: type || 'blob',
             mimeType: 'application/x.scratch.sb3',
             compression: 'DEFLATE'
@@ -558,11 +562,13 @@ class VirtualMachine extends EventEmitter {
 
     /**
      * @param {JSZip.OutputType} [type] JSZip output type. Defaults to 'arraybuffer'.
+     * @param {object} [options] Options for saving the project
+     * @param {boolean} [options.allowOptimization=true] Whether to optimize block and comment IDs
      * @returns {StreamHelper} JSZip StreamHelper object generating the compressed sb3.
      * See: https://stuk.github.io/jszip/documentation/api_streamhelper.html
      */
-    saveProjectSb3Stream (type) {
-        return this._saveProjectZip().generateInternalStream({
+    saveProjectSb3Stream (type, options) {
+        return this._saveProjectZip(options).generateInternalStream({
             type: type || 'arraybuffer',
             mimeType: 'application/x.scratch.sb3',
             compression: 'DEFLATE'
@@ -573,10 +579,12 @@ class VirtualMachine extends EventEmitter {
      * tw: Serialize the project into a map of files without actually zipping the project.
      * The buffers returned are the exact same ones used internally, not copies. Avoid directly
      * manipulating them (except project.json, which is created by this function).
+     * @param {object} [options] Options for saving the project
+     * @param {boolean} [options.allowOptimization=true] Whether to optimize block and comment IDs
      * @returns {Record<string, Uint8Array>} Map of file name to the raw data for that file.
      */
-    saveProjectSb3DontZip () {
-        const projectJson = this.toJSON();
+    saveProjectSb3DontZip (options) {
+        const projectJson = this.toJSON(undefined, options);
 
         const files = {
             'project.json': new _TextEncoder().encode(projectJson)

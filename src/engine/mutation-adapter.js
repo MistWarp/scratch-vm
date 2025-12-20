@@ -20,10 +20,13 @@ const mutatorTagToObject = function (dom) {
             delete obj.blockinfo;
         }
     }
-    for (let i = 0; i < dom.children.length; i++) {
-        obj.children.push(
-            mutatorTagToObject(dom.children[i])
-        );
+    // Check if children exists before accessing it
+    if (dom.children && dom.children.length > 0) {
+        for (let i = 0; i < dom.children.length; i++) {
+            obj.children.push(
+                mutatorTagToObject(dom.children[i])
+            );
+        }
     }
     return obj;
 };
