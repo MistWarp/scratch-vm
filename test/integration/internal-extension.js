@@ -74,6 +74,9 @@ test('internal extension', t => {
         arguments: {},
         blockAllThreads: false,
         blockType: BlockType.COMMAND,
+        color1: '#0FBD8C',
+        color2: '#0DA57A',
+        color3: '#0B8E69',
         func: goBlockInfo.func, // Cheat since we don't have a good way to ensure we generate the same function
         opcode: 'go',
         terminal: false,

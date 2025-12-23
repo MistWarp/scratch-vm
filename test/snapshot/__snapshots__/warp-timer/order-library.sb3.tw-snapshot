@@ -2,13 +2,17 @@
 // Input SHA-256: 7f0df1e9c4a6b87f8bbea53b22d5a1201ebe774e535661cef5da3bd75af45c11
 
 // Sprite3 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const max=Math.max;
 const b0 = runtime.getOpcodeFunction("looks_say");
 const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"MESSAGE":"plan 2",}, b0, false, false, "s+@:|^WPr8]N1Y9Hk2f5", null);
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * (+b1.value || 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
@@ -16,7 +20,7 @@ yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a1 = Math.max(0, 1000 * (+b1.value || 0));
+var a1 = max(0, 1000 * (+b1.value || 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a1) {
@@ -24,7 +28,7 @@ yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a2 = Math.max(0, 1000 * (+b1.value || 0));
+var a2 = max(0, 1000 * (+b1.value || 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a2) {
@@ -36,14 +40,18 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const max=Math.max;
 const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
 const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
 const b2 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * (+b1.value || 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
@@ -60,14 +68,18 @@ retire(); return;
 }; })
 
 // Sprite2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const max=Math.max;
 const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
 const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
 const b2 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * (+b1.value || 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {

@@ -2,7 +2,10 @@
 // Input SHA-256: 1446684578b41ff41cf29fbe14696ef717cca636e8d46babd7d9dec6df723a33
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"MESSAGE":"plan 15",}, b0, false, false, "p", null);

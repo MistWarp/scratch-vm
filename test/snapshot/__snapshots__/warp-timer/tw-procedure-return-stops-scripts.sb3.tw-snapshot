@@ -2,7 +2,10 @@
 // Input SHA-256: 27368530b97e0ab5053bf4faf8fd116aa30cea34adcbd95fc6ddcf0a9d6d4976
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 const b1 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
 return function* genXYZ () {
@@ -20,7 +23,10 @@ retire(); return;
 }; })
 
 // Sprite1 Wreturn stops the script immediately
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
 const b1 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ_return_stops_the_scr () {
@@ -37,7 +43,10 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
 return function* genXYZ () {
 b0.value = 0;

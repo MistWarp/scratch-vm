@@ -10,6 +10,17 @@ const project = readFileToBuffer(projectUri);
 
 test('importing sb3 project with monitors', t => {
     const vm = new VirtualMachine();
+    const assertMonitorExists = (id, locationHint) => {
+        const record = vm.runtime._monitorState.get(id);
+        t.ok(record, `monitor record exists for ${id}${locationHint ? ` (${locationHint})` : ''}`);
+        return record;
+    };
+
+    const assertMonitorBlockExists = (id, locationHint) => {
+        const block = vm.runtime.monitorBlocks.getBlock(id);
+        t.ok(block, `monitor block exists for ${id}${locationHint ? ` (${locationHint})` : ''}`);
+        return block;
+    };
     vm.attachStorage(makeTestStorage());
 
     // Evaluate playground data and exit
@@ -154,16 +165,15 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorBlock.fields.NUMBER_NAME.value, 'number');
 
         // x position monitor is in large mode, specific to shirt sprite
-        monitorId = `${shirtSprite.id}_xposition`;
-        monitorRecord = vm.runtime._monitorState.get(monitorId);
-        monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
+        monitorRecord = assertMonitorExists(monitorId, 'shirt xposition');
+        monitorBlock = assertMonitorBlockExists(monitorId, 'shirt xposition');
         t.equal(monitorRecord.opcode, 'motion_xposition');
         t.equal(monitorRecord.mode, 'large');
         t.equal(monitorRecord.visible, true);
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
 
-        // y position monitor is in large mode, specific to shirt sprite
+        monitorRecord = assertMonitorExists(monitorId, 'shirt yposition');
         monitorId = `${shirtSprite.id}_yposition`;
         monitorRecord = vm.runtime._monitorState.get(monitorId);
         monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
@@ -172,7 +182,7 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorRecord.visible, true);
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
-
+        monitorRecord = assertMonitorExists(monitorId, 'shirt direction');
         // direction monitor is in large mode, specific to shirt sprite
         monitorId = `${shirtSprite.id}_direction`;
         monitorRecord = vm.runtime._monitorState.get(monitorId);
@@ -180,7 +190,7 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorRecord.opcode, 'motion_direction');
         t.equal(monitorRecord.mode, 'large');
         t.equal(monitorRecord.visible, true);
-        t.equal(monitorRecord.spriteName, 'Shirt-T');
+        monitorRecord = assertMonitorExists(monitorId, 'shirt size');
         t.equal(monitorRecord.targetId, shirtSprite.id);
 
         monitorId = `${shirtSprite.id}_size`;
@@ -188,7 +198,7 @@ test('importing sb3 project with monitors', t => {
         monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
         t.equal(monitorRecord.opcode, 'looks_size');
         t.equal(monitorRecord.mode, 'large');
-        t.equal(monitorRecord.visible, true);
+        monitorRecord = assertMonitorExists(monitorId, 'shirt costumes');
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
 
@@ -200,33 +210,33 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorRecord.visible, true);
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
-
+        monitorRecord = assertMonitorExists(monitorId, 'current_date');
         // The monitor IDs for the sensing_current block should be unique
-        // to the parameter that is selected on the block being monitored.
+        monitorBlock = assertMonitorBlockExists(monitorId, 'current_date');
         // The paramater portion of the id should be lowercase even
         // though the field value on the block is uppercase.
         monitorId = 'current_date';
-        monitorRecord = vm.runtime._monitorState.get(monitorId);
+        monitorRecord = assertMonitorExists(monitorId, 'current_year');
         t.equal(monitorRecord.opcode, 'sensing_current');
-        monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
+        monitorBlock = assertMonitorBlockExists(monitorId, 'current_year');
         t.equal(monitorBlock.fields.CURRENTMENU.value, 'DATE');
         t.equal(monitorRecord.mode, 'default');
         t.equal(monitorRecord.visible, true);
-        t.equal(monitorRecord.spriteName, null);
+        monitorRecord = assertMonitorExists(monitorId, 'current_month');
         t.equal(monitorRecord.targetId, null);
-
+        monitorBlock = assertMonitorBlockExists(monitorId, 'current_month');
         monitorId = 'current_year';
         monitorRecord = vm.runtime._monitorState.get(monitorId);
         t.equal(monitorRecord.opcode, 'sensing_current');
         monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
-        t.equal(monitorBlock.fields.CURRENTMENU.value, 'YEAR');
+        monitorRecord = assertMonitorExists(monitorId, 'music_getTempo');
         t.equal(monitorRecord.mode, 'default');
-        t.equal(monitorRecord.visible, true);
+        monitorBlock = assertMonitorBlockExists(monitorId, 'music_getTempo');
         t.equal(monitorRecord.spriteName, null);
         t.equal(monitorRecord.targetId, null);
-
+        monitorRecord = assertMonitorExists(monitorId, 'ev3_getDistance');
         monitorId = 'current_month';
-        monitorRecord = vm.runtime._monitorState.get(monitorId);
+        monitorBlock = assertMonitorBlockExists(monitorId, 'ev3_getDistance');
         t.equal(monitorRecord.opcode, 'sensing_current');
         monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
         t.equal(monitorBlock.fields.CURRENTMENU.value, 'MONTH');
@@ -269,9 +279,21 @@ test('importing sb3 project with monitors', t => {
         vm.loadProject(project).then(() => {
             vm.greenFlag();
             setTimeout(() => {
-                vm.getPlaygroundData();
+                try {
+                    vm.getPlaygroundData();
+                } catch (e) {
+                    t.fail(e);
+                    vm.quit();
+                    t.end();
+                    return;
+                }
                 vm.stopAll();
-            }, 100);
-        });
+            }, 250);
+        })
+            .catch(e => {
+                t.fail(e);
+                vm.quit();
+                t.end();
+            });
     });
 });

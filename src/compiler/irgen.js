@@ -1891,11 +1891,9 @@ class IRGenerator {
                         prev = nn;
                     }
                 }
-            } else {
-                if (!this._isDuplicate(prev, n)) {
-                    out.push(n);
-                    prev = n;
-                }
+            } else if (!this._isDuplicate(prev, n)) {
+                out.push(n);
+                prev = n;
             }
         }
         return out;
@@ -1960,15 +1958,15 @@ class IRGenerator {
         const switchBody = [];
         let allNumbers = true;
         for (const cs of cases) {
-            let cur = cs.value;
+            const cur = cs.value;
             if (cur.kind !== 'constant') {
                 return null;
             }
             const asNum = +cur.value;
-            if (!Number.isNaN(asNum)) {
-                cur.value = asNum;
-            } else {
+            if (Number.isNaN(asNum)) {
                 allNumbers = false;
+            } else {
+                cur.value = asNum;
             }
             switchBody.push({kind: 'control.case', value: cur, do: cs.body});
             const last = cs.body[cs.body.length - 1];
@@ -2043,7 +2041,7 @@ class IRGenerator {
         const s = this.optimizeInput(node.string);
         node.string = s;
         if (s && s.kind === 'constant') {
-            return {kind: 'constant', value: (('' + s.value).length).toString()};
+            return {kind: 'constant', value: ((`${s.value}`).length).toString()};
         }
         return node;
     }

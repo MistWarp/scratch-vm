@@ -156,8 +156,6 @@ class Scratch3MotionBlocks {
     }
 
     pointTowards_xyfrom (args, util) {
-        const targetX = Cast.toNumber(args.X);
-        const targetY = Cast.toNumber(args.Y);
         const dx = util.target.x - Cast.toNumber(args.FROMX);
         const dy = util.target.y - Cast.toNumber(args.FROMY);
         const direction = 90 - MathUtil.radToDeg(Math.atan2(dy, dx));

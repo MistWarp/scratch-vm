@@ -301,7 +301,7 @@ runtimeFunctions.compareGreaterThan = `const compareGreaterThanSlow = (v1, v2) =
     }
     return n1 > n2;
 };
-const compareGreaterThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v2 === v2) ? v1 > v2 : compareGreaterThanSlow(v1, v2)`;
+const compareGreaterThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2) ? v1 > v2 : compareGreaterThanSlow(v1, v2)`;
 
 /**
  * Determine if one value is less than another.
@@ -324,7 +324,7 @@ runtimeFunctions.compareLessThan = `const compareLessThanSlow = (v1, v2) => {
     }
     return n1 < n2;
 };
-const compareLessThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v2 === v2) ? v1 < v2 : compareLessThanSlow(v1, v2)`;
+const compareLessThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2) ? v1 < v2 : compareLessThanSlow(v1, v2)`;
 
 /**
  * Generate a random integer.
@@ -558,7 +558,8 @@ runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
  * @returns {boolean} True if the list contains the item
  */
 runtimeFunctions.listContains = `const listContains = (list, item) => {
-    const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    const caseSensitive = (globalState.vm && globalState.vm.runtime && globalState.vm.runtime.runtimeOptions &&
+        globalState.vm.runtime.runtimeOptions.caseSensitiveLists) || false;
     const values = list.value;
     if (caseSensitive) {
         return values.indexOf(item) !== -1;
@@ -581,7 +582,8 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  * @returns {number} The 1-indexed index of the item in the list, otherwise 0
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
-    const caseSensitive = vm.runtime.runtimeOptions.caseSensitiveLists || false;
+    const caseSensitive = (globalState.vm && globalState.vm.runtime && globalState.vm.runtime.runtimeOptions &&
+        globalState.vm.runtime.runtimeOptions.caseSensitiveLists) || false;
     const values = list.value;
     if (caseSensitive) {
         const index = values.indexOf(item) + 1;
@@ -674,6 +676,9 @@ runtimeFunctions.yieldThenCallGenerator = `const yieldThenCallGenerator = functi
  */
 const execute = thread => {
     globalState.thread = thread;
+    // Make the VM available to runtime helper functions (some need runtime options).
+    // This avoids relying on a free variable like `vm` in generated helper code.
+    globalState.vm = thread.target && thread.target.runtime && thread.target.runtime.vm;
     thread.generator.next();
 };
 

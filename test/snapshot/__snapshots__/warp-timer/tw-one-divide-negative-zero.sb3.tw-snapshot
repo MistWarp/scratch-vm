@@ -2,7 +2,10 @@
 // Input SHA-256: 169af11f112ebea3d6768317652a72a6374c407f432537990689d46080fe2b92
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"MESSAGE":"plan 1",}, b0, false, false, "@|B*yJ0zKh!acN`7L-N5", null);

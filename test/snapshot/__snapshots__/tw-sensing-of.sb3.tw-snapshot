@@ -2,7 +2,10 @@
 // Input SHA-256: 2086fa5dfdd5f98dcafc01064231a018edb5698b3b4cc403a9cfaeabb5125c06
 
 // Sprite2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 const b1 = stage && stage.lookupVariableByNameAndType("Stage variable", "", true);
 const b2 = runtime.getSpriteTargetByName("Test sprite");
@@ -15,13 +18,13 @@ yield* executeInCompatibilityLayer({"MESSAGE":"plan 32",}, b0, false, false, "oX
 if (((stage.currentCostume + 1) === 2)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass backdrop #",}, b0, false, false, "T9..K[5LEO1f~{%eoPU;", null);
 }
-if ((stage.getCostumes()[stage.currentCostume].name.toLowerCase() === "Backdrop name test".toLowerCase())) {
+if ((("" + stage.getCostumes()[stage.currentCostume].name).toLowerCase() === "backdrop name test")) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass backdrop name",}, b0, false, false, "q63|^NKAu?OMK%W-s}+~", null);
 }
 if (((stage ? stage.volume : 0) === 45)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass stage volume",}, b0, false, false, "9Coi(uM:DG!WPZ($,SnY", null);
 }
-if ((("" + (b1 ? b1.value : 0)).toLowerCase() === "Variable in stage".toLowerCase())) {
+if ((("" + (b1 ? b1.value : 0)).toLowerCase() === "variable in stage")) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass stage variable",}, b0, false, false, "D_EA]xN%|[NsTKqc4up9", null);
 }
 if (((b2 ? b2.x : 0) === 19)) {
@@ -36,7 +39,7 @@ yield* executeInCompatibilityLayer({"MESSAGE":"pass direction",}, b0, false, fal
 if (((b2 ? b2.currentCostume + 1 : 0) === 3)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass costume #",}, b0, false, false, "+zO[+f?c7F`ZGTbD.oqI", null);
 }
-if ((("" + (b2 ? b2.getCostumes()[b2.currentCostume].name : 0)).toLowerCase() === "Costume name test".toLowerCase())) {
+if ((("" + (b2 ? b2.getCostumes()[b2.currentCostume].name : 0)).toLowerCase() === "costume name test")) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass costume name",}, b0, false, false, "Y6L|T0Pvwsct2gq+HGvv", null);
 }
 if (((b2 ? b2.size : 0) === 76.01)) {
@@ -45,7 +48,7 @@ yield* executeInCompatibilityLayer({"MESSAGE":"pass size",}, b0, false, false, "
 if (((b2 ? b2.volume : 0) === 14.3)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass volume",}, b0, false, false, "JBHJ,)N)@]~;;yFTY`RG", null);
 }
-if ((("" + (b3 ? b3.value : 0)).toLowerCase() === "Private variable value".toLowerCase())) {
+if ((("" + (b3 ? b3.value : 0)).toLowerCase() === "private variable value")) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass private variable",}, b0, false, false, "#jYbx])r8^`95~ZgPtZD", null);
 }
 if (compareEqual((b4 ? b4.value : 0), 0)) {
@@ -55,37 +58,37 @@ b5.value = (("" + randomInt(1, 9)) + ("" + randomInt(1, 9)));
 if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "backdrop #" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE backdrop #",}, b0, false, false, "UFr{fbR3@a.u_paq:r]F", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "backdrop name" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "backdrop name" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE backdrop name",}, b0, false, false, "wzVsIitt0^t(wDS-V3?Z", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "volume" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "volume" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE volume",}, b0, false, false, ":SZx%]xR5t`;;@M~:jT:", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "Stage variable" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "Stage variable" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE stage variable",}, b0, false, false, "!eEjdEJj!yYb{buag^M[", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "x position" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "x position" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE x",}, b0, false, false, "!6!o,FiLV=w2bS~{R|AK", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "y position" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "y position" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE y",}, b0, false, false, "5K7_7*adzRDbfFjxanQF", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "direction" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "direction" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE direction",}, b0, false, false, "D{z)e;(*H|.gAykbuSkE", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "costume #" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "costume #" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE costume #",}, b0, false, false, "WgCH3j9ObHA,;P3T=now", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "costume name" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "costume name" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE costume name",}, b0, false, false, "qhxQy$^wiOTOEu.=2^i)", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "size" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "size" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE size",}, b0, false, false, "+6V.t=]xZ=Gl?%-OWbFy", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "volume" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "volume" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE volume",}, b0, false, false, "*E:B}?C@H2ce2uRr9.9=", null);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b5.value), PROPERTY: "Private variable" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b5.value, PROPERTY: "Private variable" }), 0)) {
 yield* executeInCompatibilityLayer({"MESSAGE":"pass NE private variable",}, b0, false, false, "B6r;3{7R7g4Z.pzeGiCM", null);
 }
 if (((b6 ? b6.x : 0) === 0)) {

@@ -466,7 +466,7 @@ class Scratch3PenBlocks {
                     },
                     filter: [TargetType.SPRITE]
                 },
-                "---",
+                '---',
                 {
                     opcode: 'setPrintFont',
                     blockType: BlockType.COMMAND,
@@ -1091,7 +1091,7 @@ class Scratch3PenBlocks {
         fontString += penState.printTextAttribute.font;
         
         context.font = fontString;
-        context.strokeStyle = penState.printTextAttribute.strokeWidth > 0 ? 
+        context.strokeStyle = penState.printTextAttribute.strokeWidth > 0 ?
             penState.printTextAttribute.strokeColor : penState.printTextAttribute.color;
         context.lineWidth = penState.printTextAttribute.strokeWidth;
         context.fillStyle = penState.printTextAttribute.color;

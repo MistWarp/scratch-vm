@@ -30,6 +30,19 @@ const Base64Util = require('./util/base64-util');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
 
+if (typeof document === 'undefined') {
+    global.document = {
+        createElement: tagName => {
+            if (String(tagName).toLowerCase() !== 'canvas') return {};
+            return {
+                getContext: () => null,
+                width: 0,
+                height: 0
+            };
+        }
+    };
+}
+
 const CORE_EXTENSIONS = [
     // 'motion',
     // 'looks',
@@ -67,6 +80,9 @@ class VirtualMachine extends EventEmitter {
          * @type {!Runtime}
          */
         this.runtime = new Runtime();
+        // Allow the runtime (and compiled jsexecute helper functions) to resolve back to the VM.
+        // This is used for runtimeOptions access inside compiled code.
+        this.runtime.vm = this;
         centralDispatch.setService('runtime', createRuntimeService(this.runtime)).catch(e => {
             log.error(`Failed to register runtime service: ${JSON.stringify(e)}`);
         });
@@ -524,7 +540,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {JSZip} JSZip zip object representing the sb3.
      */
     _saveProjectZip (options = {}) {
-        const projectJson = this.toJSON(undefined, options);
+        const projectJson = this.toJSON(null, options);
 
         // TODO want to eventually move zip creation out of here, and perhaps
         // into scratch-storage
@@ -584,7 +600,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {Record<string, Uint8Array>} Map of file name to the raw data for that file.
      */
     saveProjectSb3DontZip (options) {
-        const projectJson = this.toJSON(undefined, options);
+        const projectJson = this.toJSON(null, options);
 
         const files = {
             'project.json': new _TextEncoder().encode(projectJson)

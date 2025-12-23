@@ -2,7 +2,10 @@
 // Input SHA-256: 503e54070a6a749f8ffbcfad08d64cff3c1abb9400a7519b623b3876bd97e54a
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "Ny4npe`j3|CTeaIS.:6O", null);
@@ -10,7 +13,10 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"MESSAGE":"plan 0",}, b0, false, false, "2T.vCF,K}vA=XNZ=kY+v", null);

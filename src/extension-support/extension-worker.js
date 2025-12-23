@@ -76,46 +76,7 @@ global.Scratch = global.Scratch || {};
 Object.assign(global.Scratch, ScratchCommon, {
     canFetch: () => Promise.resolve(true),
     fetch: (url, options) => fetch(url, options),
-    download: async (url, file) => {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const blob = await response.blob();
-        
-        // Create download link
-        const downloadLink = document.createElement('a');
-        document.body.appendChild(downloadLink);
-        
-        try {
-            if ('download' in HTMLAnchorElement.prototype) {
-                const objectUrl = window.URL.createObjectURL(blob);
-                downloadLink.href = objectUrl;
-                downloadLink.download = file;
-                downloadLink.type = blob.type;
-                downloadLink.click();
-                
-                // Clean up after a timeout to prevent iOS 13 Safari crash
-                window.setTimeout(() => {
-                    document.body.removeChild(downloadLink);
-                    window.URL.revokeObjectURL(objectUrl);
-                }, 1000);
-            } else {
-                // Fallback for older browsers
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const popup = window.open('', '_blank');
-                    popup.location.href = reader.result;
-                };
-                reader.readAsDataURL(blob);
-                document.body.removeChild(downloadLink);
-            }
-        } catch (error) {
-            document.body.removeChild(downloadLink);
-            throw error;
-        }
-    },
+    download: () => Promise.reject(new Error('Scratch.download not supported in sandboxed extensions')),
     canOpenWindow: () => Promise.resolve(false),
     openWindow: () => Promise.reject(new Error('Scratch.openWindow not supported in sandboxed extensions')),
     canRedirect: () => Promise.resolve(false),
@@ -127,7 +88,6 @@ Object.assign(global.Scratch, ScratchCommon, {
     canGeolocate: () => Promise.resolve(false),
     canEmbed: () => Promise.resolve(false),
     canDownload: () => Promise.resolve(false),
-    download: () => Promise.reject(new Error('Scratch.download not supported in sandboxed extensions')),
     translate
 });
 

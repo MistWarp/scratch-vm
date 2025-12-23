@@ -3,6 +3,19 @@ const test = require('tap').test;
 const Runtime = require('../../src/engine/runtime');
 const Scratch3PenBlocks = require('../../src/extensions/scratch3_pen/index');
 
+if (typeof document === 'undefined') {
+    global.document = {
+        createElement: tagName => {
+            if (tagName !== 'canvas') throw new Error(`Unsupported element: ${tagName}`);
+            return {
+                width: 0,
+                height: 0,
+                getContext: () => null
+            };
+        }
+    };
+}
+
 test('_clampPenSize', t => {
     const rt = new Runtime();
     const pen = new Scratch3PenBlocks(rt);

@@ -2,7 +2,10 @@
 // Input SHA-256: a8576b7695ad77f7d5a7ac9fb76d31f026c0869f16f55d16fa40b85972b43e30
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("sound_setvolumeto");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 const b2 = runtime.getOpcodeFunction("looks_say");
@@ -22,13 +25,17 @@ retire(); return;
 }; })
 
 // Sprite1 Wno refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_no_refresh () {
 for (var a0 = 30; a0 >= 0.5; a0--) {
 thread.timer = timer();
-var a1 = Math.max(0, 1000 * 0);
+var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();
 while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
@@ -43,20 +50,27 @@ return "";
 }; })
 
 // Sprite1 Wruns below with no refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 return function* genXYZ_runs_below_with_no_r () {
 yield* thread.procedures["Whas refresh"]();
 return "";
 }; })
 
 // Sprite1 Whas refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_has_refresh () {
 for (var a0 = 30; a0 >= 0.5; a0--) {
 thread.timer = timer();
-var a1 = Math.max(0, 1000 * 0);
+var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();
 while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
@@ -71,7 +85,10 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 while (true) {
