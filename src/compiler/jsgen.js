@@ -4,7 +4,7 @@ const BlockType = require('../extension-support/block-type');
 const VariablePool = require('./variable-pool');
 const jsexecute = require('./jsexecute');
 const environment = require('./environment');
-const vm = require('../virtual-machine.js');
+
 // Imported for JSDoc types, not to actually use
 // eslint-disable-next-line no-unused-vars
 const {IntermediateScript, IntermediateRepresentation} = require('./intermediate');
@@ -30,6 +30,8 @@ const TYPE_BOOLEAN = 3;
 const TYPE_UNKNOWN = 4;
 const TYPE_NUMBER_NAN = 5;
 const TYPE_LOWER_STRING = 6;
+const TYPE_NUMBER_INT = 7;
+const TYPE_PROCEDURE_ARG = 8;
 
 let CURRENT_GENERATOR = null;
 
@@ -52,20 +54,37 @@ const functionNameVariablePool = new VariablePool('fun');
  */
 const generatorNameVariablePool = new VariablePool('gen');
 
+
+const isSafeConstantForEqualsOptimization = input => {
+    const numberValue = +input.constantValue;
+    // Do not optimize 0 (+"" === 0 would be true)
+    if (!numberValue) {
+        return false;
+    }
+    // Do not optimize numbers when the original form does not match
+    return numberValue.toString() === input.constantValue.toString();
+};
+
 /**
  * @typedef Input
- * @property {() => string} asNumber
- * @property {() => string} asNumberOrNaN
- * @property {() => string} asString
- * @property {() => string} asStringOrEmpty
- * @property {() => string} asLowerString
- * @property {() => string} asBoolean
- * @property {() => string} asColor
- * @property {() => string} asUnknown
- * @property {() => string} asSafe
- * @property {() => boolean} isAlwaysNumber
- * @property {() => boolean} isAlwaysNumberOrNaN
- * @property {() => boolean} isNeverNumber
+ * @property {() => string} asNumber gives the code to get the number version of the value
+ * @property {() => string} asInt gives the code to get the truncated integer version of the value
+ * @property {() => string} asNumberOrNaN gives the code to get the number version of the value, possibly NaN
+ * @property {() => string} asString gives the code to get the string version of the value
+ * @property {() => string} asStringOrEmpty gives the code to get the string version of the value, or "" if the value is null/undefined
+ * @property {() => string} asLowerString gives the code to get the lower-case version of the string
+ * @property {() => string} asBoolean gives the code to get the boolean version of the value
+ * @property {() => string} asColor gives the code to get the color version of the value
+ * @property {() => string} asUnknown gives the code to get the value without any conversion
+ * @property {() => boolean} isSafe means that the value is safe to use without conversion
+ * @property {() => string} asSafe gives the code to get the value in a safe way (converted to string if not safe)
+ * @property {() => boolean} isAlwaysNumber means that a value is always a number (never NaN)
+ * @property {() => boolean} isAlwaysNumberOrNaN means that a value is either a number or NaN
+ * @property {() => boolean} isNeverNumber means that a value is never a number (always NaN or non-number)
+ * @property {() => boolean} isAlwaysInt means that a value is always an integer
+ * @property {() => boolean} isAlwaysFinite means that a value is always a finite number (never NaN or Infinity)
+ * @property {() => boolean} isAlwaysConstant means that a value is constant
+ * @property {(any) => boolean} isConstant means that a value is always a specified constant
  */
 
 /**
@@ -83,32 +102,77 @@ class TypedInput {
 
     asNumber () {
         if (this.type === TYPE_NUMBER) return this.source;
-        const expr = (this.type === TYPE_NUMBER_NAN) ? `(${this.source} || 0)` : `(+${this.source} || 0)`;
-        return expr;
+        if (this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source})`;
+        const ret = `toNotNaN(+${this.source})`;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const gen = this._generator;
+            if (gen) {
+                return gen.getOrCreateArgumentTemp(TYPE_NUMBER, ret);
+            }
+        }
+        return ret;
+    }
+
+    asInt () {
+        if (this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPE_NUMBER) return `(${this.source} | 0)`;
+        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `toNotNaN(+${this.source} | 0)`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_NUMBER, expr);
+        }
+        return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `(+${this.source})`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_NUMBER_NAN, expr);
+        }
         return `(+${this.source})`;
     }
 
     asStringOrEmpty () {
         if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `("" + ${this.source})`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_STRING, expr);
+        }
         return `("" + ${this.source})`;
     }
 
     asString () {
         if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `("" + ${this.source})`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_STRING, expr);
+        }
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
         if (this.type === TYPE_LOWER_STRING) return this.source;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `("" + ${this.source}).toLowerCase()`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_LOWER_STRING, expr);
+        }
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
         if (this.type === TYPE_BOOLEAN) return this.source;
+        if (this.type === TYPE_PROCEDURE_ARG) {
+            const expr = `toBoolean(${this.source})`;
+            const gen = this._generator;
+            if (gen) return gen.getOrCreateArgumentTemp(TYPE_BOOLEAN, expr);
+        }
         return `toBoolean(${this.source})`;
     }
 
@@ -120,19 +184,39 @@ class TypedInput {
         return this.source;
     }
 
+    isSafe () {
+        return true;
+    }
+
     asSafe () {
         return this.asUnknown();
     }
 
+    isAlwaysInt () {
+        return this.type === TYPE_NUMBER_INT;
+    }
+
     isAlwaysNumber () {
-        return this.type === TYPE_NUMBER;
+        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_INT;
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN;
+        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT;
     }
 
     isNeverNumber () {
+        return false;
+    }
+
+    isAlwaysFinite () {
+        return false;
+    }
+
+    isAlwaysConstant () {
+        return false;
+    }
+
+    isConstant () {
         return false;
     }
 }
@@ -144,6 +228,17 @@ class ConstantInput {
     constructor (constantValue, safe) {
         this.constantValue = constantValue;
         this.safe = safe;
+
+        this.type = TYPE_UNKNOWN;
+        if (Number.isFinite(+constantValue)) {
+            this.type = Number.isInteger(constantValue) ?
+                TYPE_NUMBER_INT :
+                TYPE_NUMBER;
+        } else if (typeof constantValue === 'string') {
+            this.type = TYPE_STRING;
+        } else if (typeof constantValue === 'boolean') {
+            this.type = TYPE_BOOLEAN;
+        }
     }
 
     asNumber () {
@@ -159,6 +254,13 @@ class ConstantInput {
             return '-0';
         }
         return '0';
+    }
+
+    asInt () {
+        if (this.isAlwaysInt()) {
+            return this.asNumber();
+        }
+        return `${+this.constantValue | 0}`;
     }
 
     asNumberOrNaN () {
@@ -200,15 +302,36 @@ class ConstantInput {
         return this.asString();
     }
 
+    isSafe () {
+        const val = this.constantValue;
+        if (Number.isFinite(+val)) {
+            return true;
+        }
+        return this.safe;
+    }
+
     asSafe () {
-        if (this.safe) {
+        if (this.isSafe()) {
             return this.asUnknown();
         }
         return this.asString();
     }
 
     isAlwaysNumber () {
-        return !Number.isNaN(+this.constantValue);
+        const value = +this.constantValue;
+        if (Number.isNaN(value)) {
+            return false;
+        }
+        // Empty strings evaluate to 0 but should not be considered a number.
+        if (value === 0) {
+            return this.constantValue.toString().trim() !== '';
+        }
+        return true;
+    }
+
+    isAlwaysInt () {
+        const numberValue = +this.constantValue;
+        return numberValue === Math.round(numberValue);
     }
 
     isAlwaysNumberOrNaN () {
@@ -219,6 +342,34 @@ class ConstantInput {
         return Number.isNaN(+this.constantValue);
     }
 
+    isAlwaysFinite () {
+        if (this.constantValue === '') return false;
+        const value = +this.constantValue;
+        if (Number.isNaN(value)) {
+            return false;
+        }
+        if (Math.abs(value) === Infinity) {
+            return false;
+        }
+        return true;
+    }
+
+    isAlwaysConstant () {
+        return true && isSafeConstantForEqualsOptimization(this);
+    }
+
+    isConstant (testValue) {
+        const val = this.constantValue;
+        if (+testValue === 0) {
+            if (Object.is(+val, -0)) {
+                return false;
+            }
+        }
+        if (this.isAlwaysNumber()) {
+            return +val === +testValue;
+        }
+        return val === testValue;
+    }
 }
 
 /**
@@ -255,20 +406,29 @@ class VariableInput {
             }
         }
         this._value = input;
-        if (input instanceof TypedInput) {
+        if (input instanceof TypedInput || input instanceof ConstantInput) {
             this.type = input.type;
         } else {
             this.type = TYPE_UNKNOWN;
         }
+        this._generator.setVariableType(this.source, this.type);
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER) return this.source;
-        return (this.type === TYPE_NUMBER_NAN) ? `(${this.source} || 0)` : `(+${this.source} || 0)`;
+        if (this.type === TYPE_NUMBER) return this.source;
+        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source})`;
+        return `toNotNaN(+${this.source})`;
+    }
+
+    asInt () {
+        if (this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPE_NUMBER) return `(${this.source} | 0)`;
+        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
+        return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN) return this.source;
+        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT) return this.source;
         return `(+${this.source})`;
     }
 
@@ -295,6 +455,10 @@ class VariableInput {
         return this.source;
     }
 
+    isSafe () {
+        return true;
+    }
+
     asSafe () {
         return this.asUnknown();
     }
@@ -302,6 +466,13 @@ class VariableInput {
     isAlwaysNumber () {
         if (this._value) {
             return this._value.isAlwaysNumber();
+        }
+        return false;
+    }
+
+    isAlwaysInt () {
+        if (this._value) {
+            return this._value.isAlwaysInt();
         }
         return false;
     }
@@ -316,6 +487,27 @@ class VariableInput {
     isNeverNumber () {
         if (this._value) {
             return this._value.isNeverNumber();
+        }
+        return false;
+    }
+
+    isAlwaysFinite () {
+        if (this._value) {
+            return this._value.isAlwaysFinite();
+        }
+        return false;
+    }
+
+    isAlwaysConstant () {
+        if (this._value) {
+            return this._value.isAlwaysConstant();
+        }
+        return false;
+    }
+
+    isConstant (testValue) {
+        if (this._value) {
+            return this._value.isConstant(testValue);
         }
         return false;
     }
@@ -335,16 +527,6 @@ const getNamesOfCostumesAndSounds = runtime => {
         }
     }
     return result;
-};
-
-const isSafeConstantForEqualsOptimization = input => {
-    const numberValue = +input.constantValue;
-    // Do not optimize 0 (+"" === 0 would be true)
-    if (!numberValue) {
-        return false;
-    }
-    // Do not optimize numbers when the original form does not match
-    return numberValue.toString() === input.constantValue.toString();
 };
 
 /**
@@ -376,35 +558,6 @@ class Frame {
          * @type {string}
          */
         this.switchValue = null;
-
-        /**
-         * Cache of variable types.
-         * @type {Map<string, string>}
-         */
-        this._variableTypes = new Map();
-    }
-
-    /**
-     * @param {string} name
-     * @param {string} type
-     */
-    setVariableType (name, type) {
-        this._variableTypes.set(name, type);
-    }
-
-    /**
-     * @param {string} name
-     * @returns {string|undefined}
-     */
-    getVariableType (name) {
-        return this._variableTypes.get(name);
-    }
-
-    /**
-     * Clear the variable type cache.
-     */
-    clearVariableTypes () {
-        this._variableTypes.clear();
     }
 }
 
@@ -429,8 +582,7 @@ const MATH_CACHE = {
     LN10: 'const LN10=Math.LN10;',
     pow: 'const pow=Math.pow;',
     max: 'const max=Math.max;',
-    min: 'const min=Math.min;',
-    random: 'const random=runtime.ext_scratch3_operators._random;'
+    min: 'const min=Math.min;'
 };
 
 class JSGenerator {
@@ -461,6 +613,12 @@ class JSGenerator {
         this.frames = [];
 
         /**
+         * Type contexts for each stack frame.
+         * @type {Map<string, number>[]}
+         */
+        this.typeCtxs = [];
+
+        /**
          * The current Frame.
          * @type {Frame}
          */
@@ -480,6 +638,9 @@ class JSGenerator {
         this.booleanCachePool = new VariablePool('q');
         this._booleanTempsDecl = new Set();
 
+        this._argumentTypeCache = new Map();
+
+        this.prefixLines = [];
 
         this.descendedIntoModulo = false;
         this.isInHat = false;
@@ -488,59 +649,16 @@ class JSGenerator {
         this._cachedProperties = new Map();
         // Cache environment feature flags locally to avoid repeated global lookups.
         this.supportsNullishCoalescing = environment.supportsNullishCoalescing;
+
+        this.typeCtxs.push(new Map());
     }
 
-    _registerNumberTemp (name) {
-        this._numberTempsDecl.add(name);
+    getCurrentTypeCtx () {
+        return this.typeCtxs[this.typeCtxs.length - 1];
     }
 
-    _emitNumberCached (expr, tag) {
-        const key = `${tag}:${expr}`;
-        const entry = this._currentExprCache.get(key);
-        if (!entry) {
-            this._currentExprCache.set(key, {count: 1, varName: null, expr});
-            return expr;
-        }
-        if (entry.varName === null) {
-            const v = this.numberCachePool.next();
-            this._registerNumberTemp(v);
-            entry.varName = v;
-            entry.count++;
-            return `(${v} = ${expr})`;
-        }
-        entry.count++;
-        return entry.varName;
-    }
-
-    _emitGenericCached (expr, tag) {
-        const key = `${tag}:${expr}`;
-        const entry = this._currentExprCache.get(key);
-        if (!entry) {
-            this._currentExprCache.set(key, {count: 1, varName: null, expr, tag});
-            return expr;
-        }
-        if (entry.varName === null) {
-            let v;
-            if (tag === 'S' || tag === 'LS') {
-                v = this.stringCachePool.next();
-                this._stringTempsDecl.add(v);
-            } else if (tag === 'B') {
-                v = this.booleanCachePool.next();
-                this._booleanTempsDecl.add(v);
-            } else {
-                v = this.numberCachePool.next();
-                this._registerNumberTemp(v);
-            }
-            entry.varName = v;
-            entry.count++;
-            return `(${v} = ${expr})`;
-        }
-        entry.count++;
-        return entry.varName;
-    }
-
-    resetExprCaches () {
-        this._currentExprCache.clear();
+    clearVariableTypes () {
+        this.getCurrentTypeCtx().clear();
     }
 
     /**
@@ -549,6 +667,7 @@ class JSGenerator {
      */
     pushFrame (frame) {
         this.frames.push(frame);
+        this.typeCtxs.push(new Map());
         this.currentFrame = frame;
     }
 
@@ -557,6 +676,7 @@ class JSGenerator {
      */
     popFrame () {
         this.frames.pop();
+        this.typeCtxs.pop();
         this.currentFrame = this.frames[this.frames.length - 1];
     }
 
@@ -600,27 +720,23 @@ class JSGenerator {
             return new TypedInput(`listContents(${this.referenceVariable(node.list)})`, TYPE_STRING);
         case 'list.get': {
             const index = this.descendInput(node.index);
-            if (environment.supportsNullishCoalescing) {
-                if (index instanceof ConstantInput && index.isAlwaysNumber()) {
-                    const indexValue = +index.constantValue;
-                    if (!isNaN(indexValue)) return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(indexValue | 0) - 1}] ?? "")`, TYPE_UNKNOWN);
-                    const idxInt = index.asNumber();
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${idxInt} - 1] ?? "")`, TYPE_UNKNOWN);
+            if (this.supportsNullishCoalescing) {
+                if (index.isAlwaysInt() && index.isAlwaysConstant()) {
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(+index.asInt()) - 1}] ?? "")`, TYPE_UNKNOWN);
                 }
                 if (index.isAlwaysNumberOrNaN()) {
-                    const idxInt = index.asNumber();
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${idxInt} - 1] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPE_UNKNOWN);
                 }
-                if (index instanceof ConstantInput && index.constantValue === 'last') {
+                if (index.isConstant('last')) {
                     return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPE_UNKNOWN);
                 }
             }
             return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPE_UNKNOWN);
         }
         case 'list.indexOf':
-            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER);
+            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER_INT);
         case 'list.length':
-            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER);
+            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER_INT);
         case 'list.as':
             if (node.format === 'JSON') {
                 return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
@@ -634,27 +750,25 @@ class JSGenerator {
         case 'looks.backdropName':
             return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPE_STRING);
         case 'looks.backdropNumber':
-            return new TypedInput('(stage.currentCostume + 1)', TYPE_NUMBER);
+            return new TypedInput('(stage.currentCostume + 1)', TYPE_NUMBER_INT);
         case 'looks.costumeName':
             return new TypedInput('target.getCostumes()[target.currentCostume].name', TYPE_STRING);
         case 'looks.costumeNumber':
-            return new TypedInput('(target.currentCostume + 1)', TYPE_NUMBER);
-        case 'looks.costumes':
-            return new TypedInput('JSON.stringify(target.getCostumes().map(costume => costume.name))', TYPE_STRING);
+            return new TypedInput('(target.currentCostume + 1)', TYPE_NUMBER_INT);
 
         case 'motion.direction':
             return new TypedInput('target.direction', TYPE_NUMBER);
         case 'motion.x':
-            return new TypedInput('target.x', TYPE_NUMBER);
+            return new TypedInput('limitPrecision(target.x)', TYPE_NUMBER);
         case 'motion.y':
-            return new TypedInput('target.y', TYPE_NUMBER);
+            return new TypedInput('limitPrecision(target.y)', TYPE_NUMBER);
 
         case 'mouse.down':
             return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
         case 'mouse.x':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER_INT);
         case 'mouse.y':
-            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER_INT);
 
         case 'noop':
             return new TypedInput('""', TYPE_STRING);
@@ -665,59 +779,26 @@ class JSGenerator {
         case 'op.acos':
             // Needs to be marked as NaN because Math.acos(1.0001) === NaN
             this.usedMathFunctions.add('acos');
-            this.usedMathFunctions.add('RAD_TO_DEG');
-            return new TypedInput(`(acos(${this.descendInput(node.value).asNumber()})*RAD_TO_DEG)`, TYPE_NUMBER_NAN);
+            this.usedMathFunctions.add('PI');
+            return new TypedInput(`((acos(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
         case 'op.add': {
             // Needs to be marked as NaN because Infinity + -Infinity === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
-            if (left instanceof ConstantInput && right instanceof ConstantInput && left.isAlwaysNumber() && right.isAlwaysNumber()) {
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const value = +left.constantValue + +right.constantValue;
-                if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
-
+                if (Number.isNaN(value)) {
+                    return new ConstantInput('NaN');
+                }
+                return new ConstantInput(value);
+            }
+            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                if (left.isAlwaysInt() && right.isAlwaysInt()) {
+                    return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_INT);
+                }
                 return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER);
             }
             return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_NAN);
-        }
-        case 'op.subtract': {
-            const left = this.descendInput(node.left);
-            const right = this.descendInput(node.right);
-            if (left instanceof ConstantInput && right instanceof ConstantInput && left.isAlwaysNumber() && right.isAlwaysNumber()) {
-                const value = +left.constantValue - +right.constantValue;
-                if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
-
-                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
-            }
-            // Needs to be marked as NaN because Infinity - Infinity === NaN
-            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
-        }
-        case 'op.multiply': {
-            const left = this.descendInput(node.left);
-            const right = this.descendInput(node.right);
-            if (right instanceof ConstantInput && right.isAlwaysNumber() && +right.constantValue !== 0) {
-                if (left instanceof ConstantInput && left.isAlwaysNumber()) {
-                    const value = +left.constantValue * +right.constantValue;
-                    if (!isNaN(value)) return new ConstantInput(value.toString(), TYPE_NUMBER);
-
-                    return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
-                }
-            }
-            // Needs to be marked as NaN because Infinity * 0 === NaN
-            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
-        }
-        case 'op.divide': {
-            // Needs to be marked as NaN because 0 / 0 === NaN
-            const left = this.descendInput(node.left);
-            const right = this.descendInput(node.right);
-            if (right instanceof ConstantInput && right.isAlwaysNumber() && +right.constantValue !== 0) {
-                if (left instanceof ConstantInput && left.isAlwaysNumber()) {
-                    const value = +left.constantValue / +right.constantValue;
-                    // at this point we know it cant be NaN because right is nonzero
-                    return new ConstantInput(value.toString(), TYPE_NUMBER);
-                }
-                return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER);
-            }
-            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER_NAN);
         }
         case 'op.and':
             return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
@@ -730,38 +811,59 @@ class JSGenerator {
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
             return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
-        case 'op.ceiling':
+        case 'op.ceiling': {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysInt()) {
+                return new TypedInput(`${value.asInt()}`, TYPE_NUMBER_INT);
+            }
             this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`ceil(${value.asNumber()})`, TYPE_NUMBER_INT);
+        }
         case 'op.contains':
             return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
         case 'op.cos':
             this.usedMathFunctions.add('cos');
-            this.usedMathFunctions.add('round');
             this.usedMathFunctions.add('PI');
+            this.usedMathFunctions.add('round');
             return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
+        case 'op.divide': {
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (right.isAlwaysConstant()) {
+                if (+right.constantValue !== 0) {
+                    return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER);
+                }
+                if (left.isConstant(0)) {
+                    return new TypedInput('NaN', TYPE_NUMBER_NAN);
+                }
+            }
+            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
         case 'op.equals': {
-            let left = this.descendInput(node.left);
-            let right = this.descendInput(node.right);
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
             // When both operands are known to never be numbers, only use string comparison to avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
-                left = left.asLowerString();
-                right = right.asLowerString();
-                return new TypedInput(`(${left} === ${right})`, TYPE_BOOLEAN);
+                const leftLower = left.asLowerString();
+                const rightLower = right.asLowerString();
+                return new TypedInput(`(${leftLower} === ${rightLower})`, TYPE_BOOLEAN);
+            }
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const leftVal = left.constantValue;
+                const rightVal = right.constantValue;
+                return new ConstantInput(leftVal === rightVal);
             }
             const leftAlwaysNumber = left.isAlwaysNumber();
             const rightAlwaysNumber = right.isAlwaysNumber();
             // When both operands are known to be numbers, we can use ===
             if (leftAlwaysNumber && rightAlwaysNumber) {
-                if (left instanceof ConstantInput && right instanceof ConstantInput) {
-                    const value = +left.constantValue === +right.constantValue;
-                    if (!isNaN(value)) return new TypedInput(value.toString(), TYPE_BOOLEAN);
-                }
                 return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
             }
             // In certain conditions, we can use === when one of the operands is known to be a safe number.
-            if ((leftAlwaysNumber && left instanceof ConstantInput && isSafeConstantForEqualsOptimization(left)) ||
-                (rightAlwaysNumber && right instanceof ConstantInput && isSafeConstantForEqualsOptimization(right))) {
+            if (leftAlwaysNumber && left.isAlwaysConstant() && isSafeConstantForEqualsOptimization(left)) {
+                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
+            }
+            if (rightAlwaysNumber && right.isAlwaysConstant() && isSafeConstantForEqualsOptimization(right)) {
                 return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
@@ -770,15 +872,19 @@ class JSGenerator {
         case 'op.e^':
             this.usedMathFunctions.add('exp');
             return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
-        case 'op.floor':
+        case 'op.floor': {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysInt()) {
+                return new TypedInput(`${value.asNumber()}`, TYPE_NUMBER_INT);
+            }
             this.usedMathFunctions.add('floor');
-            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_INT);
+        }
         case 'op.greater': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
-            // When the left operand is a number and the right operand is a number or NaN, we can use >
-            if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
-                return new TypedInput(`(${left.asNumber()} > ${right.asNumberOrNaN()})`, TYPE_BOOLEAN);
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+                return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPE_BOOLEAN);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can negate <=
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
@@ -791,13 +897,26 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.join':
-            return new TypedInput(`(${this.descendInput(node.left).asString()} + ${this.descendInput(node.right).asString()})`, TYPE_STRING);
+        case 'op.join': {
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const leftVal = left.constantValue;
+                const rightVal = right.constantValue;
+                if (typeof leftVal === 'string' && typeof rightVal === 'string') {
+                    return new ConstantInput(leftVal + rightVal);
+                }
+            }
+            return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPE_STRING);
+        }
         case 'op.length':
             return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_NUMBER);
         case 'op.less': {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+                return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPE_BOOLEAN);
+            }
             // When the left operand is a number or NaN and the right operand is a number, we can use <
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
                 return new TypedInput(`(${left.asNumberOrNaN()} < ${right.asNumber()})`, TYPE_BOOLEAN);
@@ -813,20 +932,11 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.letterOf': {
-            const letterOfIndex = this.descendInput(node.letter).asNumber();
-            let after = '';
-            if (isNaN(letterOfIndex)) {
-                after = `[${letterOfIndex} - 1]`;
-            } else {
-                after = `[${letterOfIndex - 1}]`;
-            }
-            return new TypedInput(`(${this.descendInput(node.string).asString()}${after} || "")`, TYPE_STRING);
-        }
+        case 'op.letterOf':
+            return new TypedInput(`((${this.descendInput(node.string).asString()})[${this.descendInput(node.letter).asInt()} - 1] || "")`, TYPE_STRING);
         case 'op.ln':
             // Needs to be marked as NaN because Math.log(-1) == NaN
-            this.usedMathFunctions.add('log');
-            return new TypedInput(`log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.log':
             // Needs to be marked as NaN because Math.log(-1) == NaN
             this.usedMathFunctions.add('log');
@@ -836,28 +946,39 @@ class JSGenerator {
             this.descendedIntoModulo = true;
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
             return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.pi':
-            this.usedMathFunctions.add('PI');
-            return new TypedInput('PI', TYPE_NUMBER);
-        case 'op.newline':
-            return new TypedInput('"\n"', TYPE_STRING);
+        case 'op.multiply': {
+            // Needs to be marked as NaN because Infinity * 0 === NaN
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
         case 'op.not':
             return new TypedInput(`!${this.descendInput(node.operand).asBoolean()}`, TYPE_BOOLEAN);
         case 'op.or':
             return new TypedInput(`(${this.descendInput(node.left).asBoolean()} || ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
-        case 'op.random':
-            if (node.useInts) {
+        case 'op.random': {
+            const left = this.descendInput(node.low);
+            const right = this.descendInput(node.high);
+            if (left.isAlwaysInt() && right.isAlwaysInt()) {
                 // Both inputs are ints, so we know neither are NaN
-                return new TypedInput(`randomInt(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER);
+                return new TypedInput(`randomInt(${left.asNumber()}, ${right.asNumber()})`, TYPE_NUMBER_INT);
             }
             if (node.useFloats) {
-                return new TypedInput(`randomFloat(${this.descendInput(node.low).asNumber()}, ${this.descendInput(node.high).asNumber()})`, TYPE_NUMBER_NAN);
+                return new TypedInput(`randomFloat(${left.asNumber()}, ${right.asNumber()})`, TYPE_NUMBER_NAN);
             }
-            this.usedMathFunctions.add('random');
-            return new TypedInput(`random(${this.descendInput(node.low).asUnknown()}, ${this.descendInput(node.high).asUnknown()})`, TYPE_NUMBER_NAN);
-        case 'op.round':
+            return new TypedInput(`runtime.ext_scratch3_operators._random(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_NUMBER_NAN);
+        }
+        case 'op.round': {
+            const inp = this.descendInput(node.value);
+            if (inp.isAlwaysInt()) {
+                return new TypedInput(`${inp.asNumber()}`, TYPE_NUMBER_INT);
+            }
             this.usedMathFunctions.add('round');
-            return new TypedInput(`round(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`round(${inp.asNumber()})`, TYPE_NUMBER_INT);
+        }
         case 'op.sin':
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
@@ -866,11 +987,19 @@ class JSGenerator {
         case 'op.sqrt':
             // Needs to be marked as NaN because Math.sqrt(-1) === NaN
             this.usedMathFunctions.add('sqrt');
-            if (node.value instanceof ConstantInput && node.value.isAlwaysNumber()) {
-                if (+node.value.constantValue < 0) return new TypedInput('0', TYPE_NUMBER);
-                return new TypedInput(Math.sqrt(+node.value.constantValue).toString(), TYPE_NUMBER);
-            }
             return new TypedInput(`sqrt(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
+        case 'op.subtract': {
+            // Needs to be marked as NaN because Infinity - Infinity === NaN
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                if (left.isAlwaysInt() && right.isAlwaysInt()) {
+                    return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_INT);
+                }
+                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
         case 'op.tan':
             return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
         case 'op.10^':
@@ -881,7 +1010,14 @@ class JSGenerator {
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
             if (procedureData.stack === null) {
-                // TODO still need to evaluate arguments for side effects
+                // Procedure has no body; still evaluate arguments for side effects
+                const args = [];
+                for (const input of node.arguments) {
+                    args.push(this.descendInput(input).asSafe());
+                }
+                if (args.length) {
+                    return new TypedInput(`(${args.join(',')}, "")`, TYPE_STRING);
+                }
                 return new TypedInput('""', TYPE_STRING);
             }
 
@@ -908,7 +1044,7 @@ class JSGenerator {
             return new TypedInput(`${procedureReference}(${joinedArgs})`, TYPE_UNKNOWN);
         }
         case 'procedures.argument':
-            return new TypedInput(`p${node.index}`, TYPE_UNKNOWN);
+            return new TypedInput(`p${node.index}`, TYPE_PROCEDURE_ARG);
 
         case 'sensing.answer':
             return new TypedInput(`runtime.ext_scratch3_sensing._answer`, TYPE_STRING);
@@ -921,7 +1057,6 @@ class JSGenerator {
         case 'sensing.daysSince2000':
             return new TypedInput('daysSince2000()', TYPE_NUMBER);
         case 'sensing.distance':
-            // TODO: on stages, this can be computed at compile time
             return new TypedInput(`distance(${this.descendInput(node.target).asString()})`, TYPE_NUMBER);
         case 'sensing.hour':
             return new TypedInput(`(new Date().getHours())`, TYPE_NUMBER);
@@ -1036,7 +1171,6 @@ class JSGenerator {
             if (isLastInLoop) {
                 this.source += 'if (hasResumedFromPromise) {hasResumedFromPromise = false;continue;}\n';
             }
-            this.resetExprCaches();
             break;
         }
 
@@ -1051,13 +1185,12 @@ class JSGenerator {
             this.source += '}\n';
             break;
         case 'control.for': {
-            this.resetVariableInputs();
             const index = this.localVariables.next();
             this.source += `var ${index} = 0; `;
             this.source += `while (${index} < ${this.descendInput(node.count).asNumber()}) { `;
             this.source += `${index}++; `;
             this.source += `${this.referenceVariable(node.variable)}.value = ${index};\n`;
-            this.currentFrame.setVariableType(node.variable.name, TYPE_NUMBER);
+            this.setVariableType(node.variable.name, TYPE_NUMBER);
             this.descendStack(node.do, new Frame(true));
             this.yieldLoop();
             this.source += '}\n';
@@ -1069,6 +1202,7 @@ class JSGenerator {
             // only add the else branch if it won't be empty
             // this makes scripts have a bit less useless noise in them
             if (node.whenFalse.length) {
+                this.resetVariableInputs();
                 this.source += `} else {\n`;
                 this.descendStack(node.whenFalse, new Frame(false));
             }
@@ -1161,6 +1295,7 @@ class JSGenerator {
         case 'event.broadcast':
             this.source += `startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast).asString()} });\n`;
             this.resetVariableInputs();
+            this.clearVariableTypes();
             break;
         case 'event.broadcastAndWait':
             this.source += `yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast).asString()} }));\n`;
@@ -1170,31 +1305,23 @@ class JSGenerator {
         case 'list.add': {
             const list = this.referenceVariable(node.list);
             this.source += `${list}.value.push(${this.descendInput(node.item).asSafe()});\n`;
-            if (vm.enableMonitorUpdates) {
-                this.source += `${list}._monitorUpToDate = false;\n`;
-            }
+            this.source += `${list}._monitorUpToDate = false;\n`;
             break;
         }
         case 'list.delete': {
             const list = this.referenceVariable(node.list);
             const index = this.descendInput(node.index);
-            if (index instanceof ConstantInput) {
-                if (index.constantValue === 'last') {
-                    this.source += `${list}.value.pop();\n`;
-                    if (vm.enableMonitorUpdates) {
-                        this.source += `${list}._monitorUpToDate = false;\n`;
-                    }
-                    break;
-                }
-                if (+index.constantValue === 1) {
-                    this.source += `${list}.value.shift();\n`;
-                    if (vm.enableMonitorUpdates) {
-                        this.source += `${list}._monitorUpToDate = false;\n`;
-                    }
-                    break;
-                }
-                // do not need a special case for all as that is handled in IR generation (list.deleteAll)
+            if (index.isConstant('last')) {
+                this.source += `${list}.value.pop();\n`;
+                this.source += `${list}._monitorUpToDate = false;\n`;
+                break;
             }
+            if (index.isConstant(1)) {
+                this.source += `${list}.value.shift();\n`;
+                this.source += `${list}._monitorUpToDate = false;\n`;
+                break;
+            }
+            // do not need a special case for all as that is handled in IR generation (list.deleteAll)
             this.source += `listDelete(${list}, ${index.asUnknown()});\n`;
             break;
         }
@@ -1208,11 +1335,14 @@ class JSGenerator {
             const list = this.referenceVariable(node.list);
             const index = this.descendInput(node.index);
             const item = this.descendInput(node.item);
-            if (index instanceof ConstantInput && +index.constantValue === 1) {
+            if (index.isConstant(1)) {
                 this.source += `${list}.value.unshift(${item.asSafe()});\n`;
-                if (vm.enableMonitorUpdates) {
-                    this.source += `${list}._monitorUpToDate = false;\n`;
-                }
+                this.source += `${list}._monitorUpToDate = false;\n`;
+                break;
+            }
+            if (index.isConstant('last')) {
+                this.source += `${list}.value.push(${item.asSafe()});\n`;
+                this.source += `${list}._monitorUpToDate = false;\n`;
                 break;
             }
             this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
@@ -1221,19 +1351,7 @@ class JSGenerator {
         case 'list.replace': {
             const listRef = this.referenceVariable(node.list);
             const idxInput = this.descendInput(node.index);
-            const itemNode = node.item;
-            if (itemNode && itemNode.kind === 'list.get' && itemNode.list && itemNode.list.id === node.list.id) {
-                const itemIdxInput = this.descendInput(itemNode.index);
-                const idxStr = idxInput.asUnknown();
-                const itemIdxStr = itemIdxInput.asUnknown();
-                if (idxStr === itemIdxStr) {
-                    this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${idxStr}));\n`;
-                } else {
-                    this.source += `listReplace(${listRef}, ${idxStr}, listGet(${listRef}.value, ${itemIdxStr}));\n`;
-                }
-            } else {
-                this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
-            }
+            this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
             break;
         }
         case 'list.show':
@@ -1301,7 +1419,13 @@ class JSGenerator {
             this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInput(node.backdrop).asSafe()});\n`;
             break;
         case 'looks.switchCostume':
-            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asSafe()});\n`;
+            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asString()});\n`;
+            break;
+        case 'looks.say':
+            this.source += `runtime.ext_scratch3_looks._say(${this.descendInput(node.message).asSafe()}, target);\n`;
+            break;
+        case 'looks.think':
+            this.source += `runtime.ext_scratch3_looks._think(${this.descendInput(node.message).asSafe()}, target);\n`;
             break;
 
         case 'motion.changeX':
@@ -1396,7 +1520,10 @@ class JSGenerator {
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
             if (procedureData.stack === null) {
-                // TODO still need to evaluate arguments
+                // Procedure has no body; still evaluate arguments for side effects
+                for (const input of node.arguments) {
+                    this.source += `${this.descendInput(input).asSafe()};\n`;
+                }
                 break;
             }
 
@@ -1417,8 +1544,7 @@ class JSGenerator {
             this.source += ');\n';
 
             this.resetVariableInputs();
-            this.currentFrame.clearVariableTypes();
-            this.resetExprCaches();
+            this.clearVariableTypes();
             break;
         }
         case 'procedures.return':
@@ -1439,14 +1565,14 @@ class JSGenerator {
         case 'var.set': {
             const variable = this.descendVariable(node.variable);
             const value = this.descendInput(node.value);
+            this.variableInputs[node.variable.id] = variable;
             variable.setInput(value);
-            const valueType = value.type;
-            this.currentFrame.setVariableType(node.variable.name, valueType);
+            // const valueType = variable.type;
+            // this.source += `// Set variable ${node.variable.name} (type: ${valueType})\n`;
             this.source += `${variable.source} = ${value.asSafe()};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${variable.source});\n`;
             }
-            this.resetExprCaches();
             break;
         }
         case 'var.show':
@@ -1520,8 +1646,9 @@ class JSGenerator {
     descendStack (nodes, frame) {
         // Entering a stack -- all bets are off.
         // TODO: allow if/else to inherit values
-        this.resetVariableInputs();
-        this.resetExprCaches();
+        if (frame.isLoop) {
+            this.resetVariableInputs();
+        }
         this.pushFrame(frame);
 
         for (let i = 0; i < nodes.length; i++) {
@@ -1531,19 +1658,20 @@ class JSGenerator {
 
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
-        this.resetVariableInputs();
-        this.resetExprCaches();
+        if (frame.isLoop) {
+            this.resetVariableInputs();
+        }
         this.popFrame();
     }
 
     descendVariable (variable) {
+        let input;
         if (Object.prototype.hasOwnProperty.call(this.variableInputs, variable.id)) {
-            return this.variableInputs[variable.id];
+            input = this.variableInputs[variable.id];
+        } else {
+            input = new VariableInput(`${this.referenceVariable(variable)}.value`);
+            this.variableInputs[variable.id] = input;
         }
-        const input = new VariableInput(`${this.referenceVariable(variable)}.value`);
-        this.variableInputs[variable.id] = input;
-        const cachedType = this.currentFrame && this.currentFrame.getVariableType(variable.name);
-        if (typeof cachedType !== 'undefined') input.type = cachedType;
         return input;
     }
 
@@ -1568,6 +1696,39 @@ class JSGenerator {
         const variable = this._setupVariablesPool.next();
         this._setupVariables[source] = variable;
         return variable;
+    }
+
+    /**
+     * Get or create a temporary variable for a casted procedure argument expression.
+     * Caches the temp name in `_argumentTypeCache` and emits an assignment into `prefixLines`.
+     * @param {string} kind The desired type of the argument
+     * @param {string} expr The JS expression to compute and cache
+     * @returns {string} Variable name to use in generated code
+     */
+    getOrCreateArgumentTemp (kind, expr) {
+        const key = `${kind}:${expr}`;
+        if (this._argumentTypeCache.has(key)) return this._argumentTypeCache.get(key);
+
+        let pool = null;
+        let declSet = null;
+        if (kind === TYPE_NUMBER || kind === TYPE_NUMBER_NAN || kind === TYPE_NUMBER_INT) {
+            pool = this.numberCachePool;
+            declSet = this._numberTempsDecl;
+        } else if (kind === TYPE_STRING || kind === TYPE_LOWER_STRING) {
+            pool = this.stringCachePool;
+            declSet = this._stringTempsDecl;
+        } else if (kind === TYPE_BOOLEAN) {
+            pool = this.booleanCachePool;
+            declSet = this._booleanTempsDecl;
+        } else {
+            return expr;
+        }
+
+        const varName = pool.next();
+        declSet.add(varName);
+        this._argumentTypeCache.set(key, varName);
+        this.prefixLines.push(`${varName} = ${expr};`);
+        return varName;
     }
 
     retire () {
@@ -1636,8 +1797,7 @@ class JSGenerator {
         }
         // Control may have been yielded to another script -- all bets are off.
         this.resetVariableInputs();
-        this.currentFrame.clearVariableTypes();
-        this.resetExprCaches();
+        this.clearVariableTypes();
     }
 
     /**
@@ -1758,6 +1918,8 @@ class JSGenerator {
         }
         script += ') {\n';
 
+        script += this.prefixLines.length ? (this.prefixLines.join('\n') + '\n') : '';
+
         script += this.source;
 
         script += '}; })';
@@ -1771,11 +1933,6 @@ class JSGenerator {
      */
     compile () {
         CURRENT_GENERATOR = this;
-        // Mistwarp specific to disable the monitor updates being compiled if the user specifies
-        if (typeof vm.enableMonitorUpdates === 'undefined') {
-            vm.enableMonitorUpdates = true;
-        }
-
         if (this.script.stack) {
             this.descendStack(this.script.stack, new Frame(false));
         }
@@ -1794,6 +1951,38 @@ class JSGenerator {
 
         CURRENT_GENERATOR = null;
         return fn;
+    }
+
+    /**
+     * @param {string} name
+     * @param {string} type
+     */
+    setVariableType (name, type) {
+        const ctxs = this.typeCtxs;
+        for (let i = ctxs.length - 1; i >= 0; i--) {
+            const ctx = ctxs[i];
+            if (ctx.has(name)) {
+                if (ctx.get(name) !== type) {
+                    // clear the type if it changed in a higher context
+                    ctx.delete(name);
+                }
+            }
+        }
+        this.getCurrentTypeCtx().set(name, type);
+    }
+
+    /**
+     * @param {string} name
+     * @returns {string|undefined}
+     */
+    getVariableType (name) {
+        const ctxs = this.typeCtxs;
+        for (let i = ctxs.length - 1; i >= 0; i--) {
+            const ctx = ctxs[i];
+            if (ctx.has(name)) {
+                return ctx.get(name);
+            }
+        }
     }
 }
 

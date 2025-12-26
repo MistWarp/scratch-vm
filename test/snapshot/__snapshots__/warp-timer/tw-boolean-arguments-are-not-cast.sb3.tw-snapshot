@@ -6,11 +6,10 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"MESSAGE":"plan 1",}, b0, false, false, "f", null);
-yield* thread.procedures["ZBlock A %s"]("Hai!!!");
-yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "k", null);
+runtime.ext_scratch3_looks._say("plan 1", target);
+thread.procedures["ZBlock A %s"]("Hai!!!");
+runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
@@ -19,12 +18,13 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const b0 = runtime.getOpcodeFunction("looks_say");
-return function* genXYZ_Block_A_ (p0) {
-if ((("" + p0).toLowerCase() === "hai!!!")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass did not cast",}, b0, false, false, "m", null);
+let s0;
+return function funXYZ_Block_A_ (p0) {
+s0 = ("" + p0).toLowerCase();
+if ((s0 === "hai!!!")) {
+runtime.ext_scratch3_looks._say("pass did not cast", target);
 } else {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail was casted",}, b0, false, false, "n", null);
+runtime.ext_scratch3_looks._say("fail was casted", target);
 }
 return "";
 }; })

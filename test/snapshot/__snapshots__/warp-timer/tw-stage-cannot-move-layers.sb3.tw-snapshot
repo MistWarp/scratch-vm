@@ -7,11 +7,10 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
-const b0 = runtime.getOpcodeFunction("looks_say");
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"MESSAGE":"plan 1",}, b0, false, false, "5,snC%48IW(1ZVM(k0l2", null);
-b1.value = "Initial";
+runtime.ext_scratch3_looks._say("plan 1", target);
+b0.value = "Initial";
 thread.timer = timer();
 var a0 = max(0, 1000 * 0);
 runtime.requestRedraw();
@@ -21,7 +20,7 @@ yield;
 }
 thread.timer = null;
 yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "Test 1" }));
-yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "5.$W?rkoLYkKo1qX@%@?", null);
+runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
@@ -31,10 +30,9 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 if ((("" + b0.value).toLowerCase() === "initial")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass",}, b1, false, false, "eR%8T)3MQjkbQkAh~L0%", null);
+runtime.ext_scratch3_looks._say("pass", target);
 }
 retire(); return;
 }; })

@@ -278,7 +278,7 @@ baseRuntime += `const compareEqualSlow = (v1, v2) => {
     if (Number.isNaN(n2) || (n2 === 0 && isNotActuallyZero(v2))) return ('' + v1).toLowerCase() === ('' + v2).toLowerCase();
     return n1 === n2;
 };
-const compareEqual = (v1, v2) => (typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v1) || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
+const compareEqual = (v1, v2) => (typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2) || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
 
 /**
  * Determine if one value is greater than another.
@@ -669,6 +669,16 @@ runtimeFunctions.yieldThenCallGenerator = `const yieldThenCallGenerator = functi
     yield;
     return yield* callback(...args);
 };`;
+
+/**
+ * Converts NaN to zero. Used to match Scratch's string-to-number.
+ * Unlike (x || 0), -0 stays as -0 and is not converted to 0.
+ * This function needs to be written such that it's very easy for browsers to inline it.
+
+ * @param {number} value A number. Might be NaN.
+ * @returns {number} A number. Never NaN.
+ */
+runtimeFunctions.toNotNaN = `const toNotNaN = value => Number.isNaN(value) ? 0 : value`;
 
 /**
  * Step a compiled thread.

@@ -1020,6 +1020,11 @@ class ScriptTreeGenerator {
             return {
                 kind: 'looks.nextCostume'
             };
+        case 'looks_say':
+            return {
+                kind: 'looks.say',
+                message: this.descendInputOfBlock(block, 'MESSAGE')
+            };
         case 'looks_seteffectto':
             return {
                 kind: 'looks.setEffect',
@@ -1044,6 +1049,11 @@ class ScriptTreeGenerator {
             return {
                 kind: 'looks.switchCostume',
                 costume: this.descendInputOfBlock(block, 'COSTUME')
+            };
+        case 'looks_think':
+            return {
+                kind: 'looks.think',
+                message: this.descendInputOfBlock(block, 'MESSAGE')
             };
 
         case 'motion_changexby':
@@ -1834,14 +1844,6 @@ class IRGenerator {
             return node;
         }
         case 'control.repeat': {
-            const t = node.times;
-            if (t && t.kind === 'constant') {
-                const c = +t.value;
-                if (Number.isFinite(c)) {
-                    if (c <= 0) return null;
-                    if (c === 1) return this._optimizeSubstack(node.do);
-                }
-            }
             node.do = this._optimizeSubstack(node.do);
             return node;
         }

@@ -6,76 +6,81 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const b0 = runtime.getOpcodeFunction("looks_say");
-const b1 = stage.variables[",OktMIwz{~bdgWnPEa8u"];
-const b2 = stage.variables["yfy(G`K5K^fJcXAfiN4i"];
+const b0 = stage.variables[",OktMIwz{~bdgWnPEa8u"];
+const b1 = stage.variables["yfy(G`K5K^fJcXAfiN4i"];
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"MESSAGE":"plan 14",}, b0, false, false, "S8W[CSRh5A:[y8s/Ridj", null);
+runtime.ext_scratch3_looks._say("plan 14", target);
 if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 1",}, b0, false, false, "1ove2a-$DQw7qy5PGdgq", null);
+runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 2",}, b0, false, false, "@A5}x{mm-Gk?CVz3o0Yn", null);
+if ((10 === 10)) {
+runtime.ext_scratch3_looks._say("pass 2", target);
 }
-b1.value = 10;
-if (((+b1.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 3",}, b0, false, false, "Ul:BCck-}Fvdux~x#$${", null);
+b0.value = 10;
+if (false) {
+runtime.ext_scratch3_looks._say("pass 3", target);
 }
-if (((+b1.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 4",}, b0, false, false, "8]2$7P)o#+#Lo]mFSBbx", null);
+if (false) {
+runtime.ext_scratch3_looks._say("pass 4", target);
 }
-if (compareEqual(b1.value, "0000000010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 5",}, b0, false, false, "ZU^{OfKTg|+Au$$q0[]u", null);
+if ((b0.value === 10)) {
+runtime.ext_scratch3_looks._say("pass 5", target);
 }
-if (((+b1.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 6",}, b0, false, false, "HB+_IN}6=K[*ksxKXH0`", null);
+for (var a0 = 1; a0 >= 0.5; a0--) {
+if ((toNotNaN(+b0.value) === 10)) {
+runtime.ext_scratch3_looks._say("pass 6", target);
+}
+if (compareEqual(b0.value, "010")) {
+runtime.ext_scratch3_looks._say("pass 7", target);
+}
+if (compareEqual(b0.value, "0000000010")) {
+runtime.ext_scratch3_looks._say("pass 8", target);
+}
+yield;
+}
+b1.value = "010";
+if ((b1.value === 10)) {
+runtime.ext_scratch3_looks._say("pass 9", target);
+}
+if ((b1.value === 10)) {
+runtime.ext_scratch3_looks._say("pass 10", target);
+}
+if ((b1.value === 10)) {
+runtime.ext_scratch3_looks._say("pass 11", target);
+}
+for (var a1 = 1; a1 >= 0.5; a1--) {
+if ((toNotNaN(+b1.value) === 10)) {
+runtime.ext_scratch3_looks._say("pass 12", target);
 }
 if (compareEqual(b1.value, "010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 7",}, b0, false, false, ";73ODiwcp8IthYURTX;S", null);
+runtime.ext_scratch3_looks._say("pass 13", target);
 }
 if (compareEqual(b1.value, "0000000010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 8",}, b0, false, false, "${[MFmBL-D*1rbas9Q89", null);
+runtime.ext_scratch3_looks._say("pass 14", target);
 }
-b2.value = "010";
-if (((+b2.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 9",}, b0, false, false, "#.`@SBj!g-c0:_q/tMZo", null);
+yield;
 }
-if (((+b2.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 10",}, b0, false, false, "B`o?V6/q6g),/2w};a#y", null);
+if ((0 === 1)) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(b2.value, "0000000010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 11",}, b0, false, false, "TJ:#TkYBys*!RYiKLXb)", null);
+if ((1 === 0)) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (((+b2.value || 0) === 10)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 12",}, b0, false, false, ",Z,~10Qo~j;(+VL+I3q:", null);
+if ((0 === 1)) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(b2.value, "010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 13",}, b0, false, false, "|Mqx([(26M%#ggW9)U0s", null);
+if (compareEqual(" ", 0)) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(b2.value, "0000000010")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass 14",}, b0, false, false, "YvtiKF231lU8p5Qd97RP", null);
+if (compareEqual(0, " ")) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (false) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "yO!,nQodLC}uqIc?212+", null);
+if (compareEqual("", 0)) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (false) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "XzQt!.^A,SV?q0`Ui)wG", null);
+if (compareEqual(0, "")) {
+runtime.ext_scratch3_looks._say("fail", target);
 }
-if (false) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "rxZqw7cv8g;PDM4B%{`?", null);
-}
-if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "3G|)eVw1mQm;O~cRy`}0", null);
-}
-if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "sd5xXX*tsW/~A_Q!0;^w", null);
-}
-if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "7**baE=].WD9OoY1+IEu", null);
-}
-if (true) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail",}, b0, false, false, "7!IB!=o/2H.Jqj-8Vwhz", null);
-}
-yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "df{tf!WhfRwXgQ?SN_dj", null);
+runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

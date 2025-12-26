@@ -11,7 +11,7 @@ const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ () {
 b0.value = 0;
 while (true) {
-b0.value = ((+b0.value || 0) + 1);
+b0.value = (toNotNaN(+b0.value) + 1);
 thread.timer = timer();
 var a0 = max(0, 1000 * -1);
 runtime.requestRedraw();
@@ -30,12 +30,11 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const b0 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"MESSAGE":"plan 3",}, b0, false, false, "k", null);
+runtime.ext_scratch3_looks._say("plan 3", target);
 yield* thread.procedures["Znon warp"]();
 runtime.stopForTarget(target, thread);
-yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "N", null);
+runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
@@ -46,7 +45,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b1 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ_non_warp () {
 b0.value = 0;
 for (var a0 = 5; a0 >= 0.5; a0--) {
@@ -60,11 +58,11 @@ yield;
 thread.timer = null;
 yield;
 }
-if (((+b0.value || 0) === 5)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass non warp 1",}, b1, false, false, "R", null);
+if ((toNotNaN(+b0.value) === 5)) {
+runtime.ext_scratch3_looks._say("pass non warp 1", target);
 }
 if ((("" + (yield* thread.procedures["Wverify runs warp %s"]((yield* thread.procedures["Zverify runs non warp %s"]((yield* thread.procedures["Wverify runs warp %s"]("abc"))))))).toLowerCase() === "warp: non warp: warp: abc")) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass non warp and warp mix",}, b1, false, false, "S", null);
+runtime.ext_scratch3_looks._say("pass non warp and warp mix", target);
 }
 b0.value = 0;
 for (var a2 = 5; a2 >= 0.5; a2--) {
@@ -78,8 +76,8 @@ yield;
 thread.timer = null;
 yield;
 }
-if (((+b0.value || 0) === 5)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass non warp 2",}, b1, false, false, "W", null);
+if ((toNotNaN(+b0.value) === 5)) {
+runtime.ext_scratch3_looks._say("pass non warp 2", target);
 }
 return "";
 }; })
@@ -90,9 +88,10 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
+let s0;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b1 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ_verify_runs_warp_ (p0) {
+s0 = ("" + p0);
 b0.value = 0;
 for (var a0 = 5; a0 >= 0.5; a0--) {
 thread.timer = timer();
@@ -104,9 +103,9 @@ if (isStuck()) yield;
 thread.timer = null;
 }
 if (!compareEqual(b0.value, 0)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail did not run warp",}, b1, true, false, "Z", null);
+runtime.ext_scratch3_looks._say("fail did not run warp", target);
 }
-return ("warp: " + ("" + p0));
+return ("warp: " + s0);
 return "";
 }; })
 
@@ -116,9 +115,10 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
+let s0;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b1 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ_verify_runs_non_warp (p0) {
+s0 = ("" + p0);
 b0.value = 0;
 for (var a0 = 5; a0 >= 0.5; a0--) {
 thread.timer = timer();
@@ -132,8 +132,8 @@ thread.timer = null;
 yield;
 }
 if (compareEqual(b0.value, 0)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"fail ran warp",}, b1, false, false, "L", null);
+runtime.ext_scratch3_looks._say("fail ran warp", target);
 }
-return ("non warp: " + ("" + p0));
+return ("non warp: " + s0);
 return "";
 }; })

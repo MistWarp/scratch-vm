@@ -14,7 +14,7 @@ const log = require('../util/log');
 const loadSoundFromAsset = function (sound, soundAsset, runtime, soundBank) {
     sound.assetId = soundAsset.assetId;
     if (!runtime.audioEngine) {
-        log.warn('No audio engine present; cannot load sound asset: ', sound.md5);
+        log.warn(`No audio engine present; cannot load sound asset: ${sound.md5}`);
         return Promise.resolve(sound);
     }
     return runtime.audioEngine.decodeSoundPlayer(Object.assign(

@@ -7,12 +7,11 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
-const b0 = runtime.getOpcodeFunction("looks_say");
-const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
+const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"MESSAGE":"plan 2",}, b0, false, false, "s+@:|^WPr8]N1Y9Hk2f5", null);
+runtime.ext_scratch3_looks._say("plan 2", target);
 thread.timer = timer();
-var a0 = max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * toNotNaN(+b0.value));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
@@ -20,7 +19,7 @@ yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a1 = max(0, 1000 * (+b1.value || 0));
+var a1 = max(0, 1000 * toNotNaN(+b0.value));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a1) {
@@ -28,14 +27,14 @@ yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a2 = max(0, 1000 * (+b1.value || 0));
+var a2 = max(0, 1000 * toNotNaN(+b0.value));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a2) {
 yield;
 }
 thread.timer = null;
-yield* executeInCompatibilityLayer({"MESSAGE":"end",}, b0, false, false, "7e7aA!PF-sxf1uka+sh2", null);
+runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
@@ -47,22 +46,21 @@ const stage = runtime.getTargetForStage();
 const max=Math.max;
 const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
 const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
-const b2 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
-var a0 = max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * toNotNaN(+b1.value));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = ((+b0.value || 0) + 1);
-if (((b0.value || 0) === 1)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass order is correct (1)",}, b2, false, false, "RSQ{nVCc)6E)(`KlnFCF", null);
+b0.value = (toNotNaN(+b0.value) + 1);
+if ((b0.value === 1)) {
+runtime.ext_scratch3_looks._say("pass order is correct (1)", target);
 } else {
-yield* executeInCompatibilityLayer({"MESSAGE":("fail order is incorrect 1 != " + ("" + b0.value)),}, b2, false, false, "8k^j~`c^|YO@hkFd?~2d", null);
+runtime.ext_scratch3_looks._say(("fail order is incorrect 1 != " + ("" + b0.value)), target);
 }
 retire(); return;
 }; })
@@ -75,22 +73,21 @@ const stage = runtime.getTargetForStage();
 const max=Math.max;
 const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
 const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
-const b2 = runtime.getOpcodeFunction("looks_say");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
-var a0 = max(0, 1000 * (+b1.value || 0));
+var a0 = max(0, 1000 * toNotNaN(+b1.value));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = ((+b0.value || 0) + 1);
-if (((b0.value || 0) === 2)) {
-yield* executeInCompatibilityLayer({"MESSAGE":"pass order is correct (2)",}, b2, false, false, "KP?op(=Vg2#;@]!,C#.~", null);
+b0.value = (toNotNaN(+b0.value) + 1);
+if ((b0.value === 2)) {
+runtime.ext_scratch3_looks._say("pass order is correct (2)", target);
 } else {
-yield* executeInCompatibilityLayer({"MESSAGE":("fail order is incorrect 2 != " + ("" + b0.value)),}, b2, false, false, "=]|}L~4uQXTNtwJKw_;R", null);
+runtime.ext_scratch3_looks._say(("fail order is incorrect 2 != " + ("" + b0.value)), target);
 }
 retire(); return;
 }; })

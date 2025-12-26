@@ -165,6 +165,7 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorBlock.fields.NUMBER_NAME.value, 'number');
 
         // x position monitor is in large mode, specific to shirt sprite
+        monitorId = `${shirtSprite.id}_xposition`;
         monitorRecord = assertMonitorExists(monitorId, 'shirt xposition');
         monitorBlock = assertMonitorBlockExists(monitorId, 'shirt xposition');
         t.equal(monitorRecord.opcode, 'motion_xposition');

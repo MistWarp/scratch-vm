@@ -8,11 +8,9 @@
 const stacked = [
     'looks_changestretchby',
     'looks_hideallsprites',
-    'looks_say',
     'looks_sayforsecs',
     'looks_setstretchto',
     'looks_switchbackdroptoandwait',
-    'looks_think',
     'looks_thinkforsecs',
     'motion_align_scene',
     'motion_glidesecstoxy',
