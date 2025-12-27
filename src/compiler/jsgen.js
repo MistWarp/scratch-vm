@@ -1475,6 +1475,9 @@ class JSGenerator {
         case 'pen.printText':
             this.source += `${PEN_EXT}._printText(${this.descendInput(node.text).asSafe()}, ${this.descendInput(node.x).asNumber()}, ${this.descendInput(node.y).asNumber()}, target);\n`;
             break;
+        case 'pen.drawTriangle':
+            this.source += `${PEN_EXT}._triangle(${this.descendInput(node.x0).asNumber()}, ${this.descendInput(node.y0).asNumber()}, ${this.descendInput(node.x1).asNumber()}, ${this.descendInput(node.y1).asNumber()}, ${this.descendInput(node.x2).asNumber()}, ${this.descendInput(node.y2).asNumber()}, target);\n`;
+            break;
         case 'pen.up':
             this.source += `${PEN_EXT}._penUp(target);\n`;
             break;

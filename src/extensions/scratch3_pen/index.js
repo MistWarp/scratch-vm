@@ -468,6 +468,42 @@ class Scratch3PenBlocks {
                 },
                 '---',
                 {
+                    opcode: 'drawTriangle',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'pen.triangle',
+                        default: 'draw triangle between [X0] [Y0], [X1] [Y1] and [X2] [Y2]',
+                        description: 'draw a triangle'
+                    }),
+                    arguments: {
+                        X0: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        Y0: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        X1: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        Y1: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        X2: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        Y2: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    },
+                    filter: [TargetType.SPRITE]
+                },
+                {
                     opcode: 'setPrintFont',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -1107,6 +1143,25 @@ class Scratch3PenBlocks {
         context.fillText(text, x, -y);
         
         this._drawContextToPen(context);
+    }
+
+    drawTriangle (args, util) {
+        const x0 = Cast.toNumber(args.X0);
+        const y0 = Cast.toNumber(args.Y0);
+        const x1 = Cast.toNumber(args.X1);
+        const y1 = Cast.toNumber(args.Y1);
+        const x2 = Cast.toNumber(args.X2);
+        const y2 = Cast.toNumber(args.Y2);
+        this._triangle(x0, y0, x1, y1, x2, y2, util.target);
+    }
+
+    _triangle (x0, y0, x1, y1, x2, y2, target) { // used by compiler
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId < 0) return;
+
+        const penAtt = this._getPenState(target).penAttributes;
+
+        this.runtime.renderer.penTriangle(penSkinId, penAtt, x0, y0, x1, y1, x2, y2);
     }
 
     /**

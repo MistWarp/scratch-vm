@@ -1208,6 +1208,16 @@ class ScriptTreeGenerator {
                 x: this.descendInputOfBlock(block, 'X'),
                 y: this.descendInputOfBlock(block, 'Y')
             };
+        case 'pen_drawTriangle':
+            return {
+                kind: 'pen.drawTriangle',
+                x0: this.descendInputOfBlock(block, 'X0'),
+                y0: this.descendInputOfBlock(block, 'Y0'),
+                x1: this.descendInputOfBlock(block, 'X1'),
+                y1: this.descendInputOfBlock(block, 'Y1'),
+                x2: this.descendInputOfBlock(block, 'X2'),
+                y2: this.descendInputOfBlock(block, 'Y2')
+            };
 
         case 'procedures_call': {
             const procedureCode = block.mutation.proccode;
