@@ -105,12 +105,6 @@ class TypedInput {
         if (this.type === TYPE_NUMBER_INT) return this.source;
         if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source})`;
         const ret = `toNotNaN(+${this.source})`;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const gen = this._generator;
-            if (gen) {
-                return gen.getOrCreateArgumentTemp(TYPE_NUMBER, ret);
-            }
-        }
         return ret;
     }
 
@@ -118,61 +112,31 @@ class TypedInput {
         if (this.type === TYPE_NUMBER_INT) return this.source;
         if (this.type === TYPE_NUMBER) return `(${this.source} | 0)`;
         if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `toNotNaN(+${this.source} | 0)`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_NUMBER, expr);
-        }
         return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
         if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT) return this.source;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `(+${this.source})`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_NUMBER_NAN, expr);
-        }
         return `(+${this.source})`;
     }
 
     asStringOrEmpty () {
         if (this.type === TYPE_STRING) return this.source;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `("" + ${this.source})`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_STRING, expr);
-        }
         return `("" + ${this.source})`;
     }
 
     asString () {
         if (this.type === TYPE_STRING) return this.source;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `("" + ${this.source})`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_STRING, expr);
-        }
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
         if (this.type === TYPE_LOWER_STRING) return this.source;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `("" + ${this.source}).toLowerCase()`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_LOWER_STRING, expr);
-        }
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
         if (this.type === TYPE_BOOLEAN) return this.source;
-        if (this.type === TYPE_PROCEDURE_ARG) {
-            const expr = `toBoolean(${this.source})`;
-            const gen = this._generator;
-            if (gen) return gen.getOrCreateArgumentTemp(TYPE_BOOLEAN, expr);
-        }
         return `toBoolean(${this.source})`;
     }
 
@@ -1696,39 +1660,6 @@ class JSGenerator {
         const variable = this._setupVariablesPool.next();
         this._setupVariables[source] = variable;
         return variable;
-    }
-
-    /**
-     * Get or create a temporary variable for a casted procedure argument expression.
-     * Caches the temp name in `_argumentTypeCache` and emits an assignment into `prefixLines`.
-     * @param {string} kind The desired type of the argument
-     * @param {string} expr The JS expression to compute and cache
-     * @returns {string} Variable name to use in generated code
-     */
-    getOrCreateArgumentTemp (kind, expr) {
-        const key = `${kind}:${expr}`;
-        if (this._argumentTypeCache.has(key)) return this._argumentTypeCache.get(key);
-
-        let pool = null;
-        let declSet = null;
-        if (kind === TYPE_NUMBER || kind === TYPE_NUMBER_NAN || kind === TYPE_NUMBER_INT) {
-            pool = this.numberCachePool;
-            declSet = this._numberTempsDecl;
-        } else if (kind === TYPE_STRING || kind === TYPE_LOWER_STRING) {
-            pool = this.stringCachePool;
-            declSet = this._stringTempsDecl;
-        } else if (kind === TYPE_BOOLEAN) {
-            pool = this.booleanCachePool;
-            declSet = this._booleanTempsDecl;
-        } else {
-            return expr;
-        }
-
-        const varName = pool.next();
-        declSet.add(varName);
-        this._argumentTypeCache.set(key, varName);
-        this.prefixLines.push(`${varName} = ${expr};`);
-        return varName;
     }
 
     retire () {
