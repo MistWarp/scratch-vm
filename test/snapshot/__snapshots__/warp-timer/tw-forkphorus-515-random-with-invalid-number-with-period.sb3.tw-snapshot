@@ -13,7 +13,7 @@ b0.value = runtime.ext_scratch3_operators._random(("an invalid number" + "."), 1
 if (!(b0.value <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((b0.value < 1)) {
+if (compareLessThan(b0.value, 1)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + b0.value).toLowerCase().indexOf(".") !== -1)) {
@@ -23,7 +23,7 @@ b0.value = runtime.ext_scratch3_operators._random(1, ("an invalid number" + ".")
 if (!(b0.value <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((b0.value < 1)) {
+if (compareLessThan(b0.value, 1)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + b0.value).toLowerCase().indexOf(".") !== -1)) {

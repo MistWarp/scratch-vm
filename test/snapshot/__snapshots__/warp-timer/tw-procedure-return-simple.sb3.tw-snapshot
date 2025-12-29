@@ -65,11 +65,9 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0;
 return function funXYZ_factorial_ (p0) {
-n0 = toNotNaN(+p0);
 if (compareGreaterThan(p0, 1)) {
-return (n0 * toNotNaN(+thread.procedures["Wfactorial %s"]((n0 - 1))));
+return (toNotNaN(+p0) * toNotNaN(+thread.procedures["Wfactorial %s"]((toNotNaN(+p0) - 1))));
 }
 return 1;
 return "";
@@ -80,20 +78,17 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let s0,s1;
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function funXYZ_no_shadowing_1__ (p0,p1) {
-s0 = ("" + p0).toLowerCase();
-s1 = ("" + p1).toLowerCase();
-if (((s0 === "f") && (s1 === "g"))) {
+if (((("" + p0).toLowerCase() === "f") && (("" + p1).toLowerCase() === "g"))) {
 runtime.ext_scratch3_looks._say("pass shadow check 1", target);
 }
 b0.value = thread.procedures["Zno shadowing 2 %s %s"](1,2);
-if (((s0 === "f") && (s1 === "g"))) {
+if (((("" + p0).toLowerCase() === "f") && (("" + p1).toLowerCase() === "g"))) {
 runtime.ext_scratch3_looks._say("pass shadow check 2", target);
 }
 b0.value = thread.procedures["Zno shadowing 2 %s %s"](3,4);
-if (((s0 === "f") && (s1 === "g"))) {
+if (((("" + p0).toLowerCase() === "f") && (("" + p1).toLowerCase() === "g"))) {
 runtime.ext_scratch3_looks._say("pass shadow check 3", target);
 }
 return "";
@@ -114,11 +109,8 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0,n1;
 return function funXYZ_nesting_3__ (p0,p1) {
-n0 = toNotNaN(+p0);
-n1 = toNotNaN(+p1);
-return (n0 * n1);
+return (toNotNaN(+p0) * toNotNaN(+p1));
 return "";
 }; })
 
@@ -127,13 +119,11 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0;
 return function funXYZ_fib_ (p0) {
-n0 = toNotNaN(+p0);
 if (compareLessThan(p0, 2)) {
 return p0;
 } else {
-return (toNotNaN(+thread.procedures["Wfib %s"]((n0 - 1))) + toNotNaN(+thread.procedures["Wfib %s"]((n0 - 2))));
+return (toNotNaN(+thread.procedures["Wfib %s"]((toNotNaN(+p0) - 1))) + toNotNaN(+thread.procedures["Wfib %s"]((toNotNaN(+p0) - 2))));
 }
 return "";
 }; })

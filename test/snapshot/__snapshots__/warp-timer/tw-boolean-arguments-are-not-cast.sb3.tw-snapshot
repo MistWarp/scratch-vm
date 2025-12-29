@@ -18,10 +18,8 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let s0;
 return function funXYZ_Block_A_ (p0) {
-s0 = ("" + p0).toLowerCase();
-if ((s0 === "hai!!!")) {
+if ((("" + p0).toLowerCase() === "hai!!!")) {
 runtime.ext_scratch3_looks._say("pass did not cast", target);
 } else {
 runtime.ext_scratch3_looks._say("fail was casted", target);

@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * @fileoverview Common intermediates shared amongst parts of the compiler.
  */
@@ -10,13 +12,13 @@ class IntermediateScript {
     constructor () {
         /**
          * The ID of the top block of this script.
-         * @type {string}
+         * @type {string?}
          */
         this.topBlockId = null;
 
         /**
          * List of nodes that make up this script.
-         * @type {Array|null}
+         * @type {Array<import("./jsgen").node>|null}
          */
         this.stack = null;
 
@@ -66,6 +68,7 @@ class IntermediateScript {
 
         /**
          * List of procedure IDs that this script needs.
+         * @type {Array<string>}
          * @readonly
          */
         this.dependedProcedures = [];
@@ -88,12 +91,15 @@ class IntermediateScript {
  * An IntermediateRepresentation contains scripts.
  */
 class IntermediateRepresentation {
-    constructor () {
+    /**
+     * @param {IntermediateScript} entry
+     */
+    constructor (entry) {
         /**
          * The entry point of this IR.
          * @type {IntermediateScript}
          */
-        this.entry = null;
+        this.entry = entry;
 
         /**
          * Maps procedure variants to their intermediate script.

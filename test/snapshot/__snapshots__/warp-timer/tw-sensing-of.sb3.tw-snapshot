@@ -57,37 +57,37 @@ b4.value = (("" + randomInt(1, 9)) + ("" + randomInt(1, 9)));
 if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "backdrop #" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop #", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "backdrop name" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "backdrop name" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop name", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "volume" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "volume" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE volume", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "Stage variable" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "Stage variable" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE stage variable", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "x position" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "x position" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE x", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "y position" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "y position" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE y", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "direction" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "direction" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE direction", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "costume #" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "costume #" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE costume #", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "costume name" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "costume name" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE costume name", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "size" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "size" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE size", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "volume" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "volume" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE volume", target);
 }
-if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "Private variable" }), 0)) {
+if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "Private variable" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE private variable", target);
 }
 if (((b5 ? b5.x : 0) === 0)) {

@@ -88,10 +88,8 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
-let s0;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ_verify_runs_warp_ (p0) {
-s0 = ("" + p0);
 b0.value = 0;
 for (var a0 = 5; a0 >= 0.5; a0--) {
 thread.timer = timer();
@@ -106,7 +104,7 @@ if (isStuck()) yield;
 if (!compareEqual(b0.value, 0)) {
 runtime.ext_scratch3_looks._say("fail did not run warp", target);
 }
-return ("warp: " + s0);
+return ("warp: " + ("" + p0));
 return "";
 }; })
 
@@ -116,10 +114,8 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const max=Math.max;
-let s0;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ_verify_runs_non_warp (p0) {
-s0 = ("" + p0);
 b0.value = 0;
 for (var a0 = 5; a0 >= 0.5; a0--) {
 thread.timer = timer();
@@ -135,6 +131,6 @@ yield;
 if (compareEqual(b0.value, 0)) {
 runtime.ext_scratch3_looks._say("fail ran warp", target);
 }
-return ("non warp: " + s0);
+return ("non warp: " + ("" + p0));
 return "";
 }; })

@@ -37,11 +37,9 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0;
 return function* genXYZ_non_warp_recursion_s (p0) {
-n0 = toNotNaN(+p0);
 if (compareGreaterThan(p0, 0)) {
-return (yield* yieldThenCallGenerator(thread.procedures["Znon warp recursion should yield %s"], (n0 - 1)));
+return (yield* yieldThenCallGenerator(thread.procedures["Znon warp recursion should yield %s"], (toNotNaN(+p0) - 1)));
 }
 return "";
 }; })
@@ -51,11 +49,9 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0;
 return function funXYZ_warp_recursion_shoul (p0) {
-n0 = toNotNaN(+p0);
 if (compareGreaterThan(p0, 0)) {
-return thread.procedures["Wwarp recursion should not yield %s"]((n0 - 1));
+return thread.procedures["Wwarp recursion should not yield %s"]((toNotNaN(+p0) - 1));
 }
 return "";
 }; })
@@ -65,13 +61,11 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let n0;
 return function* genXYZ_fib_ (p0) {
-n0 = toNotNaN(+p0);
 if (compareLessThan(p0, 2)) {
 return p0;
 } else {
-return (toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zfib %s"], (n0 - 1)))) + toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zfib %s"], (n0 - 2)))));
+return (toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zfib %s"], (toNotNaN(+p0) - 1)))) + toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zfib %s"], (toNotNaN(+p0) - 2)))));
 }
 return "";
 }; })
@@ -81,13 +75,10 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let s0,s1;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ_recursing_yields_bet (p0) {
-s0 = ("" + p0).toLowerCase();
-s1 = ("" + p0);
-if ((s0 === "initial")) {
+if ((("" + p0).toLowerCase() === "initial")) {
 b0.value = 0;
 b1.value = (toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 1))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 1))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 2))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 2))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 3))) + toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 3))))))))))));
 if ((b0.value === 3)) {
@@ -97,9 +88,9 @@ runtime.ext_scratch3_looks._say("fail recursing between calls yields final", tar
 }
 } else {
 if (compareEqual(b0.value, p0)) {
-runtime.ext_scratch3_looks._say(("pass recursing between calls yields " + s1), target);
+runtime.ext_scratch3_looks._say(("pass recursing between calls yields " + ("" + p0)), target);
 } else {
-runtime.ext_scratch3_looks._say(("fail recursing between calls yields " + s1), target);
+runtime.ext_scratch3_looks._say(("fail recursing between calls yields " + ("" + p0)), target);
 }
 }
 return "";
@@ -110,14 +101,11 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let s0,s1;
 const b0 = stage.variables["4HH82mPlVMOONdl(Ot*7"];
 const b1 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ_recursing_arguments_ (p0,p1,p2,p3) {
-s0 = ("" + p0).toLowerCase();
-s1 = ("" + p0);
-if ((s0 === "initial")) {
+if ((("" + p0).toLowerCase() === "initial")) {
 b0.value = [];
 b1.value = 0;
 b2.value = (yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 1",(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 2",(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 3",(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 4","","","")),(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 5","","","")),(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 6","","","")))),"","")),"",(yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 7","","",""))));
@@ -146,7 +134,7 @@ if ((b0.value.length === 7)) {
 runtime.ext_scratch3_looks._say("pass recurse arg order - length is correct", target);
 }
 } else {
-b0.value.push((("" + b1.value) + ("/" + s1)));
+b0.value.push((("" + b1.value) + ("/" + ("" + p0))));
 b0._monitorUpToDate = false;
 }
 return "";

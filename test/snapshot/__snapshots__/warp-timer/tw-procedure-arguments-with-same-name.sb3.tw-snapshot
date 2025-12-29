@@ -19,10 +19,8 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let s0;
 return function funXYZ_number_or_text__ (p0,p1) {
-s0 = ("" + p1).toLowerCase();
-if ((s0 === "ok")) {
+if ((("" + p1).toLowerCase() === "ok")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";
@@ -33,10 +31,8 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-let q0;
 return function funXYZ_boolean__ (p0,p1) {
-q0 = toBoolean(p1);
-if (q0) {
+if (toBoolean(p1)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";

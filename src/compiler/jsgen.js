@@ -5,34 +5,47 @@ const VariablePool = require('./variable-pool');
 const jsexecute = require('./jsexecute');
 const environment = require('./environment');
 
+const {
+    TYPES, BLOCKS,
+    getNameForType
+} = require('./enums');
+
+
 // Imported for JSDoc types, not to actually use
 // eslint-disable-next-line no-unused-vars
 const {IntermediateScript, IntermediateRepresentation} = require('./intermediate');
+// eslint-disable-next-line no-unused-vars
+const Variable = require('../engine/variable');
+
+/* eslint-disable max-len */
 
 /**
  * @fileoverview Convert intermediate representations to JavaScript functions.
  */
 
-/* eslint-disable max-len */
-/* eslint-disable prefer-template */
-
+/**
+ * @param {string} string
+ * @returns {string}
+ */
 const sanitize = string => {
     if (typeof string !== 'string') {
         log.warn(`sanitize got unexpected type: ${typeof string}`);
-        string = '' + string;
+        string = `${string}`;
     }
     return JSON.stringify(string).slice(1, -1);
 };
 
-const TYPE_NUMBER = 1;
-const TYPE_STRING = 2;
-const TYPE_BOOLEAN = 3;
-const TYPE_UNKNOWN = 4;
-const TYPE_NUMBER_NAN = 5;
-const TYPE_LOWER_STRING = 6;
-const TYPE_NUMBER_INT = 7;
-const TYPE_PROCEDURE_ARG = 8;
+const TYPE_NUMBER = TYPES.NUMBER;
+const TYPE_NUMBER_INT = TYPES.NUMBER_INT;
+const TYPE_NUMBER_NAN = TYPES.NUMBER_NAN;
+const TYPE_BOOLEAN = TYPES.BOOLEAN;
+const TYPE_STRING = TYPES.STRING;
+const TYPE_LOWER_STRING = TYPES.LOWER_STRING;
 
+/**
+ * @type {JSGenerator|null}
+ * @private
+ */
 let CURRENT_GENERATOR = null;
 
 // Pen-related constants
@@ -55,7 +68,13 @@ const functionNameVariablePool = new VariablePool('fun');
 const generatorNameVariablePool = new VariablePool('gen');
 
 
+/**
+ * @param {Input} input
+ * @returns {boolean}
+ */
 const isSafeConstantForEqualsOptimization = input => {
+    if (typeof input.constantValue === 'undefined') return false;
+
     const numberValue = +input.constantValue;
     // Do not optimize 0 (+"" === 0 would be true)
     if (!numberValue) {
@@ -66,7 +85,16 @@ const isSafeConstantForEqualsOptimization = input => {
 };
 
 /**
+ * @typedef {string | number | boolean} ConstantValue
+ */
+
+/**
  * @typedef Input
+ * @property {number} type The type of this input.
+ * @property {string} source The source code for this input.
+ * @property {JSGenerator|null} _generator The JSGenerator that created this input.
+ * @property {string?} _cacheVar The name of the variable caching this input, if any.
+ * @property {ConstantValue} [constantValue] The constant value of this input, if any.
  * @property {() => string} asNumber gives the code to get the number version of the value
  * @property {() => string} asInt gives the code to get the truncated integer version of the value
  * @property {() => string} asNumberOrNaN gives the code to get the number version of the value, possibly NaN
@@ -84,13 +112,22 @@ const isSafeConstantForEqualsOptimization = input => {
  * @property {() => boolean} isAlwaysInt means that a value is always an integer
  * @property {() => boolean} isAlwaysFinite means that a value is always a finite number (never NaN or Infinity)
  * @property {() => boolean} isAlwaysConstant means that a value is constant
- * @property {(any) => boolean} isConstant means that a value is always a specified constant
+ * @property {(value: ConstantValue) => boolean} isConstant means that a value is always a specified constant
+ */
+
+// should inherit from object, only key thats garunteed is 'kind'
+/**
+ * @typedef {{ kind: number, [key: string]: any }} node
  */
 
 /**
  * @implements {Input}
  */
 class TypedInput {
+    /**
+     * @param {string} source The source code for this input.
+     * @param {number} type The type of this input.
+     */
     constructor (source, type) {
         if (typeof type !== 'number') throw new Error('type is invalid');
         this.source = source;
@@ -187,13 +224,22 @@ class TypedInput {
 
 /**
  * @implements {Input}
+ * @property {ConstantInput} constantValue The underlying value of the constantInput
+ * @property {() => true} isAlwaysConstant
  */
 class ConstantInput {
+    /**
+     * @param {string|number|boolean} constantValue The constant value.
+     * @param {boolean} safe Whether the constant value is safe to use.
+     */
     constructor (constantValue, safe) {
         this.constantValue = constantValue;
         this.safe = safe;
+        this.source = `${constantValue}`;
+        this._generator = CURRENT_GENERATOR;
+        this._cacheVar = null;
 
-        this.type = TYPE_UNKNOWN;
+        this.type = TYPES.UNKNOWN;
         if (Number.isFinite(+constantValue)) {
             this.type = Number.isInteger(constantValue) ?
                 TYPE_NUMBER_INT :
@@ -232,11 +278,15 @@ class ConstantInput {
     }
 
     asString () {
-        return `"${sanitize('' + this.constantValue)}"`;
+        return `"${sanitize(`${this.constantValue}`)}"`;
+    }
+
+    asStringOrEmpty () {
+        return this.asString();
     }
 
     asLowerString () {
-        return `"${sanitize('' + this.constantValue).toLowerCase()}"`;
+        return `"${sanitize(`${this.constantValue}`).toLowerCase()}"`;
     }
 
     asBoolean () {
@@ -246,8 +296,9 @@ class ConstantInput {
 
     asColor () {
         // Attempt to parse hex code at compilation time
-        if (/^#[0-9a-f]{6,8}$/i.test(this.constantValue)) {
-            const hex = this.constantValue.substr(1);
+        const strConst = `${this.constantValue}`;
+        if (/^#[0-9a-f]{6,8}$/i.test(strConst)) {
+            const hex = strConst.substr(1);
             return Number.parseInt(hex, 16).toString();
         }
         return this.asUnknown();
@@ -257,11 +308,11 @@ class ConstantInput {
         // Attempt to convert strings to numbers if it is unlikely to break things
         if (typeof this.constantValue === 'number') {
             // todo: handle NaN?
-            return this.constantValue;
+            return `${this.constantValue}`;
         }
         const numberValue = +this.constantValue;
         if (numberValue.toString() === this.constantValue) {
-            return this.constantValue;
+            return `${this.constantValue}`;
         }
         return this.asString();
     }
@@ -322,6 +373,10 @@ class ConstantInput {
         return true && isSafeConstantForEqualsOptimization(this);
     }
 
+    /**
+     * @param {ConstantValue} testValue
+     * @returns {boolean}
+     */
     isConstant (testValue) {
         const val = this.constantValue;
         if (+testValue === 0) {
@@ -340,9 +395,12 @@ class ConstantInput {
  * @implements {Input}
  */
 class VariableInput {
+    /**
+     * @param {string} source The source code for this input.
+     */
     constructor (source) {
         this.source = source;
-        this.type = TYPE_UNKNOWN;
+        this.type = TYPES.UNKNOWN;
         this._generator = CURRENT_GENERATOR;
         this._cacheVar = null;
         this._lastLinePos = -1;
@@ -364,7 +422,7 @@ class VariableInput {
             if (input._value) {
                 input = input._value;
             } else {
-                this.type = TYPE_UNKNOWN;
+                this.type = TYPES.UNKNOWN;
                 this._value = null;
                 return;
             }
@@ -373,9 +431,11 @@ class VariableInput {
         if (input instanceof TypedInput || input instanceof ConstantInput) {
             this.type = input.type;
         } else {
-            this.type = TYPE_UNKNOWN;
+            this.type = TYPES.UNKNOWN;
         }
-        this._generator.setVariableType(this.source, this.type);
+        if (this._generator) {
+            this._generator.setVariableType(this.source, this.type);
+        }
     }
 
     asNumber () {
@@ -397,6 +457,11 @@ class VariableInput {
     }
 
     asString () {
+        if (this.type === TYPE_STRING) return this.source;
+        return `("" + ${this.source})`;
+    }
+
+    asStringOrEmpty () {
         if (this.type === TYPE_STRING) return this.source;
         return `("" + ${this.source})`;
     }
@@ -469,6 +534,10 @@ class VariableInput {
         return false;
     }
 
+    /**
+     * @param {ConstantValue} testValue
+     * @returns {boolean}
+     */
     isConstant (testValue) {
         if (this._value) {
             return this._value.isConstant(testValue);
@@ -477,6 +546,10 @@ class VariableInput {
     }
 }
 
+/**
+ * @param {import('../engine/runtime')} runtime
+ * @returns {Set<string>}
+ */
 const getNamesOfCostumesAndSounds = runtime => {
     const result = new Set();
     for (const target of runtime.targets) {
@@ -497,6 +570,9 @@ const getNamesOfCostumesAndSounds = runtime => {
  * A frame contains some information about the current substack being compiled.
  */
 class Frame {
+    /**
+     * @param {boolean} isLoop Whether this frame is a loop frame.
+     */
     constructor (isLoop) {
         /**
          * Whether the current stack runs in a loop (while, for)
@@ -519,7 +595,7 @@ class Frame {
 
         /**
          * The variable name holding the switch value (for switch frames)
-         * @type {string}
+         * @type {string?}
          */
         this.switchValue = null;
     }
@@ -564,7 +640,7 @@ class JSGenerator {
         /**
          * @type {Object.<string, VariableInput>}
          */
-        this.variableInputs = {};
+        this.variableInputs = Object.create(null);
 
         this.isWarp = script.isWarp;
         this.isProcedure = script.isProcedure;
@@ -584,7 +660,7 @@ class JSGenerator {
 
         /**
          * The current Frame.
-         * @type {Frame}
+         * @type {Frame?}
          */
         this.currentFrame = null;
 
@@ -592,19 +668,8 @@ class JSGenerator {
 
         this.localVariables = new VariablePool('a');
         this._setupVariablesPool = new VariablePool('b');
-        this._setupVariables = {};
+        this._setupVariables = Object.create(null);
         this.usedMathFunctions = new Set();
-        this.numberCachePool = new VariablePool('n');
-        this._numberTempsDecl = new Set();
-        this._currentExprCache = new Map();
-        this.stringCachePool = new VariablePool('s');
-        this._stringTempsDecl = new Set();
-        this.booleanCachePool = new VariablePool('q');
-        this._booleanTempsDecl = new Set();
-
-        this._argumentTypeCache = new Map();
-
-        this.prefixLines = [];
 
         this.descendedIntoModulo = false;
         this.isInHat = false;
@@ -657,106 +722,106 @@ class JSGenerator {
     }
 
     /**
-     * @param {object} node Input node to compile.
+     * @param {node} node Input node to compile.
      * @returns {Input} Compiled input.
      */
     descendInput (node) {
         switch (node.kind) {
-        case 'addons.call':
-            return new TypedInput(`(${this.descendAddonCall(node)})`, TYPE_UNKNOWN);
+        case BLOCKS.ADDONS.CALL:
+            return new TypedInput(`(${this.descendAddonCall(node)})`, TYPES.UNKNOWN);
 
-        case 'compat':
+        case BLOCKS.COMPAT:
             // Compatibility layer inputs never use flags.
-            return new TypedInput(`(${this.generateCompatibilityLayerCall(node, false)})`, TYPE_UNKNOWN);
+            return new TypedInput(`(${this.generateCompatibilityLayerCall(node, false)})`, TYPES.UNKNOWN);
 
-        case 'constant':
+        case BLOCKS.CONSTANT:
             return this.safeConstantInput(node.value);
 
-        case 'counter.get':
+        case BLOCKS.COUNTER.GET:
             return new TypedInput('runtime.ext_scratch3_control._counter', TYPE_NUMBER);
 
-        case 'keyboard.pressed':
+        case BLOCKS.KEYBOARD.PRESSED:
             return new TypedInput(`runtime.ioDevices.keyboard.getKeyIsDown(${this.descendInput(node.key).asSafe()})`, TYPE_BOOLEAN);
 
-        case 'list.contains':
+        case BLOCKS.LIST.CONTAINS:
             return new TypedInput(`listContains(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_BOOLEAN);
-        case 'list.contents':
+        case BLOCKS.LIST.CONTENTS:
             return new TypedInput(`listContents(${this.referenceVariable(node.list)})`, TYPE_STRING);
-        case 'list.get': {
+        case BLOCKS.LIST.GET: {
             const index = this.descendInput(node.index);
             if (this.supportsNullishCoalescing) {
                 if (index.isAlwaysInt() && index.isAlwaysConstant()) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(+index.asInt()) - 1}] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(+index.asInt()) - 1}] ?? "")`, TYPES.UNKNOWN);
                 }
                 if (index.isAlwaysNumberOrNaN()) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPES.UNKNOWN);
                 }
                 if (index.isConstant('last')) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPE_UNKNOWN);
+                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPES.UNKNOWN);
                 }
             }
-            return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPE_UNKNOWN);
+            return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPES.UNKNOWN);
         }
-        case 'list.indexOf':
+        case BLOCKS.LIST.INDEXOF:
             return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER_INT);
-        case 'list.length':
+        case BLOCKS.LIST.LENGTH:
             return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER_INT);
-        case 'list.as':
+        case BLOCKS.LIST.AS:
             if (node.format === 'JSON') {
                 return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
             } else if (node.format === 'STRING') {
                 return new TypedInput(`(${this.referenceVariable(node.list)}.value.join(", "))`, TYPE_STRING);
             }
             break;
-        case 'looks.size':
+        case BLOCKS.LOOKS.SIZE:
             this.usedMathFunctions.add('round');
             return new TypedInput('round(target.size)', TYPE_NUMBER);
-        case 'looks.backdropName':
+        case BLOCKS.LOOKS.BACKDROP_NAME:
             return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPE_STRING);
-        case 'looks.backdropNumber':
+        case BLOCKS.LOOKS.BACKDROP_NUMBER:
             return new TypedInput('(stage.currentCostume + 1)', TYPE_NUMBER_INT);
-        case 'looks.costumeName':
+        case BLOCKS.LOOKS.COSTUME_NAME:
             return new TypedInput('target.getCostumes()[target.currentCostume].name', TYPE_STRING);
-        case 'looks.costumeNumber':
+        case BLOCKS.LOOKS.COSTUME_NUMBER:
             return new TypedInput('(target.currentCostume + 1)', TYPE_NUMBER_INT);
-        case 'looks.costumes':
+        case BLOCKS.LOOKS.COSTUMES:
             return new TypedInput('JSON.stringify(target.getCostumes().map(costume => costume.name))', TYPE_STRING);
 
-        case 'motion.direction':
+        case BLOCKS.MOTION.DIRECTION:
             return new TypedInput('target.direction', TYPE_NUMBER);
-        case 'motion.x':
+        case BLOCKS.MOTION.X_POSITION:
             return new TypedInput('limitPrecision(target.x)', TYPE_NUMBER);
-        case 'motion.y':
+        case BLOCKS.MOTION.Y_POSITION:
             return new TypedInput('limitPrecision(target.y)', TYPE_NUMBER);
 
-        case 'mouse.down':
+        case BLOCKS.MOUSE.DOWN:
             return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
-        case 'mouse.x':
+        case BLOCKS.MOUSE.X:
             return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER_INT);
-        case 'mouse.y':
+        case BLOCKS.MOUSE.Y:
             return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER_INT);
 
-        case 'noop':
+        case BLOCKS.NOOP:
             return new TypedInput('""', TYPE_STRING);
 
-        case 'op.abs':
+        case BLOCKS.OP.ABS:
             this.usedMathFunctions.add('abs');
             return new TypedInput(`abs(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
-        case 'op.acos':
+        case BLOCKS.OP.ACOS:
             // Needs to be marked as NaN because Math.acos(1.0001) === NaN
             this.usedMathFunctions.add('acos');
             this.usedMathFunctions.add('PI');
             return new TypedInput(`((acos(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
-        case 'op.add': {
+        case BLOCKS.OP.ADD: {
             // Needs to be marked as NaN because Infinity + -Infinity === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const value = +left.constantValue + +right.constantValue;
                 if (Number.isNaN(value)) {
-                    return new ConstantInput('NaN');
+                    return new ConstantInput('NaN', false);
                 }
-                return new ConstantInput(value);
+                return new ConstantInput(value, false);
             }
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
                 if (left.isAlwaysInt() && right.isAlwaysInt()) {
@@ -766,37 +831,32 @@ class JSGenerator {
             }
             return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_NAN);
         }
-        case 'op.and':
-            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
-        case 'op.asin':
-            // Needs to be marked as NaN because Math.asin(1.0001) === NaN
-            this.usedMathFunctions.add('asin');
-            this.usedMathFunctions.add('PI');
-            return new TypedInput(`((asin(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
-        case 'op.atan':
-            this.usedMathFunctions.add('atan');
-            this.usedMathFunctions.add('PI');
-            return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
-        case 'op.ceiling': {
-            const value = this.descendInput(node.value);
-            if (value.isAlwaysInt()) {
-                return new TypedInput(`${value.asInt()}`, TYPE_NUMBER_INT);
+        case BLOCKS.OP.SUBTRACT: {
+            // Needs to be marked as NaN because Infinity - Infinity === NaN
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                if (left.isAlwaysInt() && right.isAlwaysInt()) {
+                    return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_INT);
+                }
+                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
             }
-            this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${value.asNumber()})`, TYPE_NUMBER_INT);
+            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
         }
-        case 'op.contains':
-            return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
-        case 'op.cos':
-            this.usedMathFunctions.add('cos');
-            this.usedMathFunctions.add('PI');
-            this.usedMathFunctions.add('round');
-            return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
-        case 'op.divide': {
+        case BLOCKS.OP.MULTIPLY: {
+            // Needs to be marked as NaN because Infinity * 0 === NaN
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
+            }
+            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
+        }
+        case BLOCKS.OP.DIVIDE: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (right.isAlwaysConstant()) {
-                if (+right.constantValue !== 0) {
+                if (!right.isConstant(0)) {
                     return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER);
                 }
                 if (left.isConstant(0)) {
@@ -805,7 +865,33 @@ class JSGenerator {
             }
             return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER_NAN);
         }
-        case 'op.equals': {
+        case BLOCKS.OP.AND:
+            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
+        case BLOCKS.OP.ASIN:
+            // Needs to be marked as NaN because Math.asin(1.0001) === NaN
+            this.usedMathFunctions.add('asin');
+            this.usedMathFunctions.add('PI');
+            return new TypedInput(`((asin(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
+        case BLOCKS.OP.ATAN:
+            this.usedMathFunctions.add('atan');
+            this.usedMathFunctions.add('PI');
+            return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
+        case BLOCKS.OP.CEILING: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysInt()) {
+                return new TypedInput(`${value.asInt()}`, TYPE_NUMBER_INT);
+            }
+            this.usedMathFunctions.add('ceil');
+            return new TypedInput(`ceil(${value.asNumber()})`, TYPE_NUMBER_INT);
+        }
+        case BLOCKS.OP.CONTAINS:
+            return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
+        case BLOCKS.OP.COS:
+            this.usedMathFunctions.add('cos');
+            this.usedMathFunctions.add('PI');
+            this.usedMathFunctions.add('round');
+            return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
+        case BLOCKS.OP.EQUALS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             // When both operands are known to never be numbers, only use string comparison to avoid all number parsing.
@@ -817,7 +903,7 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
-                return new ConstantInput(leftVal === rightVal);
+                return new ConstantInput(leftVal === rightVal, false);
             }
             const leftAlwaysNumber = left.isAlwaysNumber();
             const rightAlwaysNumber = right.isAlwaysNumber();
@@ -835,10 +921,10 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareEqual(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.e^':
+        case BLOCKS.OP.EXP:
             this.usedMathFunctions.add('exp');
             return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
-        case 'op.floor': {
+        case BLOCKS.OP.FLOOR: {
             const value = this.descendInput(node.value);
             if (value.isAlwaysInt()) {
                 return new TypedInput(`${value.asNumber()}`, TYPE_NUMBER_INT);
@@ -846,7 +932,7 @@ class JSGenerator {
             this.usedMathFunctions.add('floor');
             return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_INT);
         }
-        case 'op.greater': {
+        case BLOCKS.OP.GREATER: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
@@ -863,21 +949,21 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.join': {
+        case BLOCKS.OP.JOIN: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
                 if (typeof leftVal === 'string' && typeof rightVal === 'string') {
-                    return new ConstantInput(leftVal + rightVal);
+                    return new ConstantInput(leftVal + rightVal, false);
                 }
             }
             return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPE_STRING);
         }
-        case 'op.length':
+        case BLOCKS.OP.LENGTH:
             return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_NUMBER);
-        case 'op.less': {
+        case BLOCKS.OP.LESS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
@@ -898,34 +984,30 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
         }
-        case 'op.letterOf':
+        case BLOCKS.OP.LETTEROF:
             return new TypedInput(`((${this.descendInput(node.string).asString()})[${this.descendInput(node.letter).asInt()} - 1] || "")`, TYPE_STRING);
-        case 'op.ln':
+        case BLOCKS.OP.LN:
             // Needs to be marked as NaN because Math.log(-1) == NaN
             return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.log':
+        case BLOCKS.OP.LOG:
             // Needs to be marked as NaN because Math.log(-1) == NaN
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
             return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPE_NUMBER_NAN);
-        case 'op.mod':
+        case BLOCKS.OP.MOD:
             this.descendedIntoModulo = true;
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
             return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.multiply': {
-            // Needs to be marked as NaN because Infinity * 0 === NaN
-            const left = this.descendInput(node.left);
-            const right = this.descendInput(node.right);
-            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
-                return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
-            }
-            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
-        }
-        case 'op.not':
+        case BLOCKS.OP.PI:
+            this.usedMathFunctions.add('PI');
+            return new TypedInput('PI', TYPE_NUMBER);
+        case BLOCKS.OP.NEWLINE:
+            return new TypedInput('"\n"', TYPE_STRING);
+        case BLOCKS.OP.NOT:
             return new TypedInput(`!${this.descendInput(node.operand).asBoolean()}`, TYPE_BOOLEAN);
-        case 'op.or':
+        case BLOCKS.OP.OR:
             return new TypedInput(`(${this.descendInput(node.left).asBoolean()} || ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
-        case 'op.random': {
+        case BLOCKS.OP.RANDOM: {
             const left = this.descendInput(node.low);
             const right = this.descendInput(node.high);
             if (left.isAlwaysInt() && right.isAlwaysInt()) {
@@ -937,7 +1019,7 @@ class JSGenerator {
             }
             return new TypedInput(`runtime.ext_scratch3_operators._random(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_NUMBER_NAN);
         }
-        case 'op.round': {
+        case BLOCKS.OP.ROUND: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysInt()) {
                 return new TypedInput(`${inp.asNumber()}`, TYPE_NUMBER_INT);
@@ -945,33 +1027,21 @@ class JSGenerator {
             this.usedMathFunctions.add('round');
             return new TypedInput(`round(${inp.asNumber()})`, TYPE_NUMBER_INT);
         }
-        case 'op.sin':
+        case BLOCKS.OP.SIN:
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
             return new TypedInput(`(round(sin((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
-        case 'op.sqrt':
+        case BLOCKS.OP.SQRT:
             // Needs to be marked as NaN because Math.sqrt(-1) === NaN
             this.usedMathFunctions.add('sqrt');
             return new TypedInput(`sqrt(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.subtract': {
-            // Needs to be marked as NaN because Infinity - Infinity === NaN
-            const left = this.descendInput(node.left);
-            const right = this.descendInput(node.right);
-            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
-                if (left.isAlwaysInt() && right.isAlwaysInt()) {
-                    return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_INT);
-                }
-                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
-            }
-            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
-        }
-        case 'op.tan':
+        case BLOCKS.OP.TAN:
             return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
-        case 'op.10^':
+        case BLOCKS.OP.TENEXP:
             return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
 
-        case 'procedures.call': {
+        case BLOCKS.PROCEDURES.CALL: {
             const procedureCode = node.code;
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
@@ -1002,38 +1072,37 @@ class JSGenerator {
             const yieldForHat = this.isInHat;
             if (yieldForRecursion || yieldForHat) {
                 const runtimeFunction = procedureData.yields ? 'yieldThenCallGenerator' : 'yieldThenCall';
-                return new TypedInput(`(yield* ${runtimeFunction}(${procedureReference}, ${joinedArgs}))`, TYPE_UNKNOWN);
+                return new TypedInput(`(yield* ${runtimeFunction}(${procedureReference}, ${joinedArgs}))`, TYPES.UNKNOWN);
             }
             if (procedureData.yields) {
-                return new TypedInput(`(yield* ${procedureReference}(${joinedArgs}))`, TYPE_UNKNOWN);
+                return new TypedInput(`(yield* ${procedureReference}(${joinedArgs}))`, TYPES.UNKNOWN);
             }
-            return new TypedInput(`${procedureReference}(${joinedArgs})`, TYPE_UNKNOWN);
+            return new TypedInput(`${procedureReference}(${joinedArgs})`, TYPES.UNKNOWN);
         }
-        case 'procedures.argument':
-            return new TypedInput(`p${node.index}`, TYPE_PROCEDURE_ARG);
-
-        case 'sensing.answer':
+        case BLOCKS.PROCEDURES.ARGUMENT:
+            return new TypedInput(`p${node.index}`, TYPES.UNKNOWN);
+        case BLOCKS.SENSING.ANSWER:
             return new TypedInput(`runtime.ext_scratch3_sensing._answer`, TYPE_STRING);
-        case 'sensing.colorTouchingColor':
+        case BLOCKS.SENSING.COLOR_TOUCHING_COLOR:
             return new TypedInput(`target.colorIsTouchingColor(colorToList(${this.descendInput(node.target).asColor()}), colorToList(${this.descendInput(node.mask).asColor()}))`, TYPE_BOOLEAN);
-        case 'sensing.date':
+        case BLOCKS.SENSING.DATE:
             return new TypedInput(`(new Date().getDate())`, TYPE_NUMBER);
-        case 'sensing.dayofweek':
+        case BLOCKS.SENSING.DAYOFWEEK:
             return new TypedInput(`(new Date().getDay() + 1)`, TYPE_NUMBER);
-        case 'sensing.daysSince2000':
+        case BLOCKS.SENSING.DAYS_SINCE_2000:
             return new TypedInput('daysSince2000()', TYPE_NUMBER);
-        case 'sensing.distance':
+        case BLOCKS.SENSING.DISTANCE:
             return new TypedInput(`distance(${this.descendInput(node.target).asString()})`, TYPE_NUMBER);
-        case 'sensing.hour':
+        case BLOCKS.SENSING.HOUR:
             return new TypedInput(`(new Date().getHours())`, TYPE_NUMBER);
-        case 'sensing.minute':
+        case BLOCKS.SENSING.MINUTE:
             return new TypedInput(`(new Date().getMinutes())`, TYPE_NUMBER);
-        case 'sensing.month':
+        case BLOCKS.SENSING.MONTH:
             return new TypedInput(`(new Date().getMonth() + 1)`, TYPE_NUMBER);
-        case 'sensing.of': {
+        case BLOCKS.SENSING.OF: {
             const object = this.descendInput(node.object).asString();
             const property = node.property;
-            if (node.object.kind === 'constant') {
+            if (node.object.kind === BLOCKS.CONSTANT) {
                 const isStage = node.object.value === '_stage_';
                 // Note that if target isn't a stage, we can't assume it exists
                 const objectReference = isStage ? 'stage' : this.evaluateOnce(`runtime.getSpriteTargetByName(${object})`);
@@ -1060,42 +1129,40 @@ class JSGenerator {
                     case 'costume #':
                         return new TypedInput(`(${objectReference} ? ${objectReference}.currentCostume + 1 : 0)`, TYPE_NUMBER);
                     case 'costume name':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.getCostumes()[${objectReference}.currentCostume].name : 0)`, TYPE_UNKNOWN);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.getCostumes()[${objectReference}.currentCostume].name : 0)`, TYPES.UNKNOWN);
                     case 'size':
                         return new TypedInput(`(${objectReference} ? ${objectReference}.size : 0)`, TYPE_NUMBER);
                     }
                 }
                 const variableReference = this.evaluateOnce(`${objectReference} && ${objectReference}.lookupVariableByNameAndType("${sanitize(property)}", "", true)`);
-                return new TypedInput(`(${variableReference} ? ${variableReference}.value : 0)`, TYPE_UNKNOWN);
+                return new TypedInput(`(${variableReference} ? ${variableReference}.value : 0)`, TYPES.UNKNOWN);
             }
-            return new TypedInput(`runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ${object}, PROPERTY: "${sanitize(property)}" })`, TYPE_UNKNOWN);
+            return new TypedInput(`runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ${object}, PROPERTY: "${sanitize(property)}" })`, TYPES.UNKNOWN);
         }
-        case 'sensing.second':
+        case BLOCKS.SENSING.SECOND:
             return new TypedInput(`(new Date().getSeconds())`, TYPE_NUMBER);
-        case 'sensing.refreshTime':
+        case BLOCKS.SENSING.REFRESH_TIME:
             return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPE_NUMBER);
-        case 'sensing.touching':
+        case BLOCKS.SENSING.TOUCHING:
             return new TypedInput(`target.isTouchingObject(${this.descendInput(node.object).asUnknown()})`, TYPE_BOOLEAN);
-        case 'sensing.touchingColor':
+        case BLOCKS.SENSING.TOUCHING_COLOR:
             return new TypedInput(`target.isTouchingColor(colorToList(${this.descendInput(node.color).asColor()}))`, TYPE_BOOLEAN);
-        case 'sensing.username':
+        case BLOCKS.SENSING.USERNAME:
             return new TypedInput('runtime.ioDevices.userData.getUsername()', TYPE_STRING);
-        case 'sensing.year':
+        case BLOCKS.SENSING.YEAR:
             return new TypedInput(`(new Date().getFullYear())`, TYPE_NUMBER);
 
-        case 'timer.get':
+        case BLOCKS.TIMER.GET:
             return new TypedInput('runtime.ioDevices.clock.projectTimer()', TYPE_NUMBER);
 
-        case 'tw.lastKeyPressed':
+        case BLOCKS.TW.LAST_KEY_PRESSED:
             return new TypedInput('runtime.ioDevices.keyboard.getLastKeyPressed()', TYPE_STRING);
 
-        case 'var.get':
+        case BLOCKS.VAR.GET:
             return this.descendVariable(node.variable);
-
-        default:
-            log.warn(`JS: Unknown input: ${node.kind}`, node);
-            throw new Error(`JS: Unknown input: ${node.kind}`);
         }
+        log.warn(`JS: Unknown input: ${getNameForType(node.kind)} (${node.kind})`, node);
+        throw new Error(`JS: Unknown input: ${getNameForType(node.kind)} (${node.kind})`);
     }
 
     /**
@@ -1103,11 +1170,11 @@ class JSGenerator {
      */
     descendStackedBlock (node) {
         switch (node.kind) {
-        case 'addons.call':
+        case BLOCKS.ADDONS.CALL:
             this.source += `${this.descendAddonCall(node)};\n`;
             break;
 
-        case 'compat': {
+        case BLOCKS.COMPAT: {
             // If the last command in a loop returns a promise, immediately continue to the next iteration.
             // If you don't do this, the loop effectively yields twice per iteration and will run at half-speed.
             const isLastInLoop = this.isLastBlockInLoop();
@@ -1140,17 +1207,17 @@ class JSGenerator {
             break;
         }
 
-        case 'control.createClone':
+        case BLOCKS.CONTROL.CREATE_CLONE:
             this.source += `runtime.ext_scratch3_control._createClone(${this.descendInput(node.target).asString()}, target);\n`;
             break;
-        case 'control.deleteClone':
+        case BLOCKS.CONTROL.DELETE_CLONE:
             this.source += 'if (!target.isOriginal) {\n';
             this.source += '  runtime.disposeTarget(target);\n';
             this.source += '  runtime.stopForTarget(target);\n';
             this.retire();
             this.source += '}\n';
             break;
-        case 'control.for': {
+        case BLOCKS.CONTROL.FOR: {
             const index = this.localVariables.next();
             this.source += `var ${index} = 0; `;
             this.source += `while (${index} < ${this.descendInput(node.count).asNumber()}) { `;
@@ -1162,7 +1229,7 @@ class JSGenerator {
             this.source += '}\n';
             break;
         }
-        case 'control.if':
+        case BLOCKS.CONTROL.IF:
             this.source += `if (${this.descendInput(node.condition).asBoolean()}) {\n`;
             this.descendStack(node.whenTrue, new Frame(false));
             // only add the else branch if it won't be empty
@@ -1174,7 +1241,7 @@ class JSGenerator {
             }
             this.source += `}\n`;
             break;
-        case 'control.repeat': {
+        case BLOCKS.CONTROL.REPEAT: {
             const i = this.localVariables.next();
             this.source += `for (var ${i} = ${this.descendInput(node.times).asNumber()}; ${i} >= 0.5; ${i}--) {\n`;
             this.descendStack(node.do, new Frame(true));
@@ -1182,17 +1249,17 @@ class JSGenerator {
             this.source += `}\n`;
             break;
         }
-        case 'control.stopAll':
+        case BLOCKS.CONTROL.STOP_ALL:
             this.source += 'runtime.stopAll();\n';
             this.retire();
             break;
-        case 'control.stopOthers':
+        case BLOCKS.CONTROL.STOP_OTHERS:
             this.source += 'runtime.stopForTarget(target, thread);\n';
             break;
-        case 'control.stopScript':
+        case BLOCKS.CONTROL.STOP_SCRIPT:
             this.stopScript();
             break;
-        case 'control.wait': {
+        case BLOCKS.CONTROL.WAIT: {
             const duration = this.localVariables.next();
             this.usedMathFunctions.add('max');
             this.source += `thread.timer = timer();\n`;
@@ -1206,14 +1273,14 @@ class JSGenerator {
             this.source += 'thread.timer = null;\n';
             break;
         }
-        case 'control.waitUntil': {
+        case BLOCKS.CONTROL.WAIT_UNTIL: {
             this.resetVariableInputs();
             this.source += `while (!${this.descendInput(node.condition).asBoolean()}) {\n`;
             this.yieldStuckOrNotWarp();
             this.source += `}\n`;
             break;
         }
-        case 'control.while':
+        case BLOCKS.CONTROL.WHILE:
             this.resetVariableInputs();
             this.source += `while (${this.descendInput(node.condition).asBoolean()}) {\n`;
             this.descendStack(node.do, new Frame(true));
@@ -1225,14 +1292,14 @@ class JSGenerator {
             this.source += `}\n`;
             break;
 
-        case 'counter.clear':
+        case BLOCKS.COUNTER.CLEAR:
             this.source += 'runtime.ext_scratch3_control._counter = 0;\n';
             break;
-        case 'counter.increment':
+        case BLOCKS.COUNTER.INCR:
             this.source += 'runtime.ext_scratch3_control._counter++;\n';
             break;
 
-        case 'hat.edge':
+        case BLOCKS.HAT.EDGE:
             this.isInHat = true;
             this.source += '{\n';
             // For exact Scratch parity, evaluate the input before checking old edge state.
@@ -1249,7 +1316,7 @@ class JSGenerator {
             this.source += '}\n';
             this.isInHat = false;
             break;
-        case 'hat.predicate':
+        case BLOCKS.HAT.PREDICATE:
             this.isInHat = true;
             this.source += `if (!${this.descendInput(node.condition).asBoolean()}) {\n`;
             this.retire();
@@ -1258,23 +1325,23 @@ class JSGenerator {
             this.isInHat = false;
             break;
 
-        case 'event.broadcast':
+        case BLOCKS.EVENT.BROADCAST:
             this.source += `startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast).asString()} });\n`;
             this.resetVariableInputs();
             this.clearVariableTypes();
             break;
-        case 'event.broadcastAndWait':
+        case BLOCKS.EVENT.BROADCAST_AND_WAIT:
             this.source += `yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast).asString()} }));\n`;
             this.yielded();
             break;
 
-        case 'list.add': {
+        case BLOCKS.LIST.ADD: {
             const list = this.referenceVariable(node.list);
             this.source += `${list}.value.push(${this.descendInput(node.item).asSafe()});\n`;
             this.source += `${list}._monitorUpToDate = false;\n`;
             break;
         }
-        case 'list.delete': {
+        case BLOCKS.LIST.DELETE: {
             const list = this.referenceVariable(node.list);
             const index = this.descendInput(node.index);
             if (index.isConstant('last')) {
@@ -1291,13 +1358,13 @@ class JSGenerator {
             this.source += `listDelete(${list}, ${index.asUnknown()});\n`;
             break;
         }
-        case 'list.deleteAll':
+        case BLOCKS.LIST.DELETE_ALL:
             this.source += `${this.referenceVariable(node.list)}.value = [];\n`;
             break;
-        case 'list.hide':
+        case BLOCKS.LIST.HIDE:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: false }, runtime);\n`;
             break;
-        case 'list.insert': {
+        case BLOCKS.LIST.INSERT: {
             const list = this.referenceVariable(node.list);
             const index = this.descendInput(node.index);
             const item = this.descendInput(node.item);
@@ -1314,114 +1381,114 @@ class JSGenerator {
             this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
             break;
         }
-        case 'list.replace': {
+        case BLOCKS.LIST.REPLACE: {
             const listRef = this.referenceVariable(node.list);
             const idxInput = this.descendInput(node.index);
             this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
             break;
         }
-        case 'list.show':
+        case BLOCKS.LIST.SHOW:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
         
-        case 'list.setArray':
+        case BLOCKS.LIST.SET_ARRAY:
             this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInput(node.array).asString()}) }catch{};\n`;
             break;
 
-        case 'looks.backwardLayers':
+        case BLOCKS.LOOKS.BACKWARD_LAYERS:
             if (!this.target.isStage) {
                 this.source += `target.goBackwardLayers(${this.descendInput(node.layers).asNumber()});\n`;
             }
             break;
-        case 'looks.clearEffects':
+        case BLOCKS.LOOKS.CLEAR_EFFECTS:
             this.source += 'target.clearEffects();\n';
             break;
-        case 'looks.changeEffect':
+        case BLOCKS.LOOKS.CHANGE_EFFECT:
             if (Object.prototype.hasOwnProperty.call(this.target.effects, node.effect)) {
                 this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInput(node.value).asNumber()} + target.effects["${sanitize(node.effect)}"]));\n`;
             }
             break;
-        case 'looks.changeSize':
+        case BLOCKS.LOOKS.CHANGE_SIZE:
             this.source += `target.setSize(target.size + ${this.descendInput(node.size).asNumber()});\n`;
             break;
-        case 'looks.forwardLayers':
+        case BLOCKS.LOOKS.FORWARD_LAYERS:
             if (!this.target.isStage) {
                 this.source += `target.goForwardLayers(${this.descendInput(node.layers).asNumber()});\n`;
             }
             break;
-        case 'looks.goToBack':
+        case BLOCKS.LOOKS.GOTO_BACK:
             if (!this.target.isStage) {
                 this.source += 'target.goToBack();\n';
             }
             break;
-        case 'looks.goToFront':
+        case BLOCKS.LOOKS.GOTO_FRONT:
             if (!this.target.isStage) {
                 this.source += 'target.goToFront();\n';
             }
             break;
-        case 'looks.hide':
+        case BLOCKS.LOOKS.HIDE:
             this.source += 'target.setVisible(false);\n';
             this.source += 'runtime.ext_scratch3_looks._renderBubble(target);\n';
             break;
-        case 'looks.nextBackdrop':
+        case BLOCKS.LOOKS.NEXT_BACKDROP:
             this.source += 'runtime.ext_scratch3_looks._setBackdrop(stage, stage.currentCostume + 1, true);\n';
             break;
-        case 'looks.nextCostume':
+        case BLOCKS.LOOKS.NEXT_COSTUME:
             this.source += 'target.setCostume(target.currentCostume + 1);\n';
             break;
-        case 'looks.setEffect':
+        case BLOCKS.LOOKS.SET_EFFECT:
             if (Object.prototype.hasOwnProperty.call(this.target.effects, node.effect)) {
                 this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInput(node.value).asNumber()}));\n`;
             }
             break;
-        case 'looks.setSize':
+        case BLOCKS.LOOKS.SET_SIZE:
             this.source += `target.setSize(${this.descendInput(node.size).asNumber()});\n`;
             break;
-        case 'looks.show':
+        case BLOCKS.LOOKS.SHOW:
             this.source += 'target.setVisible(true);\n';
             this.source += 'runtime.ext_scratch3_looks._renderBubble(target);\n';
             break;
-        case 'looks.switchBackdrop':
+        case BLOCKS.LOOKS.SWITCH_BACKDROP:
             this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInput(node.backdrop).asSafe()});\n`;
             break;
-        case 'looks.switchCostume':
-            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asString()});\n`;
+        case BLOCKS.LOOKS.SWITCH_COSTUME:
+            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asSafe()});\n`;
             break;
-        case 'looks.say':
+        case BLOCKS.LOOKS.SAY:
             this.source += `runtime.ext_scratch3_looks._say(${this.descendInput(node.message).asSafe()}, target);\n`;
             break;
-        case 'looks.think':
+        case BLOCKS.LOOKS.THINK:
             this.source += `runtime.ext_scratch3_looks._think(${this.descendInput(node.message).asSafe()}, target);\n`;
             break;
 
-        case 'motion.changeX':
+        case BLOCKS.MOTION.CHANGE_X:
             this.source += `target.setXY(target.x + ${this.descendInput(node.dx).asNumber()}, target.y);\n`;
             break;
-        case 'motion.changeY':
+        case BLOCKS.MOTION.CHANGE_Y:
             this.source += `target.setXY(target.x, target.y + ${this.descendInput(node.dy).asNumber()});\n`;
             break;
-        case 'motion.ifOnEdgeBounce':
+        case BLOCKS.MOTION.IF_ON_EDGE_BOUNCE:
             this.source += `runtime.ext_scratch3_motion._ifOnEdgeBounce(target);\n`;
             break;
-        case 'motion.setDirection':
+        case BLOCKS.MOTION.SET_DIRECTION:
             this.source += `target.setDirection(${this.descendInput(node.direction).asNumber()});\n`;
             break;
-        case 'motion.pointtowards_xy':
+        case BLOCKS.MOTION.POINT_TOWARDS_XY:
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
             this.source += `target.setDirection(180 + ((atan((${this.descendInput(node.x).asNumber()} - target.x) / (${this.descendInput(node.y).asNumber()} - target.y)) * 180 / PI) + (${this.descendInput(node.y).asNumber()} > target.y ? 180 : 0)));\n`;
             break;
-        case 'motion.pointtowards_xyfrom':
+        case BLOCKS.MOTION.POINT_TOWARDS_XY_FROM:
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
             this.source += `target.setDirection(180 + ((atan((${this.descendInput(node.x).asNumber()} - ${this.descendInput(node.fromx).asNumber()}) / (${this.descendInput(node.y).asNumber()} - ${this.descendInput(node.fromy).asNumber()})) * 180 / PI) + (${this.descendInput(node.y).asNumber()} > ${this.descendInput(node.fromy).asNumber()} ? 180 : 0)));\n`;
             break;
-        case 'motion.setRotationStyle':
+        case BLOCKS.MOTION.SET_ROTATION_STYLE:
             this.source += `target.setRotationStyle("${sanitize(node.style)}");\n`;
             break;
-        case 'motion.setX': // fallthrough
-        case 'motion.setY': // fallthrough
-        case 'motion.setXY': {
+        case BLOCKS.MOTION.SET_X: // fallthrough
+        case BLOCKS.MOTION.SET_Y: // fallthrough
+        case BLOCKS.MOTION.SET_XY: {
             this.descendedIntoModulo = false;
             const x = 'x' in node ? this.descendInput(node.x).asNumber() : 'target.x';
             const y = 'y' in node ? this.descendInput(node.y).asNumber() : 'target.y';
@@ -1431,68 +1498,65 @@ class JSGenerator {
             }
             break;
         }
-        case 'motion.step':
+        case BLOCKS.MOTION.STEP:
             this.source += `runtime.ext_scratch3_motion._moveSteps(${this.descendInput(node.steps).asNumber()}, target);\n`;
             break;
 
-        case 'noop':
+        case BLOCKS.NOOP:
             break;
 
-        case 'pen.clear':
+        case BLOCKS.PEN.CLEAR:
             this.source += `${PEN_EXT}.clear();\n`;
             break;
-        case 'pen.down':
+        case BLOCKS.PEN.DOWN:
             this.source += `${PEN_EXT}._penDown(target);\n`;
             break;
-        case 'pen.changeParam':
+        case BLOCKS.PEN.CHANGE_PARAM:
             this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInput(node.param).asString()}, ${this.descendInput(node.value).asNumber()}, ${PEN_STATE}, true);\n`;
             break;
-        case 'pen.changeSize':
+        case BLOCKS.PEN.CHANGE_SIZE:
             this.source += `${PEN_EXT}._changePenSizeBy(${this.descendInput(node.size).asNumber()}, target);\n`;
             break;
-        case 'pen.legacyChangeHue':
+        case BLOCKS.PEN.LEGACY_CHANGE_HUE:
             this.source += `${PEN_EXT}._changePenHueBy(${this.descendInput(node.hue).asNumber()}, target);\n`;
             break;
-        case 'pen.legacyChangeShade':
+        case BLOCKS.PEN.LEGACY_CHANGE_SHADE:
             this.source += `${PEN_EXT}._changePenShadeBy(${this.descendInput(node.shade).asNumber()}, target);\n`;
             break;
-        case 'pen.legacySetHue':
+        case BLOCKS.PEN.LEGACY_SET_HUE:
             this.source += `${PEN_EXT}._setPenHueToNumber(${this.descendInput(node.hue).asNumber()}, target);\n`;
             break;
-        case 'pen.legacySetShade':
+        case BLOCKS.PEN.LEGACY_SET_SHADE:
             this.source += `${PEN_EXT}._setPenShadeToNumber(${this.descendInput(node.shade).asNumber()}, target);\n`;
             break;
-        case 'pen.setColor':
+        case BLOCKS.PEN.SET_COLOR:
             this.source += `${PEN_EXT}._setPenColorToColor(${this.descendInput(node.color).asColor()}, target);\n`;
             break;
-        case 'pen.setParam':
+        case BLOCKS.PEN.SET_PARAM:
             this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInput(node.param).asString()}, ${this.descendInput(node.value).asNumber()}, ${PEN_STATE}, false);\n`;
             break;
-        case 'pen.setSize':
+        case BLOCKS.PEN.SET_SIZE:
             this.source += `${PEN_EXT}._setPenSizeTo(${this.descendInput(node.size).asNumber()}, target);\n`;
             break;
-        case 'pen.stamp':
+        case BLOCKS.PEN.STAMP:
             this.source += `${PEN_EXT}._stamp(target);\n`;
             break;
-        case 'pen.printText':
+        case BLOCKS.PEN.PRINT_TEXT:
             this.source += `${PEN_EXT}._printText(${this.descendInput(node.text).asSafe()}, ${this.descendInput(node.x).asNumber()}, ${this.descendInput(node.y).asNumber()}, target);\n`;
             break;
-        case 'pen.drawTriangle':
+        case BLOCKS.PEN.DRAW_TRIANGLE:
             this.source += `${PEN_EXT}._triangle(${this.descendInput(node.x0).asNumber()}, ${this.descendInput(node.y0).asNumber()}, ${this.descendInput(node.x1).asNumber()}, ${this.descendInput(node.y1).asNumber()}, ${this.descendInput(node.x2).asNumber()}, ${this.descendInput(node.y2).asNumber()}, target);\n`;
             break;
-        case 'pen.up':
+        case BLOCKS.PEN.UP:
             this.source += `${PEN_EXT}._penUp(target);\n`;
             break;
 
-        case 'procedures.call': {
+        case BLOCKS.PROCEDURES.CALL: {
             const procedureCode = node.code;
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
             if (procedureData.stack === null) {
                 // Procedure has no body; still evaluate arguments for side effects
-                for (const input of node.arguments) {
-                    this.source += `${this.descendInput(input).asSafe()};\n`;
-                }
                 break;
             }
 
@@ -1516,22 +1580,22 @@ class JSGenerator {
             this.clearVariableTypes();
             break;
         }
-        case 'procedures.return':
+        case BLOCKS.PROCEDURES.RETURN:
             this.stopScriptAndReturn(this.descendInput(node.value).asSafe());
             break;
 
-        case 'timer.reset':
+        case BLOCKS.TIMER.RESET:
             this.source += 'runtime.ioDevices.clock.resetProjectTimer();\n';
             break;
 
-        case 'tw.debugger':
+        case BLOCKS.TW.DEBUGGER:
             this.source += 'debugger;\n';
             break;
 
-        case 'var.hide':
+        case BLOCKS.VAR.HIDE:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.variable.id)}", element: "checkbox", value: false }, runtime);\n`;
             break;
-        case 'var.set': {
+        case BLOCKS.VAR.SET: {
             const variable = this.descendVariable(node.variable);
             const value = this.descendInput(node.value);
             this.variableInputs[node.variable.id] = variable;
@@ -1544,26 +1608,26 @@ class JSGenerator {
             }
             break;
         }
-        case 'var.show':
+        case BLOCKS.VAR.SHOW:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.variable.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
 
-        case 'visualReport': {
+        case BLOCKS.VISUAL_REPORT: {
             const value = this.localVariables.next();
             this.source += `const ${value} = ${this.descendInput(node.input).asUnknown()};`;
             // blocks like legacy no-ops can return a literal `undefined`
-            this.source += `runtime.visualReport("${sanitize(this.script.topBlockId)}", ${value});\n`;
+            this.source += `runtime.visualReport("${sanitize(this.script.topBlockId || '')}", ${value});\n`;
             break;
         }
 
-        case 'control.switch': {
+        case BLOCKS.CONTROL.SWITCH: {
             const value = this.descendInput(node.value);
             this.source += `switch (${node.useNumbers ? value.asNumber() : value.asString()}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
         }
-        case 'control.case': {
+        case BLOCKS.CONTROL.CASE: {
             const value = this.descendInput(node.value);
             this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}: {\n`;
             
@@ -1571,31 +1635,31 @@ class JSGenerator {
             this.source += 'break; }\n';
             break;
         }
-        case 'control.default': {
+        case BLOCKS.CONTROL.DEFAULT: {
             this.source += `default:\n`;
             
             this.descendStack(node.do, new Frame(false));
             break;
         }
-        case 'control.break': {
+        case BLOCKS.CONTROL.BREAK: {
             this.source += 'break;\n';
             break;
         }
-        case 'control.case_fallthrough': {
+        case BLOCKS.CONTROL.CASE_FALLTHROUGH: {
             this.source += `case ${this.descendInput(node.value).asString()}:\n`;
             // No break statement - allows fallthrough to next case
             break;
         }
 
         default:
-            log.warn(`JS: Unknown stacked block: ${node.kind}`, node);
-            throw new Error(`JS: Unknown stacked block: ${node.kind}`);
+            log.warn(`JS: Unknown stacked block: ${getNameForType(node.kind)} (${node.kind})`, node);
+            throw new Error(`JS: Unknown stacked block: ${getNameForType(node.kind)} (${node.kind})`);
         }
     }
 
     /**
      * Compile a Record of input objects into a safe JS string.
-     * @param {Record<string, unknown>} inputs
+     * @param {Record<string, node>} inputs
      * @returns {string}
      */
     descendInputRecord (inputs) {
@@ -1609,15 +1673,17 @@ class JSGenerator {
     }
 
     resetVariableInputs () {
-        this.variableInputs = {};
+        this.variableInputs = Object.create(null);
     }
 
+    /**
+     * @param {node[]} nodes
+     * @param {Frame} frame
+     */
     descendStack (nodes, frame) {
         // Entering a stack -- all bets are off.
         // TODO: allow if/else to inherit values
-        if (frame.isLoop) {
-            this.resetVariableInputs();
-        }
+        this.resetVariableInputs();
         this.pushFrame(frame);
 
         for (let i = 0; i < nodes.length; i++) {
@@ -1627,12 +1693,14 @@ class JSGenerator {
 
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
-        if (frame.isLoop) {
-            this.resetVariableInputs();
-        }
+        this.resetVariableInputs();
         this.popFrame();
     }
 
+    /**
+     * @param {Variable} variable
+     * @returns {VariableInput}
+     */
     descendVariable (variable) {
         let input;
         if (Object.prototype.hasOwnProperty.call(this.variableInputs, variable.id)) {
@@ -1644,6 +1712,10 @@ class JSGenerator {
         return input;
     }
 
+    /**
+     * @param {Variable} variable
+     * @returns {string}
+     */
     referenceVariable (variable) {
         if (variable.scope === 'target') {
             return this.evaluateOnce(`target.variables["${sanitize(variable.id)}"]`);
@@ -1651,6 +1723,10 @@ class JSGenerator {
         return this.evaluateOnce(`stage.variables["${sanitize(variable.id)}"]`);
     }
 
+    /**
+     * @param {node} node
+     * @returns {string}
+     */
     descendAddonCall (node) {
         const inputs = this.descendInputRecord(node.arguments);
         const blockFunction = `runtime.getAddonBlock("${sanitize(node.code)}").callback`;
@@ -1658,6 +1734,10 @@ class JSGenerator {
         return `yield* executeInCompatibilityLayer(${inputs}, ${blockFunction}, ${this.isWarp}, false, ${blockId})`;
     }
 
+    /**
+     * @param {string} source
+     * @returns {string}
+     */
     evaluateOnce (source) {
         if (Object.prototype.hasOwnProperty.call(this._setupVariables, source)) {
             return this._setupVariables[source];
@@ -1743,6 +1823,10 @@ class JSGenerator {
         this.source += 'runtime.requestRedraw();\n';
     }
 
+    /**
+     * @param {ConstantValue} value
+     * @returns {ConstantInput}
+     */
     safeConstantInput (value) {
         const unsafe = typeof value === 'string' && this.namesOfCostumesAndSounds.has(value);
         return new ConstantInput(value, !unsafe);
@@ -1779,6 +1863,10 @@ class JSGenerator {
         return factoryNameVariablePool.next();
     }
 
+    /**
+     * @param {boolean} yields
+     * @returns {string}
+     */
     getScriptName (yields) {
         let name = yields ? generatorNameVariablePool.next() : functionNameVariablePool.next();
         if (this.isProcedure) {
@@ -1809,7 +1897,7 @@ class JSGenerator {
             // Build a set of math keys to emit. Include simple dependencies (PI for DEG/RAD constants).
             const mathKeys = new Set();
             for (const k of this.usedMathFunctions) {
-                if (MATH_CACHE[k]) mathKeys.add(k);
+                if (k in MATH_CACHE) mathKeys.add(k);
                 if (k === 'DEG_TO_RAD' || k === 'RAD_TO_DEG') mathKeys.add('PI');
             }
             // Ensure deterministic order for stable output (prefer the order in MATH_CACHE)
@@ -1819,16 +1907,6 @@ class JSGenerator {
                     script += `${MATH_CACHE[key]}\n`;
                 }
             }
-        }
-
-        if (this._numberTempsDecl && this._numberTempsDecl.size) {
-            script += `let ${Array.from(this._numberTempsDecl).join(',')};\n`;
-        }
-        if (this._stringTempsDecl && this._stringTempsDecl.size) {
-            script += `let ${Array.from(this._stringTempsDecl).join(',')};\n`;
-        }
-        if (this._booleanTempsDecl && this._booleanTempsDecl.size) {
-            script += `let ${Array.from(this._booleanTempsDecl).join(',')};\n`;
         }
 
         for (const varValue of Object.keys(this._setupVariables)) {
@@ -1853,8 +1931,6 @@ class JSGenerator {
             script += args.join(',');
         }
         script += ') {\n';
-
-        script += this.prefixLines.length ? (this.prefixLines.join('\n') + '\n') : '';
 
         script += this.source;
 
@@ -1891,7 +1967,7 @@ class JSGenerator {
 
     /**
      * @param {string} name
-     * @param {string} type
+     * @param {number} type
      */
     setVariableType (name, type) {
         const ctxs = this.typeCtxs;
@@ -1909,7 +1985,7 @@ class JSGenerator {
 
     /**
      * @param {string} name
-     * @returns {string|undefined}
+     * @returns {number|undefined}
      */
     getVariableType (name) {
         const ctxs = this.typeCtxs;
@@ -1924,11 +2000,8 @@ class JSGenerator {
 
 // For extensions.
 JSGenerator.unstable_exports = {
-    TYPE_NUMBER,
-    TYPE_STRING,
-    TYPE_BOOLEAN,
-    TYPE_UNKNOWN,
-    TYPE_NUMBER_NAN,
+    TYPES,
+    BLOCKS,
     factoryNameVariablePool,
     functionNameVariablePool,
     generatorNameVariablePool,
@@ -1942,7 +2015,10 @@ JSGenerator.unstable_exports = {
     sanitize
 };
 
-// Test hook used by automated snapshot testing.
+/**
+ * @type {{ report: (generator: JSGenerator, factory: string) => void } | null}
+ * Test hook used by automated snapshot testing.
+ */
 JSGenerator.testingApparatus = null;
 
 module.exports = JSGenerator;
