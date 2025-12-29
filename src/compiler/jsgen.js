@@ -35,13 +35,6 @@ const sanitize = string => {
     return JSON.stringify(string).slice(1, -1);
 };
 
-const TYPE_NUMBER = TYPES.NUMBER;
-const TYPE_NUMBER_INT = TYPES.NUMBER_INT;
-const TYPE_NUMBER_NAN = TYPES.NUMBER_NAN;
-const TYPE_BOOLEAN = TYPES.BOOLEAN;
-const TYPE_STRING = TYPES.STRING;
-const TYPE_LOWER_STRING = TYPES.LOWER_STRING;
-
 /**
  * @type {JSGenerator|null}
  * @private
@@ -138,42 +131,44 @@ class TypedInput {
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER) return this.source;
-        if (this.type === TYPE_NUMBER_INT) return this.source;
-        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (this.type === TYPES.NUMBER) return this.source;
+        if (this.type === TYPES.NUMBER_INT) return this.source;
+        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
         const ret = `toNotNaN(+${this.source})`;
         return ret;
     }
 
     asInt () {
-        if (this.type === TYPE_NUMBER_INT) return this.source;
-        if (this.type === TYPE_NUMBER) return `(${this.source} | 0)`;
-        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
+        if (this.type === TYPES.NUMBER_INT) return this.source;
+        if (this.type === TYPES.NUMBER) return `(${this.source} | 0)`;
+        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
         return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPES.NUMBER ||
+            this.type === TYPES.NUMBER_NAN ||
+            this.type === TYPES.NUMBER_INT) return this.source;
         return `(+${this.source})`;
     }
 
     asStringOrEmpty () {
-        if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPES.STRING) return this.source;
         return `("" + ${this.source})`;
     }
 
     asString () {
-        if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPES.STRING) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
-        if (this.type === TYPE_LOWER_STRING) return this.source;
+        if (this.type === TYPES.LOWER_STRING) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
-        if (this.type === TYPE_BOOLEAN) return this.source;
+        if (this.type === TYPES.BOOLEAN) return this.source;
         return `toBoolean(${this.source})`;
     }
 
@@ -194,15 +189,18 @@ class TypedInput {
     }
 
     isAlwaysInt () {
-        return this.type === TYPE_NUMBER_INT;
+        return this.type === TYPES.NUMBER_INT;
     }
 
     isAlwaysNumber () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_INT;
+        return this.type === TYPES.NUMBER ||
+               this.type === TYPES.NUMBER_INT;
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT;
+        return this.type === TYPES.NUMBER ||
+               this.type === TYPES.NUMBER_NAN ||
+               this.type === TYPES.NUMBER_INT;
     }
 
     isNeverNumber () {
@@ -242,12 +240,12 @@ class ConstantInput {
         this.type = TYPES.UNKNOWN;
         if (Number.isFinite(+constantValue)) {
             this.type = Number.isInteger(constantValue) ?
-                TYPE_NUMBER_INT :
-                TYPE_NUMBER;
+                TYPES.NUMBER_INT :
+                TYPES.NUMBER;
         } else if (typeof constantValue === 'string') {
-            this.type = TYPE_STRING;
+            this.type = TYPES.STRING;
         } else if (typeof constantValue === 'boolean') {
-            this.type = TYPE_BOOLEAN;
+            this.type = TYPES.BOOLEAN;
         }
     }
 
@@ -346,7 +344,7 @@ class ConstantInput {
 
     isAlwaysInt () {
         const numberValue = +this.constantValue;
-        return numberValue === Math.round(numberValue);
+        return numberValue === (numberValue | 0);
     }
 
     isAlwaysNumberOrNaN () {
@@ -439,40 +437,42 @@ class VariableInput {
     }
 
     asNumber () {
-        if (this.type === TYPE_NUMBER) return this.source;
-        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (this.type === TYPES.NUMBER) return this.source;
+        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
-        if (this.type === TYPE_NUMBER_INT) return this.source;
-        if (this.type === TYPE_NUMBER) return `(${this.source} | 0)`;
-        if (this.type === TYPE_NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
+        if (this.type === TYPES.NUMBER_INT) return this.source;
+        if (this.type === TYPES.NUMBER ||
+            this.type === TYPES.NUMBER_NAN) return `(${this.source} | 0)`;
         return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPE_NUMBER || this.type === TYPE_NUMBER_NAN || this.type === TYPE_NUMBER_INT) return this.source;
+        if (this.type === TYPES.NUMBER ||
+            this.type === TYPES.NUMBER_NAN ||
+            this.type === TYPES.NUMBER_INT) return this.source;
         return `(+${this.source})`;
     }
 
     asString () {
-        if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPES.STRING) return this.source;
         return `("" + ${this.source})`;
     }
 
     asStringOrEmpty () {
-        if (this.type === TYPE_STRING) return this.source;
+        if (this.type === TYPES.STRING) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
-        if (this.type === TYPE_LOWER_STRING) return this.source;
+        if (this.type === TYPES.LOWER_STRING) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
-        if (this.type === TYPE_BOOLEAN) return this.source;
+        if (this.type === TYPES.BOOLEAN) return this.source;
         return `toBoolean(${this.source})`;
     }
 
@@ -738,80 +738,81 @@ class JSGenerator {
             return this.safeConstantInput(node.value);
 
         case BLOCKS.COUNTER.GET:
-            return new TypedInput('runtime.ext_scratch3_control._counter', TYPE_NUMBER);
+            return new TypedInput('runtime.ext_scratch3_control._counter', TYPES.NUMBER);
 
         case BLOCKS.KEYBOARD.PRESSED:
-            return new TypedInput(`runtime.ioDevices.keyboard.getKeyIsDown(${this.descendInput(node.key).asSafe()})`, TYPE_BOOLEAN);
+            return new TypedInput(`runtime.ioDevices.keyboard.getKeyIsDown(${this.descendInput(node.key).asSafe()})`, TYPES.BOOLEAN);
 
         case BLOCKS.LIST.CONTAINS:
-            return new TypedInput(`listContains(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_BOOLEAN);
+            return new TypedInput(`listContains(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPES.BOOLEAN);
         case BLOCKS.LIST.CONTENTS:
-            return new TypedInput(`listContents(${this.referenceVariable(node.list)})`, TYPE_STRING);
+            return new TypedInput(`listContents(${this.referenceVariable(node.list)})`, TYPES.STRING);
         case BLOCKS.LIST.GET: {
             const index = this.descendInput(node.index);
+            const list = this.referenceVariable(node.list);
             if (this.supportsNullishCoalescing) {
                 if (index.isAlwaysInt() && index.isAlwaysConstant()) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${(+index.asInt()) - 1}] ?? "")`, TYPES.UNKNOWN);
+                    return new TypedInput(`(${list}.value[${(+index.asInt()) - 1}] ?? "")`, TYPES.UNKNOWN);
                 }
                 if (index.isAlwaysNumberOrNaN()) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${index.asInt()} - 1] ?? "")`, TYPES.UNKNOWN);
+                    return new TypedInput(`(${list}.value[${index.asInt()} - 1] ?? "")`, TYPES.UNKNOWN);
                 }
                 if (index.isConstant('last')) {
-                    return new TypedInput(`(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`, TYPES.UNKNOWN);
+                    return new TypedInput(`(${list}.value[${list}.value.length - 1] ?? "")`, TYPES.UNKNOWN);
                 }
             }
-            return new TypedInput(`listGet(${this.referenceVariable(node.list)}.value, ${index.asUnknown()})`, TYPES.UNKNOWN);
+            return new TypedInput(`listGet(${list}.value, ${index.asUnknown()})`, TYPES.UNKNOWN);
         }
         case BLOCKS.LIST.INDEXOF:
-            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPE_NUMBER_INT);
+            return new TypedInput(`listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item).asUnknown()})`, TYPES.NUMBER_INT);
         case BLOCKS.LIST.LENGTH:
-            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPE_NUMBER_INT);
+            return new TypedInput(`${this.referenceVariable(node.list)}.value.length`, TYPES.NUMBER_INT);
         case BLOCKS.LIST.AS:
             if (node.format === 'JSON') {
-                return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPE_STRING);
+                return new TypedInput(`JSON.stringify(${this.referenceVariable(node.list)}.value)`, TYPES.STRING);
             } else if (node.format === 'STRING') {
-                return new TypedInput(`(${this.referenceVariable(node.list)}.value.join(", "))`, TYPE_STRING);
+                return new TypedInput(`(${this.referenceVariable(node.list)}.value.join(", "))`, TYPES.STRING);
             }
             break;
         case BLOCKS.LOOKS.SIZE:
             this.usedMathFunctions.add('round');
-            return new TypedInput('round(target.size)', TYPE_NUMBER);
+            return new TypedInput('round(target.size)', TYPES.NUMBER);
         case BLOCKS.LOOKS.BACKDROP_NAME:
-            return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPE_STRING);
+            return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPES.STRING);
         case BLOCKS.LOOKS.BACKDROP_NUMBER:
-            return new TypedInput('(stage.currentCostume + 1)', TYPE_NUMBER_INT);
+            return new TypedInput('(stage.currentCostume + 1)', TYPES.NUMBER_INT);
         case BLOCKS.LOOKS.COSTUME_NAME:
-            return new TypedInput('target.getCostumes()[target.currentCostume].name', TYPE_STRING);
+            return new TypedInput('target.getCostumes()[target.currentCostume].name', TYPES.STRING);
         case BLOCKS.LOOKS.COSTUME_NUMBER:
-            return new TypedInput('(target.currentCostume + 1)', TYPE_NUMBER_INT);
+            return new TypedInput('(target.currentCostume + 1)', TYPES.NUMBER_INT);
         case BLOCKS.LOOKS.COSTUMES:
-            return new TypedInput('JSON.stringify(target.getCostumes().map(costume => costume.name))', TYPE_STRING);
+            return new TypedInput('JSON.stringify(target.getCostumes().map(costume => costume.name))', TYPES.STRING);
 
         case BLOCKS.MOTION.DIRECTION:
-            return new TypedInput('target.direction', TYPE_NUMBER);
+            return new TypedInput('target.direction', TYPES.NUMBER);
         case BLOCKS.MOTION.X_POSITION:
-            return new TypedInput('limitPrecision(target.x)', TYPE_NUMBER);
+            return new TypedInput('limitPrecision(target.x)', TYPES.NUMBER);
         case BLOCKS.MOTION.Y_POSITION:
-            return new TypedInput('limitPrecision(target.y)', TYPE_NUMBER);
+            return new TypedInput('limitPrecision(target.y)', TYPES.NUMBER);
 
         case BLOCKS.MOUSE.DOWN:
-            return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPE_BOOLEAN);
+            return new TypedInput('runtime.ioDevices.mouse.getIsDown()', TYPES.BOOLEAN);
         case BLOCKS.MOUSE.X:
-            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPE_NUMBER_INT);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchX()', TYPES.NUMBER_INT);
         case BLOCKS.MOUSE.Y:
-            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPE_NUMBER_INT);
+            return new TypedInput('runtime.ioDevices.mouse.getScratchY()', TYPES.NUMBER_INT);
 
         case BLOCKS.NOOP:
-            return new TypedInput('""', TYPE_STRING);
+            return new TypedInput('""', TYPES.STRING);
 
         case BLOCKS.OP.ABS:
             this.usedMathFunctions.add('abs');
-            return new TypedInput(`abs(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`abs(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
         case BLOCKS.OP.ACOS:
             // Needs to be marked as NaN because Math.acos(1.0001) === NaN
             this.usedMathFunctions.add('acos');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((acos(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
+            return new TypedInput(`((acos(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.ADD: {
             // Needs to be marked as NaN because Infinity + -Infinity === NaN
             const left = this.descendInput(node.left);
@@ -825,11 +826,11 @@ class JSGenerator {
             }
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
                 if (left.isAlwaysInt() && right.isAlwaysInt()) {
-                    return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_INT);
+                    return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPES.NUMBER_INT);
                 }
-                return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER);
+                return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPES.NUMBER);
             }
-            return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(${left.asNumber()} + ${right.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.SUBTRACT: {
             // Needs to be marked as NaN because Infinity - Infinity === NaN
@@ -837,60 +838,60 @@ class JSGenerator {
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
                 if (left.isAlwaysInt() && right.isAlwaysInt()) {
-                    return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_INT);
+                    return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPES.NUMBER_INT);
                 }
-                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER);
+                return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPES.NUMBER);
             }
-            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.MULTIPLY: {
             // Needs to be marked as NaN because Infinity * 0 === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
-                return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER);
+                return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPES.NUMBER);
             }
-            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.DIVIDE: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (right.isAlwaysConstant()) {
                 if (!right.isConstant(0)) {
-                    return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER);
+                    return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPES.NUMBER);
                 }
                 if (left.isConstant(0)) {
-                    return new TypedInput('NaN', TYPE_NUMBER_NAN);
+                    return new TypedInput('NaN', TYPES.NUMBER_NAN);
                 }
             }
-            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.AND:
-            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
+            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} && ${this.descendInput(node.right).asBoolean()})`, TYPES.BOOLEAN);
         case BLOCKS.OP.ASIN:
             // Needs to be marked as NaN because Math.asin(1.0001) === NaN
             this.usedMathFunctions.add('asin');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((asin(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER_NAN);
+            return new TypedInput(`((asin(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.ATAN:
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPE_NUMBER);
+            return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER);
         case BLOCKS.OP.CEILING: {
             const value = this.descendInput(node.value);
             if (value.isAlwaysInt()) {
-                return new TypedInput(`${value.asInt()}`, TYPE_NUMBER_INT);
+                return new TypedInput(`${value.asInt()}`, TYPES.NUMBER_INT);
             }
             this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${value.asNumber()})`, TYPE_NUMBER_INT);
+            return new TypedInput(`ceil(${value.asNumber()})`, TYPES.NUMBER_INT);
         }
         case BLOCKS.OP.CONTAINS:
-            return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPE_BOOLEAN);
+            return new TypedInput(`(${this.descendInput(node.string).asLowerString()}.indexOf(${this.descendInput(node.contains).asLowerString()}) !== -1)`, TYPES.BOOLEAN);
         case BLOCKS.OP.COS:
             this.usedMathFunctions.add('cos');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
-            return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.EQUALS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -898,7 +899,7 @@ class JSGenerator {
             if (left.isNeverNumber() || right.isNeverNumber()) {
                 const leftLower = left.asLowerString();
                 const rightLower = right.asLowerString();
-                return new TypedInput(`(${leftLower} === ${rightLower})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${leftLower} === ${rightLower})`, TYPES.BOOLEAN);
             }
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const leftVal = left.constantValue;
@@ -909,45 +910,45 @@ class JSGenerator {
             const rightAlwaysNumber = right.isAlwaysNumber();
             // When both operands are known to be numbers, we can use ===
             if (leftAlwaysNumber && rightAlwaysNumber) {
-                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // In certain conditions, we can use === when one of the operands is known to be a safe number.
             if (leftAlwaysNumber && left.isAlwaysConstant() && isSafeConstantForEqualsOptimization(left)) {
-                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             if (rightAlwaysNumber && right.isAlwaysConstant() && isSafeConstantForEqualsOptimization(right)) {
-                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
-            return new TypedInput(`compareEqual(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
+            return new TypedInput(`compareEqual(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
         }
         case BLOCKS.OP.EXP:
             this.usedMathFunctions.add('exp');
-            return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
         case BLOCKS.OP.FLOOR: {
             const value = this.descendInput(node.value);
             if (value.isAlwaysInt()) {
-                return new TypedInput(`${value.asNumber()}`, TYPE_NUMBER_INT);
+                return new TypedInput(`${value.asNumber()}`, TYPES.NUMBER_INT);
             }
             this.usedMathFunctions.add('floor');
-            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_INT);
+            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_INT);
         }
         case BLOCKS.OP.GREATER: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
-                return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can negate <=
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
-                return new TypedInput(`!(${left.asNumberOrNaN()} <= ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`!(${left.asNumberOrNaN()} <= ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
-                return new TypedInput(`(${left.asLowerString()} > ${right.asLowerString()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asLowerString()} > ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
-            return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
+            return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
         }
         case BLOCKS.OP.JOIN: {
             const left = this.descendInput(node.left);
@@ -959,87 +960,87 @@ class JSGenerator {
                     return new ConstantInput(leftVal + rightVal, false);
                 }
             }
-            return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPE_STRING);
+            return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPES.STRING);
         }
         case BLOCKS.OP.LENGTH:
-            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPE_NUMBER);
+            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPES.NUMBER);
         case BLOCKS.OP.LESS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
-                return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can use <
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
-                return new TypedInput(`(${left.asNumberOrNaN()} < ${right.asNumber()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asNumberOrNaN()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number and the right operand is a number or NaN, we can negate >=
             if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
-                return new TypedInput(`!(${left.asNumber()} >= ${right.asNumberOrNaN()})`, TYPE_BOOLEAN);
+                return new TypedInput(`!(${left.asNumber()} >= ${right.asNumberOrNaN()})`, TYPES.BOOLEAN);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
-                return new TypedInput(`(${left.asLowerString()} < ${right.asLowerString()})`, TYPE_BOOLEAN);
+                return new TypedInput(`(${left.asLowerString()} < ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
-            return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_BOOLEAN);
+            return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
         }
         case BLOCKS.OP.LETTEROF:
-            return new TypedInput(`((${this.descendInput(node.string).asString()})[${this.descendInput(node.letter).asInt()} - 1] || "")`, TYPE_STRING);
+            return new TypedInput(`((${this.descendInput(node.string).asString()})[${this.descendInput(node.letter).asInt()} - 1] || "")`, TYPES.STRING);
         case BLOCKS.OP.LN:
             // Needs to be marked as NaN because Math.log(-1) == NaN
-            return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.LOG:
             // Needs to be marked as NaN because Math.log(-1) == NaN
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
-            return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.MOD:
             this.descendedIntoModulo = true;
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
-            return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.PI:
             this.usedMathFunctions.add('PI');
-            return new TypedInput('PI', TYPE_NUMBER);
+            return new TypedInput('PI', TYPES.NUMBER);
         case BLOCKS.OP.NEWLINE:
-            return new TypedInput('"\n"', TYPE_STRING);
+            return new TypedInput('"\n"', TYPES.STRING);
         case BLOCKS.OP.NOT:
-            return new TypedInput(`!${this.descendInput(node.operand).asBoolean()}`, TYPE_BOOLEAN);
+            return new TypedInput(`!${this.descendInput(node.operand).asBoolean()}`, TYPES.BOOLEAN);
         case BLOCKS.OP.OR:
-            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} || ${this.descendInput(node.right).asBoolean()})`, TYPE_BOOLEAN);
+            return new TypedInput(`(${this.descendInput(node.left).asBoolean()} || ${this.descendInput(node.right).asBoolean()})`, TYPES.BOOLEAN);
         case BLOCKS.OP.RANDOM: {
             const left = this.descendInput(node.low);
             const right = this.descendInput(node.high);
             if (left.isAlwaysInt() && right.isAlwaysInt()) {
                 // Both inputs are ints, so we know neither are NaN
-                return new TypedInput(`randomInt(${left.asNumber()}, ${right.asNumber()})`, TYPE_NUMBER_INT);
+                return new TypedInput(`randomInt(${left.asNumber()}, ${right.asNumber()})`, TYPES.NUMBER_INT);
             }
             if (node.useFloats) {
-                return new TypedInput(`randomFloat(${left.asNumber()}, ${right.asNumber()})`, TYPE_NUMBER_NAN);
+                return new TypedInput(`randomFloat(${left.asNumber()}, ${right.asNumber()})`, TYPES.NUMBER_NAN);
             }
-            return new TypedInput(`runtime.ext_scratch3_operators._random(${left.asUnknown()}, ${right.asUnknown()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`runtime.ext_scratch3_operators._random(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.ROUND: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysInt()) {
-                return new TypedInput(`${inp.asNumber()}`, TYPE_NUMBER_INT);
+                return new TypedInput(`${inp.asNumber()}`, TYPES.NUMBER_INT);
             }
             this.usedMathFunctions.add('round');
-            return new TypedInput(`round(${inp.asNumber()})`, TYPE_NUMBER_INT);
+            return new TypedInput(`round(${inp.asNumber()})`, TYPES.NUMBER_INT);
         }
         case BLOCKS.OP.SIN:
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
-            return new TypedInput(`(round(sin((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPE_NUMBER_NAN);
+            return new TypedInput(`(round(sin((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.SQRT:
             // Needs to be marked as NaN because Math.sqrt(-1) === NaN
             this.usedMathFunctions.add('sqrt');
-            return new TypedInput(`sqrt(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`sqrt(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.TAN:
-            return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER_NAN);
+            return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.TENEXP:
-            return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPE_NUMBER);
+            return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
 
         case BLOCKS.PROCEDURES.CALL: {
             const procedureCode = node.code;
@@ -1052,9 +1053,9 @@ class JSGenerator {
                     args.push(this.descendInput(input).asSafe());
                 }
                 if (args.length) {
-                    return new TypedInput(`(${args.join(',')}, "")`, TYPE_STRING);
+                    return new TypedInput(`(${args.join(',')}, "")`, TYPES.STRING);
                 }
-                return new TypedInput('""', TYPE_STRING);
+                return new TypedInput('""', TYPES.STRING);
             }
 
             // Recursion makes this complicated because:
@@ -1082,23 +1083,23 @@ class JSGenerator {
         case BLOCKS.PROCEDURES.ARGUMENT:
             return new TypedInput(`p${node.index}`, TYPES.UNKNOWN);
         case BLOCKS.SENSING.ANSWER:
-            return new TypedInput(`runtime.ext_scratch3_sensing._answer`, TYPE_STRING);
+            return new TypedInput(`runtime.ext_scratch3_sensing._answer`, TYPES.STRING);
         case BLOCKS.SENSING.COLOR_TOUCHING_COLOR:
-            return new TypedInput(`target.colorIsTouchingColor(colorToList(${this.descendInput(node.target).asColor()}), colorToList(${this.descendInput(node.mask).asColor()}))`, TYPE_BOOLEAN);
+            return new TypedInput(`target.colorIsTouchingColor(colorToList(${this.descendInput(node.target).asColor()}), colorToList(${this.descendInput(node.mask).asColor()}))`, TYPES.BOOLEAN);
         case BLOCKS.SENSING.DATE:
-            return new TypedInput(`(new Date().getDate())`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getDate())`, TYPES.NUMBER);
         case BLOCKS.SENSING.DAYOFWEEK:
-            return new TypedInput(`(new Date().getDay() + 1)`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getDay() + 1)`, TYPES.NUMBER);
         case BLOCKS.SENSING.DAYS_SINCE_2000:
-            return new TypedInput('daysSince2000()', TYPE_NUMBER);
+            return new TypedInput('daysSince2000()', TYPES.NUMBER);
         case BLOCKS.SENSING.DISTANCE:
-            return new TypedInput(`distance(${this.descendInput(node.target).asString()})`, TYPE_NUMBER);
+            return new TypedInput(`distance(${this.descendInput(node.target).asString()})`, TYPES.NUMBER);
         case BLOCKS.SENSING.HOUR:
-            return new TypedInput(`(new Date().getHours())`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getHours())`, TYPES.NUMBER);
         case BLOCKS.SENSING.MINUTE:
-            return new TypedInput(`(new Date().getMinutes())`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getMinutes())`, TYPES.NUMBER);
         case BLOCKS.SENSING.MONTH:
-            return new TypedInput(`(new Date().getMonth() + 1)`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getMonth() + 1)`, TYPES.NUMBER);
         case BLOCKS.SENSING.OF: {
             const object = this.descendInput(node.object).asString();
             const property = node.property;
@@ -1107,31 +1108,31 @@ class JSGenerator {
                 // Note that if target isn't a stage, we can't assume it exists
                 const objectReference = isStage ? 'stage' : this.evaluateOnce(`runtime.getSpriteTargetByName(${object})`);
                 if (property === 'volume') {
-                    return new TypedInput(`(${objectReference} ? ${objectReference}.volume : 0)`, TYPE_NUMBER);
+                    return new TypedInput(`(${objectReference} ? ${objectReference}.volume : 0)`, TYPES.NUMBER);
                 }
                 if (isStage) {
                     switch (property) {
                     case 'background #':
                         // fallthrough for scratch 1.0 compatibility
                     case 'backdrop #':
-                        return new TypedInput(`(${objectReference}.currentCostume + 1)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference}.currentCostume + 1)`, TYPES.NUMBER);
                     case 'backdrop name':
-                        return new TypedInput(`${objectReference}.getCostumes()[${objectReference}.currentCostume].name`, TYPE_STRING);
+                        return new TypedInput(`${objectReference}.getCostumes()[${objectReference}.currentCostume].name`, TYPES.STRING);
                     }
                 } else {
                     switch (property) {
                     case 'x position':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.x : 0)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.x : 0)`, TYPES.NUMBER);
                     case 'y position':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.y : 0)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.y : 0)`, TYPES.NUMBER);
                     case 'direction':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.direction : 0)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.direction : 0)`, TYPES.NUMBER);
                     case 'costume #':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.currentCostume + 1 : 0)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.currentCostume + 1 : 0)`, TYPES.NUMBER);
                     case 'costume name':
                         return new TypedInput(`(${objectReference} ? ${objectReference}.getCostumes()[${objectReference}.currentCostume].name : 0)`, TYPES.UNKNOWN);
                     case 'size':
-                        return new TypedInput(`(${objectReference} ? ${objectReference}.size : 0)`, TYPE_NUMBER);
+                        return new TypedInput(`(${objectReference} ? ${objectReference}.size : 0)`, TYPES.NUMBER);
                     }
                 }
                 const variableReference = this.evaluateOnce(`${objectReference} && ${objectReference}.lookupVariableByNameAndType("${sanitize(property)}", "", true)`);
@@ -1140,23 +1141,23 @@ class JSGenerator {
             return new TypedInput(`runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ${object}, PROPERTY: "${sanitize(property)}" })`, TYPES.UNKNOWN);
         }
         case BLOCKS.SENSING.SECOND:
-            return new TypedInput(`(new Date().getSeconds())`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getSeconds())`, TYPES.NUMBER);
         case BLOCKS.SENSING.REFRESH_TIME:
-            return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPE_NUMBER);
+            return new TypedInput('(runtime.screenRefreshTime / 1000)', TYPES.NUMBER);
         case BLOCKS.SENSING.TOUCHING:
-            return new TypedInput(`target.isTouchingObject(${this.descendInput(node.object).asUnknown()})`, TYPE_BOOLEAN);
+            return new TypedInput(`target.isTouchingObject(${this.descendInput(node.object).asUnknown()})`, TYPES.BOOLEAN);
         case BLOCKS.SENSING.TOUCHING_COLOR:
-            return new TypedInput(`target.isTouchingColor(colorToList(${this.descendInput(node.color).asColor()}))`, TYPE_BOOLEAN);
+            return new TypedInput(`target.isTouchingColor(colorToList(${this.descendInput(node.color).asColor()}))`, TYPES.BOOLEAN);
         case BLOCKS.SENSING.USERNAME:
-            return new TypedInput('runtime.ioDevices.userData.getUsername()', TYPE_STRING);
+            return new TypedInput('runtime.ioDevices.userData.getUsername()', TYPES.STRING);
         case BLOCKS.SENSING.YEAR:
-            return new TypedInput(`(new Date().getFullYear())`, TYPE_NUMBER);
+            return new TypedInput(`(new Date().getFullYear())`, TYPES.NUMBER);
 
         case BLOCKS.TIMER.GET:
-            return new TypedInput('runtime.ioDevices.clock.projectTimer()', TYPE_NUMBER);
+            return new TypedInput('runtime.ioDevices.clock.projectTimer()', TYPES.NUMBER);
 
         case BLOCKS.TW.LAST_KEY_PRESSED:
-            return new TypedInput('runtime.ioDevices.keyboard.getLastKeyPressed()', TYPE_STRING);
+            return new TypedInput('runtime.ioDevices.keyboard.getLastKeyPressed()', TYPES.STRING);
 
         case BLOCKS.VAR.GET:
             return this.descendVariable(node.variable);
@@ -1223,7 +1224,7 @@ class JSGenerator {
             this.source += `while (${index} < ${this.descendInput(node.count).asNumber()}) { `;
             this.source += `${index}++; `;
             this.source += `${this.referenceVariable(node.variable)}.value = ${index};\n`;
-            this.setVariableType(node.variable.name, TYPE_NUMBER);
+            this.setVariableType(node.variable.name, TYPES.NUMBER);
             this.descendStack(node.do, new Frame(true));
             this.yieldLoop();
             this.source += '}\n';
