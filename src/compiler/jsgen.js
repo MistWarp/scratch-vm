@@ -719,6 +719,8 @@ class JSGenerator {
             return new TypedInput('target.getCostumes()[target.currentCostume].name', TYPE_STRING);
         case 'looks.costumeNumber':
             return new TypedInput('(target.currentCostume + 1)', TYPE_NUMBER_INT);
+        case 'looks.costumes':
+            return new TypedInput('JSON.stringify(target.getCostumes().map(costume => costume.name))', TYPE_STRING);
 
         case 'motion.direction':
             return new TypedInput('target.direction', TYPE_NUMBER);
