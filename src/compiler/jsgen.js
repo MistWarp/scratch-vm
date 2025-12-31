@@ -177,7 +177,7 @@ class TypedInput {
     }
 
     asUnknown () {
-        return this.source;
+        return `${this.source}`;
     }
 
     isSafe () {
@@ -238,7 +238,8 @@ class ConstantInput {
         this._cacheVar = null;
 
         this.type = TYPES.UNKNOWN;
-        if (Number.isFinite(+constantValue)) {
+        console.log(constantValue, safe);
+        if (Number.isFinite(constantValue)) {
             this.type = Number.isInteger(constantValue) ?
                 TYPES.NUMBER_INT :
                 TYPES.NUMBER;
@@ -316,8 +317,7 @@ class ConstantInput {
     }
 
     isSafe () {
-        const val = this.constantValue;
-        if (Number.isFinite(+val)) {
+        if (Number.isFinite(this.constantValue)) {
             return true;
         }
         return this.safe;
