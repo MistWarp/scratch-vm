@@ -2002,6 +2002,11 @@ class JSGenerator {
 // For extensions.
 JSGenerator.unstable_exports = {
     TYPES,
+    TYPE_NUMBER: TYPES.NUMBER,
+    TYPE_STRING: TYPES.STRING,
+    TYPE_BOOLEAN: TYPES.BOOLEAN,
+    TYPE_NUMBER_NAN: TYPES.NUMBER_NAN,
+    TYPE_UNKNOWN: TYPES.UNKNOWN,
     BLOCKS,
     factoryNameVariablePool,
     functionNameVariablePool,
