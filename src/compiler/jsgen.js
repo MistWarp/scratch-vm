@@ -238,7 +238,6 @@ class ConstantInput {
         this._cacheVar = null;
 
         this.type = TYPES.UNKNOWN;
-        console.log(constantValue, safe);
         if (Number.isFinite(constantValue)) {
             this.type = Number.isInteger(constantValue) ?
                 TYPES.NUMBER_INT :
