@@ -29,6 +29,20 @@ const defaultBuiltinExtensions = {
     tw: () => require('../extensions/tw')
 };
 
+const coreExtensions = [
+    'motion',
+    'looks',
+    'sound',
+    'events',
+    'control',
+    'sensing',
+    'operators',
+    'data',
+    'json',
+    'procedures',
+    'comments'
+];
+
 /**
  * @typedef {object} ArgumentInfo - Information about an extension block argument
  * @property {ArgumentType} type - the type of value this argument can take
@@ -126,6 +140,7 @@ class ExtensionManager {
         this.asyncExtensionsLoadedCallbacks = [];
 
         this.builtinExtensions = Object.assign({}, defaultBuiltinExtensions);
+        this.coreExtensions = coreExtensions;
 
         dispatch.setService('extensions', createExtensionService(this)).catch(e => {
             log.error(`ExtensionManager was unable to register extension service: ${JSON.stringify(e)}`);
@@ -151,6 +166,16 @@ class ExtensionManager {
      */
     isBuiltinExtension (extensionId) {
         return Object.prototype.hasOwnProperty.call(this.builtinExtensions, extensionId);
+    }
+
+    /**
+     * Determine whether an extension with a given ID is registered as a core extension in the VM, such as motion.
+     * Note that custom extensions or extensions that don't load on startup will return false here.
+     * @param {string} extensionId
+     * @returns {boolean}
+     */
+    isCoreExtension (extensionId) {
+        return this.coreExtensions.includes(extensionId);
     }
 
     /**
@@ -207,8 +232,8 @@ class ExtensionManager {
             return;
         }
 
-        if (this.isExtensionURLLoaded(extensionURL)) {
-            // Extension is already loaded.
+        if (this.isExtensionURLLoaded(extensionURL) || this.isCoreExtension(extensionURL)) {
+            // Extension is already loaded or is a core extension.
             return;
         }
 
@@ -260,6 +285,47 @@ class ExtensionManager {
     }
 
     /**
+     * Reorder an extension by using current index and reorder to index
+     * @param {string} extensionIndex - the index of the extension to reorder
+     * @param {string} reorderIndex - the index to reorder the extension to
+     * @returns {Promise} resolved once the extension is loaded and initialized or rejected on failure
+     */
+    reorderExtension (extensionIndex, reorderIndex) {
+        const extensions = Array.from(this._loadedExtensions);
+        if (reorderIndex >= extensions.length) {
+            let padding = reorderIndex - extensions.length + 1;
+            while (padding--) {
+                extensions.push(null);
+            }
+        }
+        extensions.splice(reorderIndex, 0, extensions.splice(extensionIndex, 1)[0]);
+        this._loadedExtensions = new Map(extensions.map(extension => [extension[0], extension[1]]));
+        dispatch.call('runtime', '_reorderExtensionPrimitive', extensionIndex, reorderIndex);
+        this.refreshBlocks();
+    }
+
+    /**
+     * Unload an extension by URL or internal extension ID
+     * @param {string} extensionURL - the URL for the extension to load OR the ID of an internal extension
+     * @returns {Promise} resolved once the extension is loaded and initialized or rejected on failure
+     */
+    removeExtension (extensionURL) {
+        if (!this.isExtensionLoaded(extensionURL)) {
+            const message = `Rejecting attempt to remove an unloaded extension with ID ${extensionURL}`;
+            log.warn(message);
+            return;
+        }
+        const serviceName = this._loadedExtensions.get(extensionURL);
+        delete dispatch.services[serviceName];
+        delete this.runtime[`ext_${extensionURL}`];
+        this._loadedExtensions.delete(extensionURL);
+        const workerId = +serviceName.split('.')[1];
+        delete this.workerURLs[workerId];
+        dispatch.call('runtime', '_removeExtensionPrimitive', extensionURL);
+        this.refreshBlocks();
+    }
+
+    /**
      * Wait until all async extensions have loaded
      * @returns {Promise} resolved when all async extensions have loaded
      */
@@ -277,19 +343,25 @@ class ExtensionManager {
 
     /**
      * Regenerate blockinfo for any loaded extensions
+     * @param {string} [optExtensionId] Optional extension ID for refreshing
      * @returns {Promise} resolved once all the extensions have been reinitialized
      */
-    refreshBlocks () {
-        const allPromises = Array.from(this._loadedExtensions.values()).map(serviceName =>
-            dispatch.call(serviceName, 'getInfo')
-                .then(info => {
-                    info = this._prepareExtensionInfo(serviceName, info);
-                    dispatch.call('runtime', '_refreshExtensionPrimitives', info);
-                })
-                .catch(e => {
-                    log.error('Failed to refresh built-in extension primitives', e);
-                })
-        );
+    refreshBlocks (optExtensionId) {
+        const refresh = serviceName => dispatch.call(serviceName, 'getInfo')
+            .then(info => {
+                info = this._prepareExtensionInfo(serviceName, info);
+                dispatch.call('runtime', '_refreshExtensionPrimitives', info);
+            })
+            .catch(e => {
+                log.error('Failed to refresh built-in extension primitives', e);
+            });
+        if (optExtensionId) {
+            if (!this._loadedExtensions.has(optExtensionId)) {
+                return Promise.reject(new Error(`Unknown extension: ${optExtensionId}`));
+            }
+            return refresh(this._loadedExtensions.get(optExtensionId));
+        }
+        const allPromises = Array.from(this._loadedExtensions.values()).map(refresh);
         return Promise.all(allPromises);
     }
 
