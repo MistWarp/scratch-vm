@@ -802,6 +802,22 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Event name for reporting that an extension was removed.
+     * @const {string}
+     */
+    static get EXTENSION_REMOVED () {
+        return 'EXTENSION_REMOVED';
+    }
+
+    /**
+     * Event name for reporting that extensions were reordered.
+     * @const {string}
+     */
+    static get EXTENSIONS_REORDERED () {
+        return 'EXTENSIONS_REORDERED';
+    }
+
+    /**
      * Event name for reporting that an extension as asked for a custom field to be added
      * @const {string}
      */
@@ -1106,6 +1122,60 @@ class Runtime extends EventEmitter {
 
             this.emit(Runtime.BLOCKSINFO_UPDATE, categoryInfo);
         }
+    }
+
+    /**
+     * Unregister an extension's primitives and remove its category from blocks info.
+     * @param {string} extensionId - the extension ID
+     * @private
+     */
+    _unregisterExtensionPrimitives (extensionId) {
+        // Remove category from block info
+        const index = this._blockInfo.findIndex(info => info.id === extensionId);
+        if (index !== -1) {
+            this._blockInfo.splice(index, 1);
+        }
+
+        const opcodePrefix = `${extensionId}_`;
+        const deleteByPrefix = obj => {
+            for (const key of Object.keys(obj)) {
+                if (key.startsWith(opcodePrefix)) {
+                    delete obj[key];
+                }
+            }
+        };
+        deleteByPrefix(this._primitives);
+        deleteByPrefix(this._hats);
+        deleteByPrefix(this._flowing);
+
+        this.emit(Runtime.EXTENSION_REMOVED, {id: extensionId});
+    }
+
+    /**
+     * Reorder extension categories within runtime blocks info.
+     * @param {Array<string>} extensionIds - desired extension order
+     * @private
+     */
+    _setExtensionOrder (extensionIds) {
+        const idSet = new Set(extensionIds);
+        const removed = new Map();
+        const nextBlockInfo = [];
+        for (const info of this._blockInfo) {
+            if (info && idSet.has(info.id)) {
+                removed.set(info.id, info);
+            } else {
+                nextBlockInfo.push(info);
+            }
+        }
+
+        for (const id of extensionIds) {
+            if (removed.has(id)) {
+                nextBlockInfo.push(removed.get(id));
+            }
+        }
+
+        this._blockInfo = nextBlockInfo;
+        this.emit(Runtime.EXTENSIONS_REORDERED, {ids: extensionIds});
     }
 
     /**
