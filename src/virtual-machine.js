@@ -347,8 +347,8 @@ class VirtualMachine extends EventEmitter {
         return this.runtime.getAddonBlock(procedureCode);
     }
 
-    storeProjectOptions () {
-        this.runtime.storeProjectOptions();
+    storeProjectOptions (extraOptions = null) {
+        this.runtime.storeProjectOptions(extraOptions);
         if (this.editingTarget.isStage) {
             this.emitWorkspaceUpdate();
         }

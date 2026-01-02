@@ -2897,6 +2897,7 @@ class Runtime extends EventEmitter {
     }
 
     parseProjectOptions () {
+        this._storedProjectOptions = null;
         const comment = this.findProjectOptionsComment();
         if (!comment) return;
         const lineWithMagic = comment.text.split('\n').find(i => i.endsWith(COMMENT_CONFIG_MAGIC));
@@ -2916,6 +2917,8 @@ class Runtime extends EventEmitter {
             log.warn('Config comment has invalid JSON', e);
             return;
         }
+
+        this._storedProjectOptions = parsed;
 
         if (typeof parsed.framerate === 'number') {
             this.setFramerate(parsed.framerate);
@@ -2938,6 +2941,10 @@ class Runtime extends EventEmitter {
         if (storedWidth !== this.stageWidth || storedHeight !== this.stageHeight) {
             this.setStageSize(storedWidth, storedHeight);
         }
+    }
+
+    getStoredProjectOptions () {
+        return this._storedProjectOptions;
     }
 
     _generateAllProjectOptions () {
@@ -2972,8 +2979,14 @@ class Runtime extends EventEmitter {
         return difference(this._defaultStoredSettings, this._generateAllProjectOptions());
     }
 
-    storeProjectOptions () {
+    storeProjectOptions (extraOptions = null) {
         const options = this.generateDifferingProjectOptions();
+
+        if (extraOptions && typeof extraOptions === 'object') {
+            if (Object.prototype.hasOwnProperty.call(extraOptions, 'mistwarpTheme')) {
+                options.mistwarpTheme = extraOptions.mistwarpTheme;
+            }
+        }
         // TODO: translate
         const text = `Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n${ExtendedJSON.stringify(options)}${COMMENT_CONFIG_MAGIC}`;
         const existingComment = this.findProjectOptionsComment();
