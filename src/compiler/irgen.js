@@ -241,7 +241,8 @@ class ScriptTreeGenerator {
             const name = block.fields.VALUE.value;
             const index = this.script.arguments.lastIndexOf(name);
             if (index === -1) {
-                if (name.toLowerCase() === 'is compiled?' || name.toLowerCase() === 'is turbowarp?') {
+                const lowercaseName = name.toLowerCase();
+                if (lowercaseName === 'is compiled?' || lowercaseName === 'is turbowarp?' || lowercaseName === 'is mistwarp?') {
                     return {
                         kind: BLOCKS.CONSTANT,
                         value: true
