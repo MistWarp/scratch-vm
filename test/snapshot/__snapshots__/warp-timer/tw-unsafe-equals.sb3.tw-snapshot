@@ -39,7 +39,7 @@ runtime.ext_scratch3_looks._say("pass 8", target);
 yield;
 }
 b1.value = "010";
-if ((b1.value === 10)) {
+if ((toNotNaN(+b1.value) === 10)) {
 runtime.ext_scratch3_looks._say("pass 9", target);
 }
 if ((toNotNaN(+b1.value) === 10)) {

@@ -242,7 +242,9 @@ class ScriptTreeGenerator {
             const index = this.script.arguments.lastIndexOf(name);
             if (index === -1) {
                 const lowercaseName = name.toLowerCase();
-                if (lowercaseName === 'is compiled?' || lowercaseName === 'is turbowarp?' || lowercaseName === 'is mistwarp?') {
+                if (lowercaseName === 'is compiled?' ||
+                    lowercaseName === 'is turbowarp?' ||
+                    lowercaseName === 'is mistwarp?') {
                     return {
                         kind: BLOCKS.CONSTANT,
                         value: true

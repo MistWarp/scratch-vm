@@ -12,17 +12,17 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 18", target);
 b0.value = 0;
 b1.value = (yield* thread.procedures["Znon warp recursion should yield %s"](8));
-if ((b0.value === 4)) {
+if ((toNotNaN(+b0.value) === 4)) {
 runtime.ext_scratch3_looks._say("pass non warp recursion yields", target);
 }
 b0.value = 0;
 b1.value = thread.procedures["Wwarp recursion should not yield %s"](8);
-if ((b0.value === 0)) {
+if ((toNotNaN(+b0.value) === 0)) {
 runtime.ext_scratch3_looks._say("pass warp recursion does not yield", target);
 }
 b0.value = 0;
 b1.value = (yield* thread.procedures["Zfib %s"](7));
-if ((b0.value === 20)) {
+if ((toNotNaN(+b0.value) === 20)) {
 runtime.ext_scratch3_looks._say("pass non warp fib yielded", target);
 }
 yield* thread.procedures["Zrecursing yields between each %s"]("initial");
@@ -81,7 +81,7 @@ return function* genXYZ_recursing_yields_bet (p0) {
 if ((("" + p0).toLowerCase() === "initial")) {
 b0.value = 0;
 b1.value = (toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 1))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 1))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 2))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 2))) + toNotNaN((toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 3))) + toNotNaN(+(yield* yieldThenCallGenerator(thread.procedures["Zrecursing yields between each %s"], 3))))))))))));
-if ((b0.value === 3)) {
+if ((toNotNaN(+b0.value) === 3)) {
 runtime.ext_scratch3_looks._say("pass recursing between calls yields final", target);
 } else {
 runtime.ext_scratch3_looks._say("fail recursing between calls yields final", target);
