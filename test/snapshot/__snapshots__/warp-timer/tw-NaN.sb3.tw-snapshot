@@ -20,61 +20,61 @@ runtime.ext_scratch3_looks._say("plan 20", target);
 if ((("" + (0 * Infinity)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((((0 * Infinity) * 1) === 0)) {
+if (compareEqual((toNotNaN((0 * Infinity)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + ((acos(1.01) * 180) / PI)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(((acos(1.01) * 180) / PI)) * 1) === 0)) {
+if (compareEqual((toNotNaN(((acos(1.01) * 180) / PI)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + ((asin(1.01) * 180) / PI)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(((asin(1.01) * 180) / PI)) * 1) === 0)) {
+if (compareEqual((toNotNaN(((asin(1.01) * 180) / PI)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + (0 / 0)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN((0 / 0)) * 1) === 0)) {
+if (compareEqual((toNotNaN((0 / 0)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + sqrt(-1)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(sqrt(-1)) * 1) === 0)) {
+if (compareEqual((toNotNaN(sqrt(-1)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + mod(0, 0)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(mod(0, 0)) * 1) === 0)) {
+if (compareEqual((toNotNaN(mod(0, 0)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + Math.log(-1)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(Math.log(-1)) * 1) === 0)) {
+if (compareEqual((toNotNaN(Math.log(-1)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + (log(-1) / LN10)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN((log(-1) / LN10)) * 1) === 0)) {
+if (compareEqual((toNotNaN((log(-1) / LN10)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN((round(sin((PI * toNotNaN((1 / 0))) / 180) * 1e10) / 1e10)) * 1) === 0)) {
+if (compareEqual((toNotNaN((round(sin((PI * toNotNaN((1 / 0))) / 180) * 1e10) / 1e10)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN((round(cos((PI * toNotNaN((1 / 0))) / 180) * 1e10) / 1e10)) * 1) === 0)) {
+if (compareEqual((toNotNaN((round(cos((PI * toNotNaN((1 / 0))) / 180) * 1e10) / 1e10)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(tan(toNotNaN((1 / 0)))) * 1) === 0)) {
+if (compareEqual((toNotNaN(tan(toNotNaN((1 / 0)))) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((toNotNaN(runtime.ext_scratch3_operators._random((-1 / 0), (1 / 0))) * 1) === 0)) {
+if (compareEqual((toNotNaN(runtime.ext_scratch3_operators._random((-1 / 0), (1 / 0))) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

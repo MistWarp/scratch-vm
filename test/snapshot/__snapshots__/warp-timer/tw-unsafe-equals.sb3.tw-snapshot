@@ -13,11 +13,11 @@ runtime.ext_scratch3_looks._say("plan 14", target);
 if (true) {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if ((10 === 10)) {
+if (true) {
 runtime.ext_scratch3_looks._say("pass 2", target);
 }
 b0.value = 10;
-if (false) {
+if ((toNotNaN(+b0.value) === 10)) {
 runtime.ext_scratch3_looks._say("pass 3", target);
 }
 if ((toNotNaN(+b0.value) === 10)) {
@@ -60,25 +60,25 @@ runtime.ext_scratch3_looks._say("pass 14", target);
 }
 yield;
 }
-if ((0 === 1)) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if ((1 === 0)) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if ((0 === 1)) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(" ", 0)) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(0, " ")) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual("", 0)) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if (compareEqual(0, "")) {
+if (false) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

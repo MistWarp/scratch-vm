@@ -92,12 +92,12 @@ class IntermediateScript {
  */
 class IntermediateRepresentation {
     /**
-     * @param {IntermediateScript} entry
+     * @param {IntermediateScript|null} [entry]
      */
-    constructor (entry) {
+    constructor (entry = null) {
         /**
          * The entry point of this IR.
-         * @type {IntermediateScript}
+         * @type {IntermediateScript|null}
          */
         this.entry = entry;
 

@@ -203,14 +203,25 @@ test('importing sb3 project with monitors', t => {
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
 
-        monitorId = `${shirtSprite.id}_costumes`;
+        monitorId = `${shirtSprite.id}_costumenumbername_name`;
         monitorRecord = vm.runtime._monitorState.get(monitorId);
         monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
-        t.equal(monitorRecord.opcode, 'looks_costumes');
-        t.equal(monitorRecord.mode, 'large');
+        t.equal(monitorRecord.opcode, 'looks_costumenumbername');
+        t.equal(monitorRecord.mode, 'default');
         t.equal(monitorRecord.visible, true);
         t.equal(monitorRecord.spriteName, 'Shirt-T');
         t.equal(monitorRecord.targetId, shirtSprite.id);
+        t.equal(monitorBlock.fields.NUMBER_NAME.value, 'name');
+
+        monitorId = `${shirtSprite.id}_costumenumbername_number`;
+        monitorRecord = vm.runtime._monitorState.get(monitorId);
+        monitorBlock = vm.runtime.monitorBlocks.getBlock(monitorId);
+        t.equal(monitorRecord.opcode, 'looks_costumenumbername');
+        t.equal(monitorRecord.mode, 'default');
+        t.equal(monitorRecord.visible, true);
+        t.equal(monitorRecord.spriteName, 'Shirt-T');
+        t.equal(monitorRecord.targetId, shirtSprite.id);
+        t.equal(monitorBlock.fields.NUMBER_NAME.value, 'number');
         monitorRecord = assertMonitorExists(monitorId, 'current_date');
         // The monitor IDs for the sensing_current block should be unique
         monitorBlock = assertMonitorBlockExists(monitorId, 'current_date');

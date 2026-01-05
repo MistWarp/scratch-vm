@@ -60,6 +60,25 @@ formatMessage.setup({
     missingTranslation: 'ignore'
 });
 
+const safePerformanceMark = name => {
+    if (typeof performance === 'undefined' || typeof performance.mark !== 'function') return;
+    try {
+        performance.mark(name);
+    } catch (e) {
+        // Ignore
+    }
+};
+
+const safePerformanceMeasure = (name, startMark, endMark) => {
+    if (typeof performance === 'undefined' || typeof performance.measure !== 'function') return;
+    try {
+        performance.measure(name, startMark, endMark);
+    } catch (e) {
+        // performance.measure() can throw if either mark was GC'd or missing.
+        log.error(e);
+    }
+};
+
 const createRuntimeService = runtime => {
     const service = {};
     service._refreshExtensionPrimitives = runtime._refreshExtensionPrimitives.bind(runtime);
@@ -461,6 +480,7 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input) {
+        safePerformanceMark('scratch-vm-loadProject-start');
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -472,14 +492,27 @@ class VirtualMachine extends EventEmitter {
             input = JSON.stringify(input);
         }
 
+        safePerformanceMark('scratch-vm-validate-start');
         const validationPromise = new Promise((resolve, reject) => {
             const validate = require('scratch-parser');
             // The second argument of false below indicates to the validator that the
             // input should be parsed/validated as an entire project (and not a single sprite)
             validate(input, false, (error, res) => {
                 if (error) {
+                    safePerformanceMark('scratch-vm-validate-end');
+                    safePerformanceMeasure(
+                        'scratch-vm-validate',
+                        'scratch-vm-validate-start',
+                        'scratch-vm-validate-end'
+                    );
                     return reject(error);
                 }
+                safePerformanceMark('scratch-vm-validate-end');
+                safePerformanceMeasure(
+                    'scratch-vm-validate',
+                    'scratch-vm-validate-start',
+                    'scratch-vm-validate-end'
+                );
                 resolve(res);
             });
         })
@@ -512,6 +545,15 @@ class VirtualMachine extends EventEmitter {
         return validationPromise
             .then(validatedInput => this.deserializeProject(validatedInput[0], validatedInput[1]))
             .then(() => this.runtime.handleProjectLoaded())
+            .then(result => {
+                safePerformanceMark('scratch-vm-loadProject-end');
+                safePerformanceMeasure(
+                    'scratch-vm-loadProject',
+                    'scratch-vm-loadProject-start',
+                    'scratch-vm-loadProject-end'
+                );
+                return result;
+            })
             .catch(error => {
                 // Intentionally rejecting here (want errors to be handled by caller)
                 if (Object.prototype.hasOwnProperty.call(error, 'validationError')) {
@@ -724,9 +766,7 @@ class VirtualMachine extends EventEmitter {
         // Clear the current runtime
         this.clear();
 
-        if (typeof performance !== 'undefined') {
-            performance.mark('scratch-vm-deserialize-start');
-        }
+        safePerformanceMark('scratch-vm-deserialize-start');
         const runtime = this.runtime;
         const deserializePromise = function () {
             const projectVersion = projectJSON.projectVersion;
@@ -744,20 +784,23 @@ class VirtualMachine extends EventEmitter {
         };
         return deserializePromise()
             .then(({targets, extensions}) => {
-                if (typeof performance !== 'undefined') {
-                    performance.mark('scratch-vm-deserialize-end');
-                    try {
-                        performance.measure('scratch-vm-deserialize',
-                            'scratch-vm-deserialize-start', 'scratch-vm-deserialize-end');
-                    } catch (e) {
-                        // performance.measure() will throw an error if the start deserialize
-                        // marker was removed from memory before we finished deserializing
-                        // the project. We've seen this happen a couple times when loading
-                        // very large projects.
-                        log.error(e);
-                    }
-                }
-                return this.installTargets(targets, extensions, true);
+                safePerformanceMark('scratch-vm-deserialize-end');
+                safePerformanceMeasure(
+                    'scratch-vm-deserialize',
+                    'scratch-vm-deserialize-start',
+                    'scratch-vm-deserialize-end'
+                );
+
+                safePerformanceMark('scratch-vm-installTargets-start');
+                return this.installTargets(targets, extensions, true).then(result => {
+                    safePerformanceMark('scratch-vm-installTargets-end');
+                    safePerformanceMeasure(
+                        'scratch-vm-installTargets',
+                        'scratch-vm-installTargets-start',
+                        'scratch-vm-installTargets-end'
+                    );
+                    return result;
+                });
             });
     }
 
@@ -798,45 +841,89 @@ class VirtualMachine extends EventEmitter {
      * @returns {Promise} resolved once targets have been installed
      */
     async installTargets (targets, extensions, wholeProject) {
+        safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-start');
         await this.extensionManager.allAsyncExtensionsLoaded();
+        safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-end');
+        safePerformanceMeasure(
+            'scratch-vm-installTargets-waitAsyncExtensions',
+            'scratch-vm-installTargets-waitAsyncExtensions-start',
+            'scratch-vm-installTargets-waitAsyncExtensions-end'
+        );
 
         targets = targets.filter(target => !!target);
 
-        return this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs).then(() => {
-            targets.forEach(target => {
-                this.runtime.addTarget(target);
-                (/** @type RenderedTarget */ target).updateAllDrawableProperties();
-                // Ensure unique sprite name
-                if (target.isSprite()) this.renameSprite(target.id, target.getName());
-            });
-            // Sort the executable targets by layerOrder.
-            // Remove layerOrder property after use.
-            this.runtime.executableTargets.sort((a, b) => a.layerOrder - b.layerOrder);
-            targets.forEach(target => {
-                delete target.layerOrder;
-            });
+        safePerformanceMark('scratch-vm-installTargets-loadExtensions-start');
+        await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs);
+        safePerformanceMark('scratch-vm-installTargets-loadExtensions-end');
+        safePerformanceMeasure(
+            'scratch-vm-installTargets-loadExtensions',
+            'scratch-vm-installTargets-loadExtensions-start',
+            'scratch-vm-installTargets-loadExtensions-end'
+        );
 
-            // Select the first target for editing, e.g., the first sprite.
-            if (wholeProject && (targets.length > 1)) {
-                this.editingTarget = targets[1];
-            } else {
-                this.editingTarget = targets[0];
+        safePerformanceMark('scratch-vm-installTargets-addTargets-start');
+        const seenSpriteNames = new Set(
+            this.runtime.targets
+                .filter(target => target && target.isSprite && target.isSprite())
+                .map(target => target.getName())
+                .filter(name => name)
+        );
+        targets.forEach(target => {
+            this.runtime.addTarget(target);
+            (/** @type RenderedTarget */ target).updateAllDrawableProperties();
+
+            // Ensure unique sprite name.
+            // renameSprite() is O(number of sprites) due to scanning runtime.targets.
+            // Most projects already have unique names, so only call it when needed.
+            if (target.isSprite()) {
+                const name = target.getName();
+                if (name && seenSpriteNames.has(name)) {
+                    this.renameSprite(target.id, name);
+                }
+                seenSpriteNames.add(target.getName());
             }
-
-            if (!wholeProject) {
-                this.editingTarget.fixUpVariableReferences();
-            }
-
-            if (wholeProject) {
-                this.runtime.parseProjectOptions();
-            }
-
-            // Update the VM user's knowledge of targets and blocks on the workspace.
-            this.emitTargetsUpdate(false /* Don't emit project change */);
-            this.emitWorkspaceUpdate();
-            this.runtime.setEditingTarget(this.editingTarget);
-            this.runtime.ioDevices.cloud.setStage(this.runtime.getTargetForStage());
         });
+        safePerformanceMark('scratch-vm-installTargets-addTargets-end');
+        safePerformanceMeasure(
+            'scratch-vm-installTargets-addTargets',
+            'scratch-vm-installTargets-addTargets-start',
+            'scratch-vm-installTargets-addTargets-end'
+        );
+
+        safePerformanceMark('scratch-vm-installTargets-finalize-start');
+        // Sort the executable targets by layerOrder.
+        // Remove layerOrder property after use.
+        this.runtime.executableTargets.sort((a, b) => a.layerOrder - b.layerOrder);
+        targets.forEach(target => {
+            delete target.layerOrder;
+        });
+
+        // Select the first target for editing, e.g., the first sprite.
+        if (wholeProject && (targets.length > 1)) {
+            this.editingTarget = targets[1];
+        } else {
+            this.editingTarget = targets[0];
+        }
+
+        if (!wholeProject) {
+            this.editingTarget.fixUpVariableReferences();
+        }
+
+        if (wholeProject) {
+            this.runtime.parseProjectOptions();
+        }
+
+        // Update the VM user's knowledge of targets and blocks on the workspace.
+        this.emitTargetsUpdate(false /* Don't emit project change */);
+        this.emitWorkspaceUpdate();
+        this.runtime.setEditingTarget(this.editingTarget);
+        this.runtime.ioDevices.cloud.setStage(this.runtime.getTargetForStage());
+        safePerformanceMark('scratch-vm-installTargets-finalize-end');
+        safePerformanceMeasure(
+            'scratch-vm-installTargets-finalize',
+            'scratch-vm-installTargets-finalize-start',
+            'scratch-vm-installTargets-finalize-end'
+        );
     }
 
     /**

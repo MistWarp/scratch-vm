@@ -847,7 +847,9 @@ class JSGenerator {
             // Needs to be marked as NaN because Infinity * 0 === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
-            if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+            // Only safe to treat as definitely non-NaN when both operands are finite.
+            // If either operand can be +/-Infinity, then multiplying by 0 can yield NaN.
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
                 return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPES.NUMBER);
             }
             return new TypedInput(`(${left.asNumber()} * ${right.asNumber()})`, TYPES.NUMBER_NAN);
@@ -900,10 +902,13 @@ class JSGenerator {
                 const rightLower = right.asLowerString();
                 return new TypedInput(`(${leftLower} === ${rightLower})`, TYPES.BOOLEAN);
             }
-            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+            // Only fold when the inputs themselves carry a constantValue.
+            // Some inputs (e.g. VariableInput) may be analyzable as constant but do not expose constantValue,
+            // and Scratch equality semantics are not the same as JS strict equality for mixed types.
+            if (typeof left.constantValue !== 'undefined' && typeof right.constantValue !== 'undefined') {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
-                return new ConstantInput(leftVal === rightVal, false);
+                return new ConstantInput(Cast.compare(leftVal, rightVal) === 0, false);
             }
             const leftAlwaysNumber = left.isAlwaysNumber();
             const rightAlwaysNumber = right.isAlwaysNumber();
