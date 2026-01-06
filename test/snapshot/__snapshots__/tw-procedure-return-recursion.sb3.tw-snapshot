@@ -17,7 +17,7 @@ runtime.ext_scratch3_looks._say("pass non warp recursion yields", target);
 }
 b0.value = 0;
 b1.value = thread.procedures["Wwarp recursion should not yield %s"](8);
-if ((toNotNaN(+b0.value) === 0)) {
+if (compareEqual(b0.value, 0)) {
 runtime.ext_scratch3_looks._say("pass warp recursion does not yield", target);
 }
 b0.value = 0;

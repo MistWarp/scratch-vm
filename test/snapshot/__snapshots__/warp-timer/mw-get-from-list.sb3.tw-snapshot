@@ -1,0 +1,44 @@
+// TW Snapshot
+// Input SHA-256: d758181c076886d498d4e14ea70e79759694c2f18910f309a1bb82861025f740
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const b0 = stage.variables["T}0U^Nr!iDn]OXVLQ!DT"];
+const b1 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"];
+const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+return function* genXYZ () {
+runtime.ext_scratch3_looks._say("plan 3", target);
+b0.value = [];
+b0.value.push("thing");
+b0._monitorUpToDate = false;
+b1.value = 1;
+b2.value = (b0.value[0] ?? "");
+if ((("" + b2.value).toLowerCase() === "thing")) {
+runtime.ext_scratch3_looks._say("pass", target);
+}
+b2.value = (b0.value[((toNotNaN(+b1.value) + 1) | 0) - 1] ?? "");
+if (compareEqual(b2.value, "")) {
+runtime.ext_scratch3_looks._say("pass", target);
+}
+thread.procedures["Zdo funny"]();
+b2.value = (b0.value[((toNotNaN(+b1.value) - 1) | 0) - 1] ?? "");
+if ((("" + b2.value).toLowerCase() === "thing")) {
+runtime.ext_scratch3_looks._say("pass", target);
+}
+runtime.ext_scratch3_looks._say("end", target);
+retire(); return;
+}; })
+
+// Sprite1 Zdo funny
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const b0 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"];
+return function funXYZ_do_funny () {
+b0.value = 2;
+return "";
+}; })

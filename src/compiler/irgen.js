@@ -1932,6 +1932,7 @@ class IRGenerator {
             return node;
         }
         case BLOCKS.CONTROL.REPEAT: {
+            node.times = this.optimizeInput(node.times);
             node.do = this._optimizeSubstack(node.do);
             return node;
         }
@@ -2126,6 +2127,8 @@ class IRGenerator {
             return this._optimizeArithmetic(node);
         case BLOCKS.OP.LENGTH:
             return this._optimizeLength(node);
+        case BLOCKS.OP.JOIN:
+            return this._optimizeJoin(node);
         default:
             return this.optimizeInputs(node);
         }
@@ -2175,6 +2178,27 @@ class IRGenerator {
                 case BLOCKS.OP.MOD:
                     return {kind: BLOCKS.CONSTANT, value: (a % b).toString()};
                 }
+            }
+        }
+        return node;
+    }
+
+    /**
+     * Optimize a join node.
+     * @param {node} node The join node to optimize.
+     * @private
+     * @returns {node} The optimized join node.
+     */
+    _optimizeJoin (node) {
+        const left = this.optimizeInput(node.left);
+        const right = this.optimizeInput(node.right);
+        node.left = left;
+        node.right = right;
+        if (left && right && left.kind === BLOCKS.CONSTANT && right.kind === BLOCKS.CONSTANT) {
+            const a = left.value;
+            const b = right.value;
+            if (a && b) {
+                return {kind: BLOCKS.CONSTANT, value: a + b};
             }
         }
         return node;

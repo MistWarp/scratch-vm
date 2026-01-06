@@ -141,8 +141,7 @@ class TypedInput {
     asInt () {
         if (this.type === TYPES.NUMBER_INT) return this.source;
         if (this.type === TYPES.NUMBER) return `(${this.source} | 0)`;
-        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source} | 0)`;
-        return `toNotNaN(+${this.source} | 0)`;
+        return `toNotNaN(${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
@@ -425,6 +424,9 @@ class VariableInput {
             }
         }
         this._value = input;
+        if (Object.hasOwn(input, 'constantValue')) {
+            this.constantValue = input.constantValue;
+        }
         if (input instanceof TypedInput || input instanceof ConstantInput) {
             this.type = input.type;
         } else {
@@ -751,7 +753,7 @@ class JSGenerator {
             const list = this.referenceVariable(node.list);
             if (this.supportsNullishCoalescing) {
                 if (index.isAlwaysInt() && index.isAlwaysConstant()) {
-                    return new TypedInput(`(${list}.value[${(+index.asInt()) - 1}] ?? "")`, TYPES.UNKNOWN);
+                    return new TypedInput(`(${list}.value[${(+index.constantValue) - 1}] ?? "")`, TYPES.UNKNOWN);
                 }
                 if (index.isAlwaysNumberOrNaN()) {
                     return new TypedInput(`(${list}.value[${index.asInt()} - 1] ?? "")`, TYPES.UNKNOWN);
@@ -804,9 +806,14 @@ class JSGenerator {
         case BLOCKS.NOOP:
             return new TypedInput('""', TYPES.STRING);
 
-        case BLOCKS.OP.ABS:
+        case BLOCKS.OP.ABS: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                return new ConstantInput(Math.abs(+value.constantValue), false);
+            }
             this.usedMathFunctions.add('abs');
-            return new TypedInput(`abs(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
+            return new TypedInput(`abs(${value.asNumber()})`, TYPES.NUMBER);
+        }
         case BLOCKS.OP.ACOS:
             // Needs to be marked as NaN because Math.acos(1.0001) === NaN
             this.usedMathFunctions.add('acos');
@@ -818,9 +825,6 @@ class JSGenerator {
             const right = this.descendInput(node.right);
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const value = +left.constantValue + +right.constantValue;
-                if (Number.isNaN(value)) {
-                    return new ConstantInput('NaN', false);
-                }
                 return new ConstantInput(value, false);
             }
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
@@ -836,6 +840,10 @@ class JSGenerator {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
+                if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                    const value = +left.constantValue - +right.constantValue;
+                    return new ConstantInput(value, false);
+                }
                 if (left.isAlwaysInt() && right.isAlwaysInt()) {
                     return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPES.NUMBER_INT);
                 }
@@ -847,6 +855,14 @@ class JSGenerator {
             // Needs to be marked as NaN because Infinity * 0 === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const leftVal = left.constantValue;
+                const rightVal = right.constantValue;
+                if (+leftVal !== 0 && +rightVal !== 0) {
+                    const value = +leftVal * +rightVal;
+                    return new ConstantInput(value, false);
+                }
+            }
             // Only safe to treat as definitely non-NaN when both operands are finite.
             // If either operand can be +/-Infinity, then multiplying by 0 can yield NaN.
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
@@ -900,12 +916,15 @@ class JSGenerator {
             if (left.isNeverNumber() || right.isNeverNumber()) {
                 const leftLower = left.asLowerString();
                 const rightLower = right.asLowerString();
+                if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                    return new ConstantInput(leftLower === rightLower, false);
+                }
                 return new TypedInput(`(${leftLower} === ${rightLower})`, TYPES.BOOLEAN);
             }
             // Only fold when the inputs themselves carry a constantValue.
             // Some inputs (e.g. VariableInput) may be analyzable as constant but do not expose constantValue,
             // and Scratch equality semantics are not the same as JS strict equality for mixed types.
-            if (typeof left.constantValue !== 'undefined' && typeof right.constantValue !== 'undefined') {
+            if (left instanceof ConstantInput && right instanceof ConstantInput) {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
                 return new ConstantInput(Cast.compare(leftVal, rightVal) === 0, false);
@@ -913,9 +932,6 @@ class JSGenerator {
             const leftAlwaysNumber = left.isAlwaysNumber();
             const rightAlwaysNumber = right.isAlwaysNumber();
             // When both operands are known to be numbers, we can use ===
-            if (leftAlwaysNumber && rightAlwaysNumber) {
-                return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPES.BOOLEAN);
-            }
             // In certain conditions, we can use === when one of the operands is known to be a safe number.
             if (leftAlwaysNumber && left.isAlwaysConstant() && isSafeConstantForEqualsOptimization(left)) {
                 return new TypedInput(`(${left.asNumber()} === ${right.asNumber()})`, TYPES.BOOLEAN);
@@ -940,15 +956,20 @@ class JSGenerator {
         case BLOCKS.OP.GREATER: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            const constant = left.isAlwaysConstant() && right.isAlwaysConstant();
+
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+                if (constant) return new ConstantInput(left.constantValue > right.constantValue, false);
                 return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can negate <=
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
+                if (constant) return new ConstantInput(+left.constantValue > +right.constantValue, false);
                 return new TypedInput(`!(${left.asNumberOrNaN()} <= ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
+                if (constant) return new ConstantInput(left.constantValue > right.constantValue, false);
                 return new TypedInput(`(${left.asLowerString()} > ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
@@ -957,33 +978,37 @@ class JSGenerator {
         case BLOCKS.OP.JOIN: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
-            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
-                const leftVal = left.constantValue;
-                const rightVal = right.constantValue;
-                if (typeof leftVal === 'string' && typeof rightVal === 'string') {
-                    return new ConstantInput(leftVal + rightVal, false);
-                }
-            }
             return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPES.STRING);
         }
-        case BLOCKS.OP.LENGTH:
-            return new TypedInput(`${this.descendInput(node.string).asString()}.length`, TYPES.NUMBER);
+        case BLOCKS.OP.LENGTH: {
+            const value = this.descendInput(node.string);
+            if (value.isAlwaysConstant()) {
+                return new ConstantInput(`${value.constantValue}`.length, false);
+            }
+            return new TypedInput(`${value.asString()}.length`, TYPES.NUMBER);
+        }
         case BLOCKS.OP.LESS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            const constant = left.isAlwaysConstant() && right.isAlwaysConstant();
+
             if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+                if (constant) return new ConstantInput(left.constantValue < right.constantValue, false);
                 return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can use <
             if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
+                if (constant) return new ConstantInput(+left.constantValue < +right.constantValue, false);
                 return new TypedInput(`(${left.asNumberOrNaN()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // When the left operand is a number and the right operand is a number or NaN, we can negate >=
             if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
+                if (constant) return new ConstantInput(+left.constantValue >= +right.constantValue, false);
                 return new TypedInput(`!(${left.asNumber()} >= ${right.asNumberOrNaN()})`, TYPES.BOOLEAN);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (left.isNeverNumber() || right.isNeverNumber()) {
+                if (constant) return new ConstantInput(left.constantValue < right.constantValue, false);
                 return new TypedInput(`(${left.asLowerString()} < ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.

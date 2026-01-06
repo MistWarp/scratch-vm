@@ -18,7 +18,7 @@ if ((target.direction === 95)) {
 runtime.ext_scratch3_looks._say("pass 2", target);
 }
 target.setDirection(0);
-if ((target.direction === 0)) {
+if (compareEqual(target.direction, 0)) {
 runtime.ext_scratch3_looks._say("pass 3", target);
 }
 yield* executeInCompatibilityLayer({"TOWARDS":"Sprite2",}, b0, false, false, "g", null);

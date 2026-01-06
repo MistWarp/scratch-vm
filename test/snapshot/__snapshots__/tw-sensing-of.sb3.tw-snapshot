@@ -90,25 +90,25 @@ runtime.ext_scratch3_looks._say("pass NE volume", target);
 if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ("" + b4.value), PROPERTY: "Private variable" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE private variable", target);
 }
-if (((b5 ? b5.x : 0) === 0)) {
+if (compareEqual((b5 ? b5.x : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop #", target);
 }
-if (((b5 ? b5.y : 0) === 0)) {
+if (compareEqual((b5 ? b5.y : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop name", target);
 }
-if (((b5 ? b5.direction : 0) === 0)) {
+if (compareEqual((b5 ? b5.direction : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE volume", target);
 }
-if (((b5 ? b5.currentCostume + 1 : 0) === 0)) {
+if (compareEqual((b5 ? b5.currentCostume + 1 : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE stage variable", target);
 }
 if (compareEqual((b5 ? b5.getCostumes()[b5.currentCostume].name : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE x", target);
 }
-if (((b5 ? b5.size : 0) === 0)) {
+if (compareEqual((b5 ? b5.size : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE y", target);
 }
-if (((b5 ? b5.volume : 0) === 0)) {
+if (compareEqual((b5 ? b5.volume : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE direction", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
