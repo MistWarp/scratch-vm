@@ -10,12 +10,8 @@ const b0 = stage.variables[",OktMIwz{~bdgWnPEa8u"];
 const b1 = stage.variables["yfy(G`K5K^fJcXAfiN4i"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 14", target);
-if (true) {
 runtime.ext_scratch3_looks._say("pass 1", target);
-}
-if (true) {
 runtime.ext_scratch3_looks._say("pass 2", target);
-}
 b0.value = 10;
 if ((toNotNaN(+b0.value) === 10)) {
 runtime.ext_scratch3_looks._say("pass 3", target);
@@ -59,27 +55,6 @@ if (compareEqual(b1.value, "0000000010")) {
 runtime.ext_scratch3_looks._say("pass 14", target);
 }
 yield;
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
-}
-if (false) {
-runtime.ext_scratch3_looks._say("fail", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;

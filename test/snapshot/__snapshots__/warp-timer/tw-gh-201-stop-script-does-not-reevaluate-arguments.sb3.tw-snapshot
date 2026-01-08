@@ -8,7 +8,10 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 0", target);
-thread.procedures["Zfoo %s"](thread.procedures["Zno op"]());
+proc_a0: {
+let inl_a1 = thread.procedures["Zno op"]();
+break proc_a0;
+}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

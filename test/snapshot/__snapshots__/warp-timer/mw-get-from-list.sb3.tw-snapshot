@@ -13,7 +13,6 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
 b0.value = [];
 b0.value.push("thing");
-b0._monitorUpToDate = false;
 b1.value = 1;
 b2.value = (b0.value[0] ?? "");
 if ((("" + b2.value).toLowerCase() === "thing")) {
@@ -23,12 +22,13 @@ b2.value = (b0.value[((toNotNaN(+b1.value) + 1) | 0) - 1] ?? "");
 if (compareEqual(b2.value, "")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-thread.procedures["Zdo funny"]();
+b1.value = 2;
 b2.value = (b0.value[((toNotNaN(+b1.value) - 1) | 0) - 1] ?? "");
 if ((("" + b2.value).toLowerCase() === "thing")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
+b0._monitorUpToDate = false;
 retire(); return;
 }; })
 

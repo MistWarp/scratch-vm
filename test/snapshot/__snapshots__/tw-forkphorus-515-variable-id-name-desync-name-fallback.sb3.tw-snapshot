@@ -16,10 +16,10 @@ runtime.ext_scratch3_looks._say("pass variable", target);
 }
 b1.value = [];
 b1.value.push(3);
-b1._monitorUpToDate = false;
 if ((toNotNaN(+(b1.value[0] ?? "")) === 3)) {
 runtime.ext_scratch3_looks._say("pass list", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
+b1._monitorUpToDate = false;
 retire(); return;
 }; })

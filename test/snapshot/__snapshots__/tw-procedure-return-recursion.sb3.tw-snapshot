@@ -135,8 +135,8 @@ runtime.ext_scratch3_looks._say("pass recurse arg order - length is correct", ta
 }
 } else {
 b0.value.push((("" + b1.value) + ("/" + ("" + p0))));
-b0._monitorUpToDate = false;
 }
+b0._monitorUpToDate = false;
 return "";
 }; })
 

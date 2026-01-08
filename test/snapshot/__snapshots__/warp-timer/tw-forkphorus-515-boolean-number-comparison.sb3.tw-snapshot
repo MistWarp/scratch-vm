@@ -8,18 +8,14 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 4", target);
-if (compareGreaterThan(("something" === "something"), ("0" + ""))) {
+if (compareGreaterThan(true, ("0" + ""))) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (compareLessThan(("something" === "else"), ("1" + ""))) {
+if (compareLessThan(false, ("1" + ""))) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (compareGreaterThan(("something" === "something"), (0 + 0))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareLessThan(("something" === "else"), (1 + 0))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

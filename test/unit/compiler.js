@@ -4,6 +4,8 @@ const VariablePool = require('../../src/compiler/variable-pool');
 const compatBlocks = require('../../src/compiler/compat-blocks');
 const CompatBlockUtility = require('../../src/compiler/compat-block-utility');
 const IR = require('../../src/compiler/intermediate');
+const {BLOCKS} = require('../../src/compiler/enums');
+const {IROptimizer} = require('../../src/compiler/iroptimizer');
 const execute = require('../../src/compiler/jsexecute');
 
 test('VariablePool basic', t => {

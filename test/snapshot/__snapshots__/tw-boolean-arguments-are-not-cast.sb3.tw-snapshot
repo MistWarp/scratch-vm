@@ -8,7 +8,14 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-thread.procedures["ZBlock A %s"]("Hai!!!");
+proc_a0: {
+let inl_a1 = "Hai!!!";
+if ((("" + inl_a1).toLowerCase() === "hai!!!")) {
+runtime.ext_scratch3_looks._say("pass did not cast", target);
+} else {
+runtime.ext_scratch3_looks._say("fail was casted", target);
+}
+}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

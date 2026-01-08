@@ -35,10 +35,10 @@ runtime.ext_scratch3_looks._say("pass", target);
 if (compareEqual((toNotNaN(((asin(1.01) * 180) / PI)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((("" + (0 / 0)).toLowerCase() === "nan")) {
+if ((("" + NaN).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (compareEqual((toNotNaN((0 / 0)) * 1), 0)) {
+if (compareEqual((toNotNaN(NaN) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + sqrt(-1)).toLowerCase() === "nan")) {
