@@ -679,6 +679,8 @@ class JSGenerator {
         this._setupVariables = Object.create(null);
         this.usedMathFunctions = new Set();
 
+        this.prependFunctions = new Map();
+
         this._monitorUpdates = new Set();
 
         this.descendedIntoModulo = false;
@@ -2197,6 +2199,11 @@ class JSGenerator {
     generateCompatibilityLayerCall (node, setFlags, frameName = null) {
         const opcode = node.opcode;
 
+        if (opcode.startsWith('skyhigh173JSON_')) {
+            const result = this.generateSkyhigh173JSONCall(node, setFlags, frameName);
+            if (result) return result;
+        }
+
         let result = 'yield* executeInCompatibilityLayer({';
 
         for (const inputName of Object.keys(node.inputs)) {
@@ -2212,6 +2219,37 @@ class JSGenerator {
         result += `}, ${opcodeFunction}, ${this.isWarp}, ${setFlags}, "${sanitize(node.id)}", ${frameName})`;
 
         return result;
+    }
+
+    /**
+     * @returns {string?}
+     */
+    generateSkyhigh173JSONCall (node) {
+        switch (node.opcode) {
+        case 'skyhigh173JSON_json_get': {
+            this.prependFunctions.set('Skyhigh173JSON_json_get', `const Skyhigh173JSON_json_get = (json, item) => {
+                try {
+                    json = JSON.parse(json);
+                    if (Object.prototype.hasOwnProperty.call(json, item)) {
+                        const result = json[item] ?? "";
+                        if (typeof result === "object") {
+                            return JSON.stringify(result);
+                        } else {
+                            return result;
+                        }
+                    }
+                } catch {
+                    // ignore
+                }
+                return "";
+            }`);
+            const key = this.descendInput(node.inputs.item);
+            const json = this.descendInput(node.inputs.json);
+            return `Skyhigh173JSON_json_get(${json.asSafe()}, ${key.asString()})`;
+        }
+        }
+
+        return null;
     }
 
     getScriptFactoryName () {
@@ -2246,6 +2284,10 @@ class JSGenerator {
         script += 'const target = thread.target;\n';
         script += 'const runtime = target.runtime;\n';
         script += 'const stage = runtime.getTargetForStage();\n';
+
+        for (const [_, fn] of this.prependFunctions) {
+            script += `${fn};\n`;
+        }
 
         // Inject cached Math prelude if we recorded usages during compilation.
         if (this.usedMathFunctions && this.usedMathFunctions.size) {
