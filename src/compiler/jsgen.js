@@ -784,8 +784,9 @@ class JSGenerator {
      * @returns {boolean}
      * @private
      */
-    _canInlineProcedureCallInStack (callNode, procedureData) {
+    _canInlineProcedureCallInStack (/* callNode, procedureData */) {
         return false;
+        /*
         if (!procedureData || procedureData.stack === null) return false;
         if (!Array.isArray(procedureData.stack)) return false;
         if (procedureData.isWarp !== this.isWarp) return false;
@@ -819,6 +820,7 @@ class JSGenerator {
         if (callNode.variant && this._containsProcedureVariantCall(procedureData.stack, callNode.variant)) return false;
 
         return true;
+        */
     }
 
     /**
