@@ -118,11 +118,22 @@ class Scratch3ProcedureBlocks {
         const value = util.getParam(args.VALUE);
         if (value === null) {
             // tw: implement is compiled? and is mistwarp?
-            const lowercaseValue = String(args.VALUE).toLowerCase();
-            if (util.target.runtime.compilerOptions.enabled && lowercaseValue === 'is compiled?') {
+            const normalizeValue = input => {
+                const lowered = String(input)
+                    .toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, ' ');
+                return lowered.endsWith('?') ? lowered.slice(0, -1).trim() : lowered;
+            };
+
+            const normalizedValue = normalizeValue(args.VALUE);
+            if (util.target.runtime.compilerOptions.enabled && normalizedValue === 'is compiled') {
                 return true;
             }
-            if (lowercaseValue === 'is mistwarp?') {
+            if (normalizedValue === 'is turbowarp') {
+                return true;
+            }
+            if (normalizedValue === 'is mistwarp') {
                 return true;
             }
             // When the parameter is not found in the most recent procedure

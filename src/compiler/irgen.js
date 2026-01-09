@@ -245,10 +245,19 @@ class ScriptTreeGenerator {
             const name = block.fields.VALUE.value;
             const index = this.script.arguments.lastIndexOf(name);
             if (index === -1) {
-                const lowercaseName = name.toLowerCase();
-                if (lowercaseName === 'is compiled?' ||
-                    lowercaseName === 'is turbowarp?' ||
-                    lowercaseName === 'is mistwarp?') {
+                /** @param {string} input */
+                const normalizeValue = input => {
+                    const lowered = String(input)
+                        .toLowerCase()
+                        .trim()
+                        .replace(/\s+/g, ' ');
+                    return lowered.endsWith('?') ? lowered.slice(0, -1).trim() : lowered;
+                };
+
+                const normalizedName = normalizeValue(name);
+                if (normalizedName === 'is compiled' ||
+                    normalizedName === 'is turbowarp' ||
+                    normalizedName === 'is mistwarp') {
                     return {
                         kind: BLOCKS.CONSTANT,
                         value: true
