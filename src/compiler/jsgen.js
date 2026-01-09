@@ -785,6 +785,7 @@ class JSGenerator {
      * @private
      */
     _canInlineProcedureCallInStack (callNode, procedureData) {
+        return false;
         if (!procedureData || procedureData.stack === null) return false;
         if (!Array.isArray(procedureData.stack)) return false;
         if (procedureData.isWarp !== this.isWarp) return false;
@@ -830,7 +831,9 @@ class JSGenerator {
         const needsStopBoundary = this._containsKind(procedureData.stack, BLOCKS.CONTROL.STOP_SCRIPT);
 
         if (!hasArguments && !needsStopBoundary) {
+            this.source += '{\n';
             this.descendStack(procedureData.stack, new Frame(false));
+            this.source += '}\n';
             return;
         }
 
