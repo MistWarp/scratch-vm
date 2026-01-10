@@ -480,7 +480,6 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input) {
-        safePerformanceMark('scratch-vm-loadProject-start');
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -491,28 +490,14 @@ class VirtualMachine extends EventEmitter {
             // TODO not sure if we need to check that it also isn't a data view
             input = JSON.stringify(input);
         }
-
-        safePerformanceMark('scratch-vm-validate-start');
         const validationPromise = new Promise((resolve, reject) => {
             const validate = require('scratch-parser');
             // The second argument of false below indicates to the validator that the
             // input should be parsed/validated as an entire project (and not a single sprite)
             validate(input, false, (error, res) => {
                 if (error) {
-                    safePerformanceMark('scratch-vm-validate-end');
-                    safePerformanceMeasure(
-                        'scratch-vm-validate',
-                        'scratch-vm-validate-start',
-                        'scratch-vm-validate-end'
-                    );
                     return reject(error);
                 }
-                safePerformanceMark('scratch-vm-validate-end');
-                safePerformanceMeasure(
-                    'scratch-vm-validate',
-                    'scratch-vm-validate-start',
-                    'scratch-vm-validate-end'
-                );
                 resolve(res);
             });
         })
@@ -545,15 +530,7 @@ class VirtualMachine extends EventEmitter {
         return validationPromise
             .then(validatedInput => this.deserializeProject(validatedInput[0], validatedInput[1]))
             .then(() => this.runtime.handleProjectLoaded())
-            .then(result => {
-                safePerformanceMark('scratch-vm-loadProject-end');
-                safePerformanceMeasure(
-                    'scratch-vm-loadProject',
-                    'scratch-vm-loadProject-start',
-                    'scratch-vm-loadProject-end'
-                );
-                return result;
-            })
+            .then(result => result)
             .catch(error => {
                 // Intentionally rejecting here (want errors to be handled by caller)
                 if (Object.prototype.hasOwnProperty.call(error, 'validationError')) {
