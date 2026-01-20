@@ -8,17 +8,11 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-proc_a0: {
-let inl_a1 = "1";
-runtime.ext_scratch3_looks._setCostume(target, inl_a1);
-}
+thread.procedures["Zswitch %s"]("1");
 if ((((target.currentCostume + 1) === 2) && (toNotNaN(+target.getCostumes()[target.currentCostume].name) === 1))) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-proc_a2: {
-let inl_a3 = "2";
-runtime.ext_scratch3_looks._setCostume(target, inl_a3);
-}
+thread.procedures["Zswitch %s"]("2");
 if ((((target.currentCostume + 1) === 1) && (toNotNaN(+target.getCostumes()[target.currentCostume].name) === 2))) {
 runtime.ext_scratch3_looks._say("pass", target);
 }

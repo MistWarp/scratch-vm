@@ -8,20 +8,8 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-proc_a0: {
-let inl_a1 = "bad";
-let inl_a2 = "ok";
-if ((("" + inl_a2).toLowerCase() === "ok")) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-}
-proc_a3: {
-let inl_a4 = "false";
-let inl_a5 = true;
-if (toBoolean(inl_a5)) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-}
+thread.procedures["Znumber or text %s %s"]("bad","ok");
+thread.procedures["Zboolean %b %b"]("false",true);
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

@@ -130,9 +130,6 @@ class Scratch3ProcedureBlocks {
             if (util.target.runtime.compilerOptions.enabled && normalizedValue === 'is compiled') {
                 return true;
             }
-            if (normalizedValue === 'is turbowarp') {
-                return true;
-            }
             if (normalizedValue === 'is mistwarp') {
                 return true;
             }
