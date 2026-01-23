@@ -940,6 +940,8 @@ class JSGenerator {
             return new TypedInput(`target.isTouchingObject(${this.descendInput(node.object).asUnknown()})`, TYPES.BOOLEAN);
         case BLOCKS.SENSING.TOUCHING_COLOR:
             return new TypedInput(`target.isTouchingColor(colorToList(${this.descendInput(node.color).asColor()}))`, TYPES.BOOLEAN);
+        case BLOCKS.SENSING.ONLINE:
+            return new TypedInput('(typeof navigator.onLine === "boolean" ? navigator.onLine : "")', TYPES.BOOLEAN);
         case BLOCKS.SENSING.USERNAME:
             return new TypedInput('runtime.ioDevices.userData.getUsername()', TYPES.STRING);
         case BLOCKS.SENSING.YEAR:

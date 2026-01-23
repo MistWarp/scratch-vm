@@ -112,6 +112,7 @@ const BLOCKS = {
         TODAY: id(),
         TOUCHING_COLOR: id(),
         TOUCHING: id(),
+        ONLINE: id(),
         USERNAME: id()
     },
 
