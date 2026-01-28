@@ -342,7 +342,7 @@ class Scratch3SensingBlocks {
         return 0;
     }
 
-    isOnline (args, util) {
+    isOnline () {
         const status = window.navigator.onLine;
         if (typeof status === 'boolean') {
             return status;

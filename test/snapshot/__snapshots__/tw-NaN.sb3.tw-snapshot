@@ -53,10 +53,10 @@ runtime.ext_scratch3_looks._say("pass", target);
 if (compareEqual((toNotNaN(mod(0, 0)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((("" + Math.log(-1)).toLowerCase() === "nan")) {
+if ((("" + log(-1)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (compareEqual((toNotNaN(Math.log(-1)) * 1), 0)) {
+if (compareEqual((toNotNaN(log(-1)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + (log(-1) / LN10)).toLowerCase() === "nan")) {

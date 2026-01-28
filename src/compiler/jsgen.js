@@ -753,7 +753,8 @@ class JSGenerator {
         }
         case BLOCKS.OP.LN:
             // Needs to be marked as NaN because Math.log(-1) == NaN
-            return new TypedInput(`Math.log(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
+            this.usedMathFunctions.add('log');
+            return new TypedInput(`log(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.LOG:
             // Needs to be marked as NaN because Math.log(-1) == NaN
             this.usedMathFunctions.add('log');
@@ -764,7 +765,8 @@ class JSGenerator {
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
             return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPES.NUMBER_NAN);
         case BLOCKS.OP.PI:
-            return new ConstantInput('(Math.PI)', TYPES.NUMBER);
+            this.usedMathFunctions.add('PI');
+            return new ConstantInput('(PI)', TYPES.NUMBER);
         case BLOCKS.OP.NEWLINE:
             return new ConstantInput('"\n"', TYPES.STRING);
         case BLOCKS.OP.NOT: {
