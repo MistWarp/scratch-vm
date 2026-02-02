@@ -1974,9 +1974,8 @@ class IRGenerator {
             node.item = this.optimizeInput(node.item);
             return node;
         }
-        default:
-            return this.optimizeInputs(node);
         }
+        return node;
     }
 
     /**
@@ -2137,26 +2136,6 @@ class IRGenerator {
         case BLOCKS.OP.DIVIDE:
         case BLOCKS.OP.MOD:
             return this._optimizeArithmetic(node);
-        case BLOCKS.OP.LENGTH:
-            return this._optimizeLength(node);
-        default:
-            return this.optimizeInputs(node);
-        }
-    }
-
-    /**
-     * Optimize the inputs of a node.
-     * @param {node} node The node to optimize.
-     * @private
-     * @returns {node} The optimized node.
-     */
-    optimizeInputs (node) {
-        if (!node) return node;
-        for (const k of Object.keys(node)) {
-            const v = node[k];
-            if (v && typeof v === 'object' && v.kind) {
-                node[k] = this.optimizeInput(v);
-            }
         }
         return node;
     }
@@ -2173,20 +2152,20 @@ class IRGenerator {
         node.left = left;
         node.right = right;
         if (left && right && left.kind === BLOCKS.CONSTANT && right.kind === BLOCKS.CONSTANT) {
-            const a = +left.value;
-            const b = +right.value;
-            if (Number.isFinite(a) && Number.isFinite(b)) {
+            const a = +left.value || 0;
+            const b = +right.value || 0;
+            if (Number.isFinite(a) && Number.isFinite(b) && a !== 0 && b !== 0) {
                 switch (node.kind) {
                 case BLOCKS.OP.ADD:
-                    return {kind: BLOCKS.CONSTANT, value: (a + b).toString()};
+                    return {kind: BLOCKS.CONSTANT, value: (a + b)};
                 case BLOCKS.OP.SUBTRACT:
-                    return {kind: BLOCKS.CONSTANT, value: (a - b).toString()};
+                    return {kind: BLOCKS.CONSTANT, value: (a - b)};
                 case BLOCKS.OP.MULTIPLY:
-                    return {kind: BLOCKS.CONSTANT, value: (a * b).toString()};
+                    return {kind: BLOCKS.CONSTANT, value: (a * b)};
                 case BLOCKS.OP.DIVIDE:
-                    return {kind: BLOCKS.CONSTANT, value: (a / b).toString()};
+                    return {kind: BLOCKS.CONSTANT, value: (a / b)};
                 case BLOCKS.OP.MOD:
-                    return {kind: BLOCKS.CONSTANT, value: (a % b).toString()};
+                    return {kind: BLOCKS.CONSTANT, value: (a % b)};
                 }
             }
         }

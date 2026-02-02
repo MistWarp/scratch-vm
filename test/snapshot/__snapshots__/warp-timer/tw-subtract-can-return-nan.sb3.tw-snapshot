@@ -8,9 +8,7 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-if (compareGreaterThan((Infinity - Infinity), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

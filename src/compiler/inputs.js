@@ -61,8 +61,7 @@ class TypedInput {
         if (this.type === TYPES.NUMBER) return this.source;
         if (this.type === TYPES.NUMBER_INT) return this.source;
         if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
-        const ret = `toNotNaN(+${this.source})`;
-        return ret;
+        return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
@@ -171,6 +170,8 @@ class ConstantInput {
             this.type = TYPES.STRING;
         } else if (typeof constantValue === 'boolean') {
             this.type = TYPES.BOOLEAN;
+        } else if (Number.isNaN(this.constantValue)) {
+            this.type = TYPES.NUMBER_NAN;
         }
     }
 
@@ -235,6 +236,7 @@ class ConstantInput {
         // Attempt to convert strings to numbers if it is unlikely to break things
         if (typeof this.constantValue === 'number') {
             // todo: handle NaN?
+            if (Number.isNaN(this.constantValue)) return NaN;
             return `${this.constantValue}`;
         }
         const numberValue = +this.constantValue;
@@ -274,8 +276,9 @@ class ConstantInput {
     }
 
     isAlwaysInt () {
-        const numberValue = +this.constantValue;
-        return numberValue === (numberValue | 0);
+        const strConst = `${this.constantValue}`;
+        if (strConst === '0') return false;
+        return strConst === `${(this.constantValue | 0)}`;
     }
 
     isAlwaysNumberOrNaN () {
@@ -308,6 +311,7 @@ class ConstantInput {
      */
     isConstant (testValue) {
         const val = this.constantValue;
+        if (val === '') return false;
         if (+testValue === 0) {
             if (Object.is(+val, -0)) {
                 return false;

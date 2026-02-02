@@ -48,4 +48,11 @@ const getNamesOfCostumesAndSounds = runtime => {
     return result;
 };
 
-module.exports = {sanitize, isSafeConstantForEqualsOptimization, getNamesOfCostumesAndSounds};
+const toNotNaN = value => (Number.isNaN(value) ? 0 : value);
+
+module.exports = {
+    sanitize,
+    isSafeConstantForEqualsOptimization,
+    getNamesOfCostumesAndSounds,
+    toNotNaN
+};

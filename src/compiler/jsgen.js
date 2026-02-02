@@ -9,7 +9,8 @@ const {TypedInput, VariableInput, ConstantInput, setCurrentGenerator} = require(
 const {
     sanitize,
     isSafeConstantForEqualsOptimization,
-    getNamesOfCostumesAndSounds
+    getNamesOfCostumesAndSounds,
+    toNotNaN
 } = require('./shared');
 
 const {TYPES, BLOCKS, getNameForType} = require('./enums');
@@ -483,7 +484,7 @@ class JSGenerator {
             break;
         case BLOCKS.LOOKS.SIZE:
             this.usedMathFunctions.add('round');
-            return new TypedInput('round(target.size)', TYPES.NUMBER);
+            return new TypedInput('round(target.size)', TYPES.NUMBER_INT);
         case BLOCKS.LOOKS.BACKDROP_NAME:
             return new TypedInput('stage.getCostumes()[stage.currentCostume].name', TYPES.STRING);
         case BLOCKS.LOOKS.BACKDROP_NUMBER:
@@ -530,7 +531,7 @@ class JSGenerator {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
-                const value = +left.constantValue + +right.constantValue;
+                const value = toNotNaN(+left.constantValue) + toNotNaN(+right.constantValue);
                 return new ConstantInput(value, false);
             }
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
@@ -545,11 +546,11 @@ class JSGenerator {
             // Needs to be marked as NaN because Infinity - Infinity === NaN
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const value = toNotNaN(+left.constantValue) - toNotNaN(+right.constantValue);
+                return new ConstantInput(value, false);
+            }
             if (left.isAlwaysFinite() || right.isAlwaysFinite()) {
-                if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
-                    const value = +left.constantValue - +right.constantValue;
-                    return new ConstantInput(value, false);
-                }
                 if (left.isAlwaysInt() && right.isAlwaysInt()) {
                     return new TypedInput(`(${left.asNumber()} - ${right.asNumber()})`, TYPES.NUMBER_INT);
                 }
@@ -562,12 +563,10 @@ class JSGenerator {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
-                const leftVal = left.constantValue;
-                const rightVal = right.constantValue;
-                if (+leftVal !== 0 && +rightVal !== 0) {
-                    const value = +leftVal * +rightVal;
-                    return new ConstantInput(value, false);
-                }
+                const leftVal = toNotNaN(+left.constantValue);
+                const rightVal = toNotNaN(+right.constantValue);
+                const value = leftVal * rightVal;
+                return new ConstantInput(value, false);
             }
             // Only safe to treat as definitely non-NaN when both operands are finite.
             // If either operand can be +/-Infinity, then multiplying by 0 can yield NaN.
@@ -579,7 +578,14 @@ class JSGenerator {
         case BLOCKS.OP.DIVIDE: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
+            const leftStr = left.asNumber();
+            const rightStr = right.asNumber();
             if (right.isAlwaysConstant()) {
+                if (left.isAlwaysConstant()) {
+                    const leftVal = toNotNaN(+leftStr);
+                    const rightVal = toNotNaN(+rightStr);
+                    return new ConstantInput(leftVal / rightVal, false);
+                }
                 if (!right.isConstant(0)) {
                     return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPES.NUMBER);
                 }
@@ -587,7 +593,7 @@ class JSGenerator {
                     return new TypedInput('NaN', TYPES.NUMBER_NAN);
                 }
             }
-            return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPES.NUMBER_NAN);
+            return new TypedInput(`(${leftStr} / ${rightStr})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.AND: {
             const left = this.descendInput(node.left);
@@ -599,11 +605,18 @@ class JSGenerator {
             }
             return new TypedInput(`(${left.asBoolean()} && ${right.asBoolean()})`, TYPES.BOOLEAN);
         }
-        case BLOCKS.OP.ASIN:
+        case BLOCKS.OP.ASIN: {
             // Needs to be marked as NaN because Math.asin(1.0001) === NaN
             this.usedMathFunctions.add('asin');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((asin(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER_NAN);
+            const value = this.descendInput(node.value);
+            const numStr = value.asNumber();
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+numStr);
+                return new ConstantInput(Math.asin(val) * 180 / Math.PI, false);
+            }
+            return new TypedInput(`((asin(${numStr}) * 180) / PI)`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.ATAN:
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
@@ -703,7 +716,7 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
-                return new ConstantInput(leftVal + rightVal, false);
+                return new ConstantInput(`${leftVal}${rightVal}`, false);
             }
             return new TypedInput(`(${left.asString()} + ${right.asString()})`, TYPES.STRING);
         }
@@ -760,10 +773,28 @@ class JSGenerator {
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
             return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPES.NUMBER_NAN);
-        case BLOCKS.OP.MOD:
+        case BLOCKS.OP.MOD: {
             this.descendedIntoModulo = true;
+            const left = this.descendInput(node.left);
+            const right = this.descendInput(node.right);
+            const leftStr = left.asNumber();
+            const rightStr = right.asNumber();
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const mod = (n, modulus) => {
+                    let result = n % modulus;
+                    if (result / modulus < 0) result += modulus;
+                    return result;
+                };
+                const leftVal = toNotNaN(+leftStr);
+                const rightVal = toNotNaN(+rightStr);
+                return new ConstantInput(mod(leftVal, rightVal), false);
+            }
             // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
-            return new TypedInput(`mod(${this.descendInput(node.left).asNumber()}, ${this.descendInput(node.right).asNumber()})`, TYPES.NUMBER_NAN);
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+                return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER_NAN);
+            }
+            return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.PI:
             this.usedMathFunctions.add('PI');
             return new ConstantInput('(PI)', TYPES.NUMBER);
@@ -820,8 +851,13 @@ class JSGenerator {
         case BLOCKS.OP.SQRT: {
             // Needs to be marked as NaN because Math.sqrt(-1) === NaN
             const value = this.descendInput(node.value);
+            const numStr = value.asNumber();
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+numStr);
+                return new ConstantInput(Math.sqrt(val), false);
+            }
             this.usedMathFunctions.add('sqrt');
-            return new TypedInput(`sqrt(${value.asNumber()})`, TYPES.NUMBER_NAN);
+            return new TypedInput(`sqrt(${numStr})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.TAN:
             // this.usedMathFunctions.add('tan');
