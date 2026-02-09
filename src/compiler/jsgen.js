@@ -582,8 +582,8 @@ class JSGenerator {
             const rightStr = right.asNumber();
             if (right.isAlwaysConstant()) {
                 if (left.isAlwaysConstant()) {
-                    const leftVal = toNotNaN(+leftStr);
-                    const rightVal = toNotNaN(+rightStr);
+                    const leftVal = toNotNaN(+left.constantValue);
+                    const rightVal = toNotNaN(+right.constantValue);
                     return new ConstantInput(leftVal / rightVal, false);
                 }
                 if (!right.isConstant(0)) {
