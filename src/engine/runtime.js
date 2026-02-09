@@ -770,6 +770,14 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Event name for sprite info changed (from sprite data panel).
+     * @const {string}
+     */
+    static get SPRITE_INFO_CHANGED () {
+        return 'SPRITE_INFO_CHANGED';
+    }
+
+    /**
      * Event name for monitors update.
      * @const {string}
      */

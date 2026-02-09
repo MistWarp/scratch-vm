@@ -1909,14 +1909,27 @@ class VirtualMachine extends EventEmitter {
      * @param {object} data An object with sprite info data to set.
      */
     postSpriteInfo (data) {
-        if (this._dragTarget) {
-            this._dragTarget.postSpriteInfo(data);
-        } else {
-            this.editingTarget.postSpriteInfo(data);
-        }
+        const target = this._dragTarget || this.editingTarget;
+        target.postSpriteInfo(data);
         // Post sprite info means the gui has changed something about a sprite,
         // either through the sprite info pane fields (e.g. direction, size) or
         // through dragging a sprite on the stage
+        
+        // Filter to only sync-able properties
+        const validProps = ['x', 'y', 'direction', 'size', 'visible', 'rotationStyle'];
+        const changedProps = {};
+        console.log(data);
+        for (const prop of validProps) {
+            if (Object.prototype.hasOwnProperty.call(data, prop)) {
+                changedProps[prop] = data[prop];
+            }
+        }
+        
+        // Emit immediate event for collaboration sync if properties changed
+        if (Object.keys(changedProps).length > 0 && target) {
+            this.runtime.emit(Runtime.SPRITE_INFO_CHANGED, target, changedProps);
+        }
+        
         // Emit a project changed event.
         this.runtime.emitProjectChanged();
     }

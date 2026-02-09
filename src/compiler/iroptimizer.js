@@ -559,16 +559,23 @@ class IROptimizer {
             cs.useNumbers = allNumbers;
         }
 
-        const switchNode = {
-            kind: BLOCKS.CONTROL.SWITCH,
-            value: JSON.parse(leftKey),
-            do: switchBody,
-            useNumbers: allNumbers
-        };
-        return {
-            converted: [switchNode],
-            count: cases.length
-        };
+        try {
+            const switchNode = {
+                kind: BLOCKS.CONTROL.SWITCH,
+                value: JSON.parse(leftKey),
+                do: switchBody,
+                useNumbers: allNumbers
+            };
+            return {
+                converted: [switchNode],
+                count: cases.length
+            };
+        } catch {
+            return {
+                converted: [],
+                count: 0
+            };
+        }
     }
 
 }
