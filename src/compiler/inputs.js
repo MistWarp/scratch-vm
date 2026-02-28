@@ -68,9 +68,7 @@ class TypedInput {
     }
 
     asInt () {
-        if (this.type === TYPES.NUMBER_INT ||
-            this.type === TYPES.NUMBER_POS_INT ||
-            this.type === TYPES.NUMBER_NEG_INT) return this.source;
+        if (isInteger(this.type)) return this.source;
         if (isNumber(this.type)) return `(${this.source} | 0)`;
         return `toNotNaN(${this.source} | 0)`;
     }
