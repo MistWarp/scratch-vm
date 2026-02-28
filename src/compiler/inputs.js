@@ -1,4 +1,4 @@
-const {TYPES} = require('./enums');
+const {TYPES, isNumber, isNumberOrNaN, isInteger, isPositive, isNegative, couldBeNaN} = require('./enums');
 const Cast = require('../util/cast');
 const {sanitize} = require('./shared');
 
@@ -38,6 +38,10 @@ setCurrentGenerator(null);
  * @property {() => boolean} isAlwaysInt means that a value is always an integer
  * @property {() => boolean} isAlwaysFinite means that a value is always a finite number (never NaN or Infinity)
  * @property {() => boolean} isAlwaysConstant means that a value is constant
+ * @property {() => boolean} isAlwaysPositive means that a value is always positive
+ * @property {() => boolean} isAlwaysPositiveOrZero means that a value is either positive or zero
+ * @property {() => boolean} isAlwaysNegative means that a value is always negative
+ * @property {() => boolean} isAlwaysNegativeOrZero means that a value is either negative or zero
  * @property {(value: ConstantValue) => boolean} isConstant means that a value is always a specified constant
  */
 
@@ -58,22 +62,21 @@ class TypedInput {
     }
 
     asNumber () {
-        if (this.type === TYPES.NUMBER) return this.source;
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (isNumber(this.type)) return this.source;
+        if (couldBeNaN(this.type)) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER) return `(${this.source} | 0)`;
+        if (this.type === TYPES.NUMBER_INT ||
+            this.type === TYPES.NUMBER_POS_INT ||
+            this.type === TYPES.NUMBER_NEG_INT) return this.source;
+        if (isNumber(this.type)) return `(${this.source} | 0)`;
         return `toNotNaN(${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN ||
-            this.type === TYPES.NUMBER_INT) return this.source;
+        if (isNumberOrNaN(this.type)) return this.source;
         return `(+${this.source})`;
     }
 
@@ -89,6 +92,7 @@ class TypedInput {
 
     asLowerString () {
         if (this.type === TYPES.LOWER_STRING) return this.source;
+        if (isNumber(this.type)) return `("" + ${this.source})`;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
@@ -114,18 +118,15 @@ class TypedInput {
     }
 
     isAlwaysInt () {
-        return this.type === TYPES.NUMBER_INT;
+        return isInteger(this.type);
     }
 
     isAlwaysNumber () {
-        return this.type === TYPES.NUMBER ||
-               this.type === TYPES.NUMBER_INT;
+        return isNumber(this.type);
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPES.NUMBER ||
-               this.type === TYPES.NUMBER_NAN ||
-               this.type === TYPES.NUMBER_INT;
+        return isNumberOrNaN(this.type);
     }
 
     isNeverNumber () {
@@ -133,7 +134,7 @@ class TypedInput {
     }
 
     isAlwaysFinite () {
-        return this.type === TYPES.NUMBER_INT;
+        return isInteger(this.type);
     }
 
     isAlwaysConstant () {
@@ -142,6 +143,26 @@ class TypedInput {
 
     isConstant () {
         return false;
+    }
+
+    isAlwaysPositive () {
+        return isPositive(this.type);
+    }
+
+    isAlwaysPositiveOrZero () {
+        return isPositive(this.type) || this.type === TYPES.NUMBER_ZERO;
+    }
+    
+    isAlwaysNegative () {
+        return isNegative(this.type);
+    }
+    
+    isAlwaysNegativeOrZero () {
+        return isNegative(this.type) || this.type === TYPES.NUMBER_ZERO;
+    }
+
+    isAlwaysZero () {
+        return this.type === TYPES.NUMBER_ZERO;
     }
 }
 
@@ -163,9 +184,18 @@ class ConstantInput {
 
         this.type = TYPES.UNKNOWN;
         if (Number.isFinite(constantValue)) {
-            this.type = Number.isInteger(constantValue) ?
-                TYPES.NUMBER_INT :
-                TYPES.NUMBER;
+            const isInt = Number.isInteger(constantValue);
+            if (constantValue > 0) {
+                this.type = isInt ?
+                    TYPES.NUMBER_POS_INT :
+                    TYPES.NUMBER_POS;
+            } else if (constantValue < 0) {
+                this.type = isInt ?
+                    TYPES.NUMBER_NEG_INT :
+                    TYPES.NUMBER_NEG;
+            } else {
+                this.type = TYPES.NUMBER_ZERO;
+            }
         } else if (typeof constantValue === 'string') {
             this.type = TYPES.STRING;
         } else if (typeof constantValue === 'boolean') {
@@ -276,9 +306,15 @@ class ConstantInput {
     }
 
     isAlwaysInt () {
-        const strConst = `${this.constantValue}`;
-        if (strConst === '0') return false;
-        return strConst === `${(this.constantValue | 0)}`;
+        const value = +this.constantValue;
+        if (Number.isNaN(value)) {
+            return false;
+        }
+        // Empty strings evaluate to 0 but should not be considered a number.
+        if (value === 0) {
+            return this.constantValue.toString().trim() !== '';
+        }
+        return value === (value | 0);
     }
 
     isAlwaysNumberOrNaN () {
@@ -321,6 +357,26 @@ class ConstantInput {
             return +val === +testValue;
         }
         return val === testValue;
+    }
+
+    isAlwaysPositive () {
+        return this.isAlwaysNumber() && this.constantValue > 0;
+    }
+
+    isAlwaysPositiveOrZero () {
+        return this.isAlwaysNumberOrNaN() && this.constantValue >= 0;
+    }
+
+    isAlwaysNegative () {
+        return this.isAlwaysNumber() && this.constantValue < 0;
+    }
+
+    isAlwaysNegativeOrZero () {
+        return this.isAlwaysNumberOrNaN() && this.constantValue <= 0;
+    }
+
+    isAlwaysZero () {
+        return this.isAlwaysNumber() && this.constantValue === 0;
     }
 }
 
@@ -375,23 +431,19 @@ class VariableInput {
     }
 
     asNumber () {
-        if (this.type === TYPES.NUMBER) return this.source;
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (isNumber(this.type)) return this.source;
+        if (couldBeNaN(this.type)) return `toNotNaN(+${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN) return `(${this.source} | 0)`;
+        if (isInteger(this.type)) return this.source;
+        if (isNumber(this.type)) return `(${this.source} | 0)`;
         return `toNotNaN(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN ||
-            this.type === TYPES.NUMBER_INT) return this.source;
+        if (isNumberOrNaN(this.type)) return this.source;
         return `(+${this.source})`;
     }
 
@@ -407,6 +459,7 @@ class VariableInput {
 
     asLowerString () {
         if (this.type === TYPES.LOWER_STRING) return this.source;
+        if (isNumber(this.type)) return `("" + ${this.source})`;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
@@ -480,6 +533,41 @@ class VariableInput {
     isConstant (testValue) {
         if (this._value) {
             return this._value.isConstant(testValue);
+        }
+        return false;
+    }
+
+    isAlwaysPositive () {
+        if (this._value) {
+            return this._value.isAlwaysPositive();
+        }
+        return false;
+    }
+
+    isAlwaysPositiveOrZero () {
+        if (this._value) {
+            return this._value.isAlwaysPositiveOrZero();
+        }
+        return false;
+    }
+
+    isAlwaysNegative () {
+        if (this._value) {
+            return this._value.isAlwaysNegative();
+        }
+        return false;
+    }
+
+    isAlwaysNegativeOrZero () {
+        if (this._value) {
+            return this._value.isAlwaysNegativeOrZero();
+        }
+        return false;
+    }
+
+    isAlwaysZero () {
+        if (this._value) {
+            return this._value.isAlwaysZero();
         }
         return false;
     }

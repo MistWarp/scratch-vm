@@ -1,15 +1,69 @@
 // @ts-check
 
-const TYPES = {
-    NUMBER: 1,
-    STRING: 2,
-    BOOLEAN: 3,
-    UNKNOWN: 4,
-    NUMBER_NAN: 5,
-    LOWER_STRING: 6,
-    NUMBER_INT: 7,
-    PROCEDURE_ARG: 8
+// ── Trait bits ────────────────────────────────────────────────
+const TRAITS = {
+    NUMBER: 1 << 0, // 0b00000001
+    STRING: 1 << 1, // 0b00000010
+    BOOLEAN: 1 << 2, // 0b00000100
+    NAN: 1 << 3, // 0b00001000  NaN
+    POSITIVE: 1 << 4, // 0b00010000
+    NEGATIVE: 1 << 5, // 0b00100000
+    INTEGER: 1 << 6, // 0b01000000
+    ZERO: 1 << 7, // 0b10000000
+    UNKNOWN: 1 << 8,
+    PROCEDURE_ARG: 1 << 9,
+    LOWER_CASE: 1 << 10,
+    UPPER_CASE: 1 << 11
 };
+
+// ── Composed types ────────────────────
+const TYPES = {
+    UNKNOWN: TRAITS.UNKNOWN,
+    NUMBER: TRAITS.NUMBER,
+    NUMBER_NAN: TRAITS.NUMBER | TRAITS.NAN,
+    NUMBER_ZERO: TRAITS.NUMBER | TRAITS.ZERO,
+    NUMBER_INT: TRAITS.NUMBER | TRAITS.INTEGER,
+    NUMBER_POS: TRAITS.NUMBER | TRAITS.POSITIVE,
+    NUMBER_NEG: TRAITS.NUMBER | TRAITS.NEGATIVE,
+    NUMBER_POS_INT: TRAITS.NUMBER | TRAITS.POSITIVE | TRAITS.INTEGER,
+    NUMBER_NEG_INT: TRAITS.NUMBER | TRAITS.NEGATIVE | TRAITS.INTEGER,
+    STRING: TRAITS.STRING,
+    LOWER_STRING: TRAITS.STRING | TRAITS.LOWER_CASE,
+    UPPER_STRING: TRAITS.STRING | TRAITS.UPPER_CASE,
+    BOOLEAN: TRAITS.BOOLEAN,
+    PROCEDURE_ARG: TRAITS.PROCEDURE_ARG
+};
+
+// ── Predicate helpers ─────────────────────────────────────────
+
+/** @param {number} type */
+const isNumber = type => (type & TRAITS.NUMBER) !== 0 && (type & TRAITS.NAN) === 0;
+
+/** @param {number} type */
+const isNumberOrNaN = type => (type & (TRAITS.NUMBER | TRAITS.NAN)) !== 0;
+/** @param {number} type */
+const isPositive = type => (type & TRAITS.POSITIVE) !== 0;
+/** @param {number} type */
+const isNegative = type => (type & TRAITS.NEGATIVE) !== 0;
+
+/** @param {number} type */
+const isInteger = type => (type & TRAITS.INTEGER) !== 0;
+
+/** @param {number} type */
+const isString = type => (type & TRAITS.STRING) !== 0;
+
+// ── typeToInt: keep same semantics, now purely additive ───────
+/** @param {number} type */
+const typeToInt = type => {
+    if (!isNumber(type)) return type;
+    return (type & ~TRAITS.ZERO) | TRAITS.INTEGER;
+};
+
+/** @param {number} type */
+const withoutNaN = type => type & ~TRAITS.NAN;
+
+/** @param {number} type */
+const couldBeNaN = type => (type & TRAITS.NAN) !== 0;
 
 let INPUT_I = 1;
 const id = () => INPUT_I++;
@@ -271,7 +325,17 @@ const getNameForType = typeId => {
 };
 
 export {
+    TRAITS,
     TYPES,
     BLOCKS,
-    getNameForType
+    getNameForType,
+    isNumber,
+    isNumberOrNaN,
+    isPositive,
+    isNegative,
+    typeToInt,
+    isInteger,
+    isString,
+    couldBeNaN,
+    withoutNaN
 };

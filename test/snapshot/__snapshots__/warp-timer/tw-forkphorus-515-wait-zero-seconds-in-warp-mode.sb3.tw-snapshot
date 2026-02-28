@@ -6,14 +6,15 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 const b0 = runtime.getOpcodeFunction("sound_setvolumeto");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"VOLUME":0,}, b0, false, false, "d", null);
 b1.value = 0;
 runtime.ext_scratch3_looks._say("plan 1", target);
-yield* thread.procedures["Wno refresh"]();
-yield* thread.procedures["Wruns below with no refresh"]();
+yield* procedures["Wno refresh"]();
+yield* procedures["Wruns below with no refresh"]();
 if (compareEqual(b1.value, 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
@@ -28,18 +29,11 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_no_refresh () {
-for (var a0 = 30; a0 >= 0.5; a0--) {
-thread.timer = timer();
-var a1 = max(0, 1000 * 0);
+for (var a0 = 30; a0 > 0; a0--) {
 runtime.requestRedraw();
-while (thread.timer.timeElapsed() < a1) {
-if (isStuck()) yield;
-}
-thread.timer = null;
 yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "m", null);
 yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "b", null);
 runtime.ext_scratch3_motion._moveSteps(0, target);
@@ -53,8 +47,9 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 return function* genXYZ_runs_below_with_no_r () {
-yield* thread.procedures["Whas refresh"]();
+yield* procedures["Whas refresh"]();
 return "";
 }; })
 
@@ -63,18 +58,11 @@ return "";
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_has_refresh () {
-for (var a0 = 30; a0 >= 0.5; a0--) {
-thread.timer = timer();
-var a1 = max(0, 1000 * 0);
+for (var a0 = 30; a0 > 0; a0--) {
 runtime.requestRedraw();
-while (thread.timer.timeElapsed() < a1) {
-if (isStuck()) yield;
-}
-thread.timer = null;
 yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "r", null);
 yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "c", null);
 runtime.ext_scratch3_motion._moveSteps(0, target);

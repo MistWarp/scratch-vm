@@ -25,7 +25,7 @@ if (compareEqual(b0.value, 0)) {
 runtime.ext_scratch3_looks._say("pass \\t in a variable = string 0", target);
 }
 runtime.ext_scratch3_looks._say("pass literal \\t = string 0", target);
-if (compareEqual(("    " + ("" + b0.value)), 0)) {
+if ((("" + ("    " + ("" + b0.value))).toLowerCase() === "0")) {
 runtime.ext_scratch3_looks._say("pass \\t and other spaces = string 0", target);
 }
 if (compareEqual(b0.value, 0)) {

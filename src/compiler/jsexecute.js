@@ -276,12 +276,22 @@ baseRuntime += `const isNotActuallyZero = val => {
  */
 baseRuntime += `const compareEqualSlow = (v1, v2) => {
     const n1 = +v1;
-    if (Number.isNaN(n1) || (n1 === 0 && isNotActuallyZero(v1))) return ('' + v1).toLowerCase() === ('' + v2).toLowerCase();
+    if (Number.isNaN(n1) || (n1 === 0 && isNotActuallyZero(v1))) {
+        const s1 = '' + v1;
+        const s2 = '' + v2;
+        return s1 === s2 || s1.toLowerCase() === s2.toLowerCase();
+    }
+
     const n2 = +v2;
-    if (Number.isNaN(n2) || (n2 === 0 && isNotActuallyZero(v2))) return ('' + v1).toLowerCase() === ('' + v2).toLowerCase();
+    if (Number.isNaN(n2) || (n2 === 0 && isNotActuallyZero(v2))) {
+        const s1 = '' + v1;
+        const s2 = '' + v2;
+        return s1 === s2 || s1.toLowerCase() === s2.toLowerCase();
+    }
+
     return n1 === n2;
 };
-const compareEqual = (v1, v2) => (typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2) || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
+const compareEqual = (v1, v2) => ((typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2)) || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
 
 /**
  * Determine if one value is greater than another.
@@ -631,9 +641,12 @@ runtimeFunctions.colorToList = `const colorToList = color => globalState.Cast.to
  * @returns {number} n % modulus (floored division)
  */
 runtimeFunctions.mod = `const mod = (n, modulus) => {
-    let result = n % modulus;
-    if (result / modulus < 0) result += modulus;
-    return result;
+    if (n >= 0 && modulus > 0) {
+        return n % modulus;
+    }
+
+    const result = n % modulus;
+    return (result / modulus < 0) ? result + modulus : result;
 };`;
 
 /**

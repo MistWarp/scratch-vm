@@ -6,6 +6,7 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 const b0 = stage.variables["T}0U^Nr!iDn]OXVLQ!DT"];
 const b1 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"];
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
@@ -22,7 +23,7 @@ b2.value = (b0.value[((toNotNaN(+b1.value) + 1) | 0) - 1] ?? "");
 if (compareEqual(b2.value, "")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-thread.procedures["Zdo funny"]();
+procedures["Zdo funny"]();
 b2.value = (b0.value[((toNotNaN(+b1.value) - 1) | 0) - 1] ?? "");
 if ((("" + b2.value).toLowerCase() === "thing")) {
 runtime.ext_scratch3_looks._say("pass", target);

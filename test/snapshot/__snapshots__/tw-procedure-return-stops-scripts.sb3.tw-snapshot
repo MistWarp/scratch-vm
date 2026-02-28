@@ -6,10 +6,11 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-thread.procedures["Wreturn stops the script immediately"]();
+procedures["Wreturn stops the script immediately"]();
 if ((toNotNaN(+b0.value) === 25)) {
 runtime.ext_scratch3_looks._say("pass return stopped the script immediately", target);
 }
@@ -29,7 +30,7 @@ const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
 return function funXYZ_return_stops_the_scr () {
 b0.value = 0;
-for (var a0 = 100; a0 >= 0.5; a0--) {
+for (var a0 = 100; a0 > 0; a0--) {
 b0.value = (toNotNaN(+b0.value) + 1);
 if ((b0.value === 25)) {
 return "stopped!";

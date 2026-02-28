@@ -1918,7 +1918,6 @@ class VirtualMachine extends EventEmitter {
         // Filter to only sync-able properties
         const validProps = ['x', 'y', 'direction', 'size', 'visible', 'rotationStyle'];
         const changedProps = {};
-        console.log(data);
         for (const prop of validProps) {
             if (Object.prototype.hasOwnProperty.call(data, prop)) {
                 changedProps[prop] = data[prop];
