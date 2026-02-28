@@ -6,9 +6,10 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-thread.procedures["ZBlock A %s"]("Hai!!!");
+procedures["ZBlock A %s"]("Hai!!!");
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

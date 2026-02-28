@@ -11,7 +11,7 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = "discard me";
 b0.value = "";
-if (compareEqual(b0.value, "")) {
+if ((("" + b0.value).toLowerCase() === "")) {
 runtime.ext_scratch3_looks._say("pass non existent procedure returned empty string", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

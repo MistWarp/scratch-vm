@@ -6,21 +6,14 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const max=Math.max;
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
-thread.timer = timer();
-var a0 = max(0, 1000 * 0);
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a0) {
-yield;
-}
-thread.timer = null;
 if ((toNotNaN(+b0.value) === 1)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }

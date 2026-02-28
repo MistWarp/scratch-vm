@@ -3174,10 +3174,11 @@ class Runtime extends EventEmitter {
         if (typeof value === 'undefined') {
             value = 'undefined';
         }
+        const fullValue = value;
         if (value.length > 10000) {
             value = `${value.substr(0, 10000)}...`;
         }
-        this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: value});
+        this.emit(Runtime.VISUAL_REPORT, {id: blockId, value: value, fullValue: fullValue});
     }
 
     /**

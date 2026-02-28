@@ -6,20 +6,13 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ () {
 b0.value = 0;
 while (true) {
 b0.value = (toNotNaN(+b0.value) + 1);
-thread.timer = timer();
-var a0 = max(0, 1000 * -1);
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a0) {
-yield;
-}
-thread.timer = null;
 yield;
 }
 retire(); return;
@@ -30,14 +23,15 @@ retire(); return;
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
+const procedures = thread.procedures;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 b0.value = 0;
-if (compareEqual(thread.procedures["Zinvalid params - reporter"](), 0)) {
+if (compareEqual(procedures["Zinvalid params - reporter"](), 0)) {
 runtime.ext_scratch3_looks._say("pass invalid params reporter", target);
 }
-if (compareEqual(thread.procedures["Zinvalid params - boolean"](), 0)) {
+if (compareEqual(procedures["Zinvalid params - boolean"](), 0)) {
 runtime.ext_scratch3_looks._say("pass invalid params boolean", target);
 }
 runtime.stopForTarget(target, thread);

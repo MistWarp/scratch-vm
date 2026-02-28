@@ -48,11 +48,24 @@ const getNamesOfCostumesAndSounds = runtime => {
     return result;
 };
 
+const tan = angle => {
+    const mod = angle % 360;
+    // Special cases for improved precision and performance
+    if (mod === 90 || mod === -270) return Infinity;
+    if (mod === -90 || mod === 270) return -Infinity;
+    if (mod === 0 || mod === 180 || mod === -180) return 0;
+    
+    // Convert to radians and calculate tangent
+    const radians = (Math.PI * angle) / 180;
+    return Math.round(Math.tan(radians) * 1e10) / 1e10;
+};
+
 const toNotNaN = value => (Number.isNaN(value) ? 0 : value);
 
 module.exports = {
     sanitize,
     isSafeConstantForEqualsOptimization,
     getNamesOfCostumesAndSounds,
-    toNotNaN
+    toNotNaN,
+    tan
 };
