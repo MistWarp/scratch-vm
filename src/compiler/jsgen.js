@@ -622,12 +622,16 @@ class JSGenerator {
             this.usedMathFunctions.add('PI');
             return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER);
         case BLOCKS.OP.CEILING: {
-            const value = this.descendInput(node.value);
-            if (value.isAlwaysInt()) {
-                return new TypedInput(`${value.asInt()}`, TYPES.NUMBER_INT);
+            const inp = this.descendInput(node.value);
+            if (inp.isAlwaysConstant()) {
+                const val = +inp.constantValue;
+                return new ConstantInput(toNotNaN(Math.ceil(val)), false);
+            }
+            if (inp.isAlwaysInt()) {
+                return new TypedInput(`${inp.asInt()}`, TYPES.NUMBER_INT);
             }
             this.usedMathFunctions.add('ceil');
-            return new TypedInput(`ceil(${value.asNumber()})`, TYPES.NUMBER_INT);
+            return new TypedInput(`ceil(${inp.asNumber()})`, TYPES.NUMBER_INT);
         }
         case BLOCKS.OP.CONTAINS: {
             const string = this.descendInput(node.string);
@@ -683,12 +687,16 @@ class JSGenerator {
             this.usedMathFunctions.add('exp');
             return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
         case BLOCKS.OP.FLOOR: {
-            const value = this.descendInput(node.value);
-            if (value.isAlwaysInt()) {
-                return new TypedInput(`${value.asNumber()}`, TYPES.NUMBER_INT);
+            const inp = this.descendInput(node.value);
+            if (inp.isAlwaysConstant()) {
+                const value = +inp.constantValue;
+                return new ConstantInput(toNotNaN(Math.floor(value)), false);
+            }
+            if (inp.isAlwaysInt()) {
+                return new TypedInput(`${inp.asNumber()}`, TYPES.NUMBER_INT);
             }
             this.usedMathFunctions.add('floor');
-            return new TypedInput(`floor(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_INT);
+            return new TypedInput(`floor(${inp.asNumber()})`, TYPES.NUMBER_INT);
         }
         case BLOCKS.OP.GREATER: {
             const left = this.descendInput(node.left);
@@ -832,8 +840,8 @@ class JSGenerator {
         case BLOCKS.OP.ROUND: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysConstant()) {
-                const value = Math.round(+inp.constantValue);
-                return new ConstantInput(value, false);
+                const value = +inp.constantValue;
+                return new ConstantInput(toNotNaN(Math.round(value)), false);
             }
             if (inp.isAlwaysInt()) {
                 return new TypedInput(`${inp.asNumber()}`, TYPES.NUMBER_INT);
