@@ -239,10 +239,10 @@ class ConstantInput {
             if (Number.isNaN(this.constantValue)) return NaN;
             return `${this.constantValue}`;
         }
-        const numberValue = +this.constantValue;
+        /* const numberValue = +this.constantValue;
         if (numberValue.toString() === this.constantValue) {
             return `${this.constantValue}`;
-        }
+        } */
         return this.asString();
     }
 

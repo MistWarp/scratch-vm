@@ -9,7 +9,7 @@ const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-b0.value = 0;
+b0.value = "0";
 for (var a0 = toNotNaN(+thread.procedures["Zblock name"]()); a0 >= 0.5; a0--) {
 b0.value = (toNotNaN(+b0.value) + 1);
 yield;
@@ -27,6 +27,6 @@ const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_block_name () {
-return 40;
+return "40";
 return "";
 }; })

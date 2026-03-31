@@ -8,31 +8,31 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 15", target);
-if (compareEqual(tan(0), 0)) {
+if (compareEqual(tan(0), "0")) {
 runtime.ext_scratch3_looks._say("pass 0", target);
 }
 if ((toNotNaN(tan(90)) === Infinity)) {
 runtime.ext_scratch3_looks._say("pass 90", target);
 }
-if (compareEqual(tan(180), 0)) {
+if (compareEqual(tan(180), "0")) {
 runtime.ext_scratch3_looks._say("pass 180", target);
 }
 if ((toNotNaN(tan(270)) === -Infinity)) {
 runtime.ext_scratch3_looks._say("pass 270", target);
 }
-if (compareEqual(tan(360), 0)) {
+if (compareEqual(tan(360), "0")) {
 runtime.ext_scratch3_looks._say("pass 360", target);
 }
 if ((toNotNaN(tan(450)) === Infinity)) {
 runtime.ext_scratch3_looks._say("pass 450", target);
 }
-if (compareEqual(tan(540), 0)) {
+if (compareEqual(tan(540), "0")) {
 runtime.ext_scratch3_looks._say("pass 540", target);
 }
 if ((toNotNaN(tan(630)) === -Infinity)) {
 runtime.ext_scratch3_looks._say("pass 630", target);
 }
-if (compareEqual(tan(720), 0)) {
+if (compareEqual(tan(720), "0")) {
 runtime.ext_scratch3_looks._say("pass 720", target);
 }
 if ((toNotNaN(tan(810)) === Infinity)) {
@@ -41,13 +41,13 @@ runtime.ext_scratch3_looks._say("pass 810", target);
 if ((toNotNaN(tan(-90)) === -Infinity)) {
 runtime.ext_scratch3_looks._say("pass -90", target);
 }
-if (compareEqual(tan(-180), 0)) {
+if (compareEqual(tan(-180), "0")) {
 runtime.ext_scratch3_looks._say("pass -180", target);
 }
 if ((toNotNaN(tan(-270)) === Infinity)) {
 runtime.ext_scratch3_looks._say("pass -270", target);
 }
-if (compareEqual(tan(-360), 0)) {
+if (compareEqual(tan(-360), "0")) {
 runtime.ext_scratch3_looks._say("pass -360", target);
 }
 if ((toNotNaN(tan(-450)) === -Infinity)) {

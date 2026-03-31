@@ -10,7 +10,7 @@ const max=Math.max;
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-b0.value = 0;
+b0.value = "0";
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
 thread.timer = timer();

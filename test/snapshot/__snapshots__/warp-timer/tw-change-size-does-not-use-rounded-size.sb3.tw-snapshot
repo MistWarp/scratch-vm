@@ -11,7 +11,7 @@ const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 target.setSize(96);
-b0.value = 0;
+b0.value = "0";
 while (!(100 === round(target.size))) {
 b0.value = (toNotNaN(+b0.value) + 1);
 target.setSize(target.size + ((100 - round(target.size)) / 10));

@@ -32,13 +32,13 @@ const max=Math.max;
 const b0 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"];
 const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"];
 return function* genXYZ () {
-b0.value = 0;
+b0.value = "0";
 runtime.ext_scratch3_looks._say("plan 15", target);
 for (var a0 = 15; a0 >= 0.5; a0--) {
 if ((toNotNaN(+b1.value) === 200)) {
-b1.value = 50;
+b1.value = "50";
 } else {
-b1.value = 200;
+b1.value = "200";
 }
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);

@@ -13,7 +13,7 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
 b0.value = [];
 b0.value.push("thing");
-b1.value = 1;
+b1.value = "1";
 b2.value = (b0.value[0] ?? "");
 if ((("" + b2.value).toLowerCase() === "thing")) {
 runtime.ext_scratch3_looks._say("pass", target);
@@ -39,6 +39,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 const b0 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"];
 return function funXYZ_do_funny () {
-b0.value = 2;
+b0.value = "2";
 return "";
 }; })

@@ -430,8 +430,9 @@ const listIndex = (index, length) => {
  */
 runtimeFunctions.listGet = `const listGet = (list, idx) => {
     const len = list.length;
+    if (len === 0) return '';
     if (typeof idx === 'number') {
-        idx = idx | 0; // fast int
+        idx = idx | 0;
         if (idx < 1 || idx > len) return '';
         return list[idx - 1];
     }
@@ -439,10 +440,8 @@ runtimeFunctions.listGet = `const listGet = (list, idx) => {
         return len === 0 ? '' : list[len - 1];
     }
     if (idx === 'random' || idx === 'any') {
-        if (len === 0) return '';
         return list[(Math.random() * len) | 0];
     }
-    // Fallback slow path (string/other -> number coercion & bounds)
     idx = (+idx || 0) | 0;
     if (idx < 1 || idx > len) return '';
     return list[idx - 1];
@@ -564,15 +563,29 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
     const caseSensitive = (globalState.vm && globalState.vm.runtime && globalState.vm.runtime.runtimeOptions &&
         globalState.vm.runtime.runtimeOptions.caseSensitiveLists) || false;
     const values = list.value;
+    const len = values.length;
+    if (len === 0) return false;
     if (caseSensitive) {
-        return values.indexOf(item) !== -1;
+        return values.includes(item);
     }
-    // Non case-sensitive: attempt ultra-fast primitive checks first.
-    // Hoist length & avoid repeated property lookups.
-    for (let i = 0, len = values.length; i < len; i++) {
+    // Fast numeric check
+    if (typeof item === 'number') {
+        for (let i = 0; i < len; i++) {
+            const cur = values[i];
+            if (cur === item) return true;
+        }
+    }
+    // Fast string check
+    if (typeof item === 'string' && !isNaN(item)) {
+        const numItem = +item;
+        for (let i = 0; i < len; i++) {
+            const cur = values[i];
+            if (cur === numItem || cur === item) return true;
+        }
+    }
+    for (let i = 0; i < len; i++) {
         const cur = values[i];
-        if (cur === item) return true; // exact equal (covers numbers & same ref)
-        // Fallback to Scratch semantics compare if types differ or strings with casing differences.
+        if (cur === item) return true;
         if (compareEqual(cur, item)) return true;
     }
     return false;
@@ -588,11 +601,28 @@ runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
     const caseSensitive = (globalState.vm && globalState.vm.runtime && globalState.vm.runtime.runtimeOptions &&
         globalState.vm.runtime.runtimeOptions.caseSensitiveLists) || false;
     const values = list.value;
+    const len = values.length;
+    if (len === 0) return 0;
     if (caseSensitive) {
-        const index = values.indexOf(item) + 1;
-        return index > 0 ? index : 0;
+        const idx = values.indexOf(item);
+        return idx >= 0 ? idx + 1 : 0;
     }
-    for (let i = 0, len = values.length; i < len; i++) {
+    // Fast numeric check
+    if (typeof item === 'number') {
+        for (let i = 0; i < len; i++) {
+            const cur = values[i];
+            if (cur === item) return i + 1;
+        }
+    }
+    // Fast string check
+    if (typeof item === 'string' && !isNaN(item)) {
+        const numItem = +item;
+        for (let i = 0; i < len; i++) {
+            const cur = values[i];
+            if (cur === numItem || cur === item) return i + 1;
+        }
+    }
+    for (let i = 0; i < len; i++) {
         const cur = values[i];
         if (cur === item) return i + 1;
         if (compareEqual(cur, item)) return i + 1;
@@ -606,15 +636,18 @@ runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
  * @returns {string} Stringified form of the list.
  */
 runtimeFunctions.listContents = `const listContents = list => {
-    for (let i = 0; i < list.value.length; i++) {
-        const listItem = list.value[i];
-        // this is an intentional break from what scratch 3 does to address our automatic string -> number conversions
-        // it fixes more than it breaks
+    const values = list.value;
+    const len = values.length;
+    if (len === 0) return '';
+    let allSingleChar = true;
+    for (let i = 0; i < len; i++) {
+        const listItem = values[i];
         if ((listItem + '').length !== 1) {
-            return list.value.join(' ');
+            allSingleChar = false;
+            break;
         }
     }
-    return list.value.join('');
+    return allSingleChar ? values.join('') : values.join(' ');
 };`;
 
 /**

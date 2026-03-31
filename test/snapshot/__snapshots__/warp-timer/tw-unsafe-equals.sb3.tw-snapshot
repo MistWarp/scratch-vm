@@ -12,7 +12,7 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 14", target);
 runtime.ext_scratch3_looks._say("pass 1", target);
 runtime.ext_scratch3_looks._say("pass 2", target);
-b0.value = 10;
+b0.value = "10";
 if ((toNotNaN(+b0.value) === 10)) {
 runtime.ext_scratch3_looks._say("pass 3", target);
 }

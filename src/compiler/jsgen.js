@@ -1234,7 +1234,12 @@ class JSGenerator {
 
         case BLOCKS.LIST.ADD: {
             const list = this.referenceVariable(node.list);
-            this.source += `${list}.value.push(${this.descendInput(node.item).asSafe()});\n`;
+            const item = this.descendInput(node.item);
+            if (item.type === TYPES.NUMBER_NAN) {
+                this.source += `${list}.value.push(isNaN(${item.source}) ? '' : ${item.source});\n`;
+            } else {
+                this.source += `${list}.value.push(${item.asUnknown()});\n`;
+            }
             this._pushMonitorUpdate(list);
             break;
         }
@@ -1248,6 +1253,12 @@ class JSGenerator {
             }
             if (index.isConstant(1)) {
                 this.source += `${list}.value.shift();\n`;
+                this._pushMonitorUpdate(list);
+                break;
+            }
+            if (index.isAlwaysInt() && index.isAlwaysConstant()) {
+                const idx = (+index.constantValue) | 0;
+                this.source += `${list}.value.splice(${idx - 1}, 1);\n`;
                 this._pushMonitorUpdate(list);
                 break;
             }
@@ -1268,20 +1279,32 @@ class JSGenerator {
             if (index.isConstant(1)) {
                 this.source += `${list}.value.unshift(${item.asSafe()});\n`;
                 this._pushMonitorUpdate(list);
-                break;
-            }
-            if (index.isConstant('last')) {
+            } else if (index.isConstant('last')) {
                 this.source += `${list}.value.push(${item.asSafe()});\n`;
                 this._pushMonitorUpdate(list);
-                break;
+            } else if (index.isAlwaysInt() && index.isAlwaysConstant()) {
+                const idx = (+index.constantValue) | 0;
+                this.source += `${list}.value.splice(${idx - 1}, 0, ${item.asSafe()});\n`;
+                this._pushMonitorUpdate(list);
+            } else {
+                this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
             }
-            this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
             break;
         }
         case BLOCKS.LIST.REPLACE: {
             const listRef = this.referenceVariable(node.list);
             const idxInput = this.descendInput(node.index);
-            this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
+            const item = this.descendInput(node.item);
+            if (idxInput.isAlwaysInt() && idxInput.isAlwaysConstant()) {
+                const idx = (+idxInput.constantValue) | 0;
+                this.source += `${listRef}.value[${idx - 1}] = ${item.asSafe()};\n`;
+                this.source += `${listRef}._monitorUpToDate = false;\n`;
+            } else if (idxInput.isConstant('last')) {
+                this.source += `${listRef}.value[${listRef}.value.length - 1] = ${item.asSafe()};\n`;
+                this.source += `${listRef}._monitorUpToDate = false;\n`;
+            } else {
+                this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${item.asSafe()});\n`;
+            }
             break;
         }
         case BLOCKS.LIST.SHOW:
@@ -1346,10 +1369,10 @@ class JSGenerator {
             this.source += 'runtime.ext_scratch3_looks._renderBubble(target);\n';
             break;
         case BLOCKS.LOOKS.SWITCH_BACKDROP:
-            this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInput(node.backdrop).asSafe()});\n`;
+            this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInput(node.backdrop).asUnknown()});\n`;
             break;
         case BLOCKS.LOOKS.SWITCH_COSTUME:
-            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asSafe()});\n`;
+            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume).asUnknown()});\n`;
             break;
         case BLOCKS.LOOKS.SAY:
             this.source += `runtime.ext_scratch3_looks._say(${this.descendInput(node.message).asSafe()}, target);\n`;
