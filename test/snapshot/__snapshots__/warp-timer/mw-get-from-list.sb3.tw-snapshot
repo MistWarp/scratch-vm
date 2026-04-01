@@ -22,7 +22,7 @@ b2.value = (b0.value[((toNotNaN(+b1.value) + 1) | 0) - 1] ?? "");
 if (compareEqual(b2.value, "")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-thread.procedures["Zdo funny"]();
+b1.value = "2";
 b2.value = (b0.value[((toNotNaN(+b1.value) - 1) | 0) - 1] ?? "");
 if ((("" + b2.value).toLowerCase() === "thing")) {
 runtime.ext_scratch3_looks._say("pass", target);

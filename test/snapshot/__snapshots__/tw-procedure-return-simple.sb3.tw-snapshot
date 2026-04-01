@@ -9,9 +9,7 @@ const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
-if ((("" + thread.procedures["Zsimplest"]()).toLowerCase() === "it works!")) {
 runtime.ext_scratch3_looks._say("pass simplest", target);
-}
 if ((("" + thread.procedures["Znesting 1"]()).toLowerCase() === "42-54")) {
 runtime.ext_scratch3_looks._say("pass nesting1", target);
 }
@@ -36,7 +34,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_simplest () {
 return "It works!";
-return "";
 }; })
 
 // Sprite1 Znesting 1
@@ -57,7 +54,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_warp_fib_ (p0) {
 return thread.procedures["Wfib %s"](p0);
-return "";
 }; })
 
 // Sprite1 Wfactorial %s
@@ -101,7 +97,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_nesting_2 () {
 return "discard nesting 2";
-return "";
 }; })
 
 // Sprite1 Znesting 3 %s %s
@@ -111,7 +106,6 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_nesting_3__ (p0,p1) {
 return (toNotNaN(+p0) * toNotNaN(+p1));
-return "";
 }; })
 
 // Sprite1 Wfib %s
@@ -135,5 +129,4 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_no_shadowing_2__ (p0,p1) {
 return "discard shadow 2";
-return "";
 }; })

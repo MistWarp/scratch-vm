@@ -10,7 +10,7 @@ const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 6", target);
 b0.value = runtime.ext_scratch3_operators._random("an invalid number.", "1");
-if (compareGreaterThan(b0.value, "0")) {
+if (!(toNotNaN(b0.value) <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (compareLessThan(b0.value, "1")) {
@@ -20,7 +20,7 @@ if ((("" + b0.value).toLowerCase().indexOf(".") !== -1)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 b0.value = runtime.ext_scratch3_operators._random("1", "an invalid number.");
-if (compareGreaterThan(b0.value, "0")) {
+if (!(toNotNaN(b0.value) <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (compareLessThan(b0.value, "1")) {

@@ -10,20 +10,11 @@ const PI=Math.PI;
 const sin=Math.sin;
 const cos=Math.cos;
 const asin=Math.asin;
-const acos=Math.acos;
 const round=Math.round;
-const log=Math.log;
-const LN10=Math.LN10;
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 20", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
-if ((("" + ((acos(1.01) * 180) / PI)).toLowerCase() === "nan")) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN(((acos(1.01) * 180) / PI)) * 1), "0")) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
@@ -32,18 +23,12 @@ runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
-if ((("" + log(-1)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN(log(-1)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if ((("" + (log(-1) / LN10)).toLowerCase() === "nan")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN((log(-1) / LN10)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
+runtime.ext_scratch3_looks._say("pass", target);
+runtime.ext_scratch3_looks._say("pass", target);
 if (compareEqual((toNotNaN((round(sin((PI * Infinity) / 180) * 1e10) / 1e10)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }

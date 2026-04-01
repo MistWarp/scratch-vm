@@ -521,11 +521,17 @@ class JSGenerator {
             this.usedMathFunctions.add('abs');
             return new TypedInput(`abs(${value.asNumber()})`, TYPES.NUMBER);
         }
-        case BLOCKS.OP.ACOS:
+        case BLOCKS.OP.ACOS: {
             // Needs to be marked as NaN because Math.acos(1.0001) === NaN
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.acos(val) * 180 / Math.PI, false);
+            }
             this.usedMathFunctions.add('acos');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((acos(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER_NAN);
+            return new TypedInput(`((acos(${value.asNumber()}) * 180) / PI)`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.ADD: {
             // Needs to be marked as NaN because Infinity + -Infinity === NaN
             const left = this.descendInput(node.left);
@@ -705,15 +711,15 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 return new ConstantInput(Cast.compare(left.constantValue, right.constantValue) > 0, false);
             }
-            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+            if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
                 return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            if (left.isAlwaysNumber() && right.isAlwaysNumber()) {
-                return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
+            if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
+                return new TypedInput(`!(${left.asNumber()} <= ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            // When either operand is known to never be a number, avoid all number parsing.
-            if (left.isNeverNumber() || right.isNeverNumber()) {
-                return new TypedInput(`(${left.asLowerString()} > ${right.asLowerString()})`, TYPES.BOOLEAN);
+            if ((left.isAlwaysNumber() && right.isAlwaysNumber()) ||
+                (left.isNeverNumber() || right.isNeverNumber())) {
+                return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
@@ -742,16 +748,15 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 return new ConstantInput(Cast.compare(left.constantValue, right.constantValue) < 0, false);
             }
-
-            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
+            if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
                 return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            if (left.isAlwaysNumber() && right.isAlwaysNumber()) {
-                return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
+            if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
+                return new TypedInput(`!(${left.asNumber()} >= ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            // When either operand is known to never be a number, avoid all number parsing.
-            if (left.isNeverNumber() || right.isNeverNumber()) {
-                return new TypedInput(`(${left.asLowerString()} < ${right.asLowerString()})`, TYPES.BOOLEAN);
+            if ((left.isAlwaysNumber() && right.isAlwaysNumber()) ||
+                (left.isNeverNumber() || right.isNeverNumber())) {
+                return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
@@ -772,15 +777,27 @@ class JSGenerator {
             }
             return new TypedInput(`((${string.asString()})[${l}] || "")`, TYPES.STRING);
         }
-        case BLOCKS.OP.LN:
+        case BLOCKS.OP.LN: {
             // Needs to be marked as NaN because Math.log(-1) == NaN
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.log(val), false);
+            }
             this.usedMathFunctions.add('log');
-            return new TypedInput(`log(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
-        case BLOCKS.OP.LOG:
+            return new TypedInput(`log(${value.asNumber()})`, TYPES.NUMBER_NAN);
+        }
+        case BLOCKS.OP.LOG: {
             // Needs to be marked as NaN because Math.log(-1) == NaN
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.log(val) / Math.LN10, false);
+            }
             this.usedMathFunctions.add('log');
             this.usedMathFunctions.add('LN10');
-            return new TypedInput(`(log(${this.descendInput(node.value).asNumber()}) / LN10)`, TYPES.NUMBER_NAN);
+            return new TypedInput(`(log(${value.asNumber()}) / LN10)`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.MOD: {
             this.descendedIntoModulo = true;
             const left = this.descendInput(node.left);
@@ -877,7 +894,8 @@ class JSGenerator {
             const procedureCode = node.code;
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
-            if (procedureData.stack === null) {
+            const stack = procedureData.stack;
+            if (stack === null || stack.length === 0) {
                 // Procedure has no body; still evaluate arguments for side effects
                 const args = [];
                 for (const input of node.arguments) {
@@ -887,6 +905,13 @@ class JSGenerator {
                     return new TypedInput(`(${args.join(',')}, "")`, TYPES.STRING);
                 }
                 return new TypedInput('""', TYPES.STRING);
+            }
+
+            if (node.arguments.length === 0) {
+                if (stack[0].kind === BLOCKS.PROCEDURES.RETURN) {
+                    const input = this.descendInput(stack[0].value);
+                    return input;
+                }
             }
 
             // Recursion makes this complicated because:
@@ -1475,21 +1500,22 @@ class JSGenerator {
             const procedureCode = node.code;
             const procedureVariant = node.variant;
             const procedureData = this.ir.procedures[procedureVariant];
-            if (procedureData.stack === null) {
+            const stack = procedureData.stack;
+            if (stack === null || stack.length === 0) {
                 // Procedure has no body; still evaluate arguments for side effects
-                break;
-            }
-
-            if (this._canInlineProcedureCallInStack(node, procedureData)) {
-                this._emitInlinedProcedureCallInStack(node, procedureData);
-                this.resetVariableInputs();
-                this.clearVariableTypes();
                 break;
             }
 
             const yieldForRecursion = !this.isWarp && procedureCode === this.script.procedureCode;
             if (yieldForRecursion) {
                 this.yieldNotWarp();
+            }
+
+            if (node.arguments.length === 0 && stack.length === 1) {
+                if ([BLOCKS.VAR.SET].includes(stack[0].kind)) {
+                    this.descendStack(stack, new Frame(false));
+                    break;
+                }
             }
 
             if (procedureData.yields) {
@@ -1692,7 +1718,9 @@ class JSGenerator {
     stopScript () {
         this._flushMonitorUpdates();
         if (this.isProcedure) {
-            this.source += 'return "";\n';
+            if (this.script.stack[0]?.kind !== BLOCKS.PROCEDURES.RETURN) {
+                this.source += 'return "";\n';
+            }
         } else {
             this.retire();
         }

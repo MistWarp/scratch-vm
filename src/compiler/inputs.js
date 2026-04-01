@@ -67,7 +67,7 @@ class TypedInput {
     asInt () {
         if (this.type === TYPES.NUMBER_INT) return this.source;
         if (this.type === TYPES.NUMBER) return `(${this.source} | 0)`;
-        return `toNotNaN(${this.source} | 0)`;
+        return `(${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
@@ -123,9 +123,8 @@ class TypedInput {
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPES.NUMBER ||
-               this.type === TYPES.NUMBER_NAN ||
-               this.type === TYPES.NUMBER_INT;
+        return this.isAlwaysNumber() ||
+               this.type === TYPES.NUMBER_NAN;
     }
 
     isNeverNumber () {
@@ -385,7 +384,7 @@ class VariableInput {
         if (this.type === TYPES.NUMBER_INT) return this.source;
         if (this.type === TYPES.NUMBER ||
             this.type === TYPES.NUMBER_NAN) return `(${this.source} | 0)`;
-        return `toNotNaN(+${this.source} | 0)`;
+        return `(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
