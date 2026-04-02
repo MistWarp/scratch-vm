@@ -9,12 +9,12 @@ const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("sound_setvolumeto");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"VOLUME":"0",}, b0, false, false, "d", null);
-b1.value = "0";
+yield* executeInCompatibilityLayer({"VOLUME":0,}, b0, false, false, "d", null);
+b1.value = 0;
 runtime.ext_scratch3_looks._say("plan 1", target);
 yield* thread.procedures["Wno refresh"]();
 yield* thread.procedures["Wruns below with no refresh"]();
-if (compareEqual(b1.value, "0")) {
+if (compareEqual(b1.value, 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -40,8 +40,8 @@ while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
 }
 thread.timer = null;
-yield* executeInCompatibilityLayer({"BEATS":"0",}, b0, true, false, "m", null);
-yield* executeInCompatibilityLayer({"DRUM":"1","BEATS":"0",}, b1, true, false, "b", null);
+yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "m", null);
+yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "b", null);
 runtime.ext_scratch3_motion._moveSteps(0, target);
 if (isStuck()) yield;
 }
@@ -75,8 +75,8 @@ while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
 }
 thread.timer = null;
-yield* executeInCompatibilityLayer({"BEATS":"0",}, b0, true, false, "r", null);
-yield* executeInCompatibilityLayer({"DRUM":"1","BEATS":"0",}, b1, true, false, "c", null);
+yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "r", null);
+yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "c", null);
 runtime.ext_scratch3_motion._moveSteps(0, target);
 if (isStuck()) yield;
 }

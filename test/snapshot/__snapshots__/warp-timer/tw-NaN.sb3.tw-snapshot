@@ -6,11 +6,6 @@
 const target = thread.target;
 const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
-const PI=Math.PI;
-const sin=Math.sin;
-const cos=Math.cos;
-const asin=Math.asin;
-const round=Math.round;
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 20", target);
 runtime.ext_scratch3_looks._say("pass", target);
@@ -29,16 +24,10 @@ runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
-if (compareEqual((toNotNaN((round(sin((PI * Infinity) / 180) * 1e10) / 1e10)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN((round(cos((PI * Infinity) / 180) * 1e10) / 1e10)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN(tan(Infinity)) * 1), "0")) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareEqual((toNotNaN(runtime.ext_scratch3_operators._random(-Infinity, Infinity)) * 1), "0")) {
+if (compareEqual((toNotNaN(runtime.ext_scratch3_operators._random(-Infinity, Infinity)) * 1), 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

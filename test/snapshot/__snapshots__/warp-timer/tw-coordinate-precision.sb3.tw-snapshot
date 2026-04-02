@@ -22,7 +22,7 @@ target.setXY(target.x + -9e-10, target.y);
 if (((b0 ? b0.x : 0) === 1.0000000000000007e-10)) {
 runtime.ext_scratch3_looks._say("pass 'of' never rounds - positive x", target);
 }
-if (compareEqual(limitPrecision(target.x), "0")) {
+if (compareEqual(limitPrecision(target.x), 0)) {
 runtime.ext_scratch3_looks._say("pass x slightly above 0 rounds", target);
 }
 target.setXY(target.x + -9e-10, target.y);
@@ -30,7 +30,7 @@ target.setXY(target.x, target.y + 0);
 if (((b0 ? b0.x : 0) === -7.999999999999999e-10)) {
 runtime.ext_scratch3_looks._say("pass 'of' never rounds and change x - negative x", target);
 }
-if (compareEqual(limitPrecision(target.x), "0")) {
+if (compareEqual(limitPrecision(target.x), 0)) {
 runtime.ext_scratch3_looks._say("pass x slightly below 0 rounds", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

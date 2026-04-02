@@ -613,14 +613,14 @@ class JSGenerator {
         }
         case BLOCKS.OP.ASIN: {
             // Needs to be marked as NaN because Math.asin(1.0001) === NaN
-            this.usedMathFunctions.add('asin');
-            this.usedMathFunctions.add('PI');
             const value = this.descendInput(node.value);
             const numStr = value.asNumber();
             if (value.isAlwaysConstant()) {
                 const val = toNotNaN(+numStr);
                 return new ConstantInput(Math.asin(val) * 180 / Math.PI, false);
             }
+            this.usedMathFunctions.add('asin');
+            this.usedMathFunctions.add('PI');
             return new TypedInput(`((asin(${numStr}) * 180) / PI)`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.ATAN:
@@ -649,11 +649,17 @@ class JSGenerator {
             }
             return new TypedInput(`(${string.asLowerString()}.indexOf(${contains.asLowerString()}) !== -1)`, TYPES.BOOLEAN);
         }
-        case BLOCKS.OP.COS:
+        case BLOCKS.OP.COS: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.round(Math.cos((Math.PI * val) / 180) * 1e10) / 1e10, false);
+            }
             this.usedMathFunctions.add('cos');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
             return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.EQUALS: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -711,15 +717,15 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 return new ConstantInput(Cast.compare(left.constantValue, right.constantValue) > 0, false);
             }
-            if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
                 return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
-                return new TypedInput(`!(${left.asNumber()} <= ${right.asNumber()})`, TYPES.BOOLEAN);
-            }
-            if ((left.isAlwaysNumber() && right.isAlwaysNumber()) ||
-                (left.isNeverNumber() || right.isNeverNumber())) {
+            if (left.isAlwaysNumber() && right.isAlwaysNumber()) {
                 return new TypedInput(`(${left.asNumber()} > ${right.asNumber()})`, TYPES.BOOLEAN);
+            }
+            // When either operand is known to never be a number, avoid all number parsing.
+            if (left.isNeverNumber() || right.isNeverNumber()) {
+                return new TypedInput(`(${left.asLowerString()} > ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
@@ -748,15 +754,16 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 return new ConstantInput(Cast.compare(left.constantValue, right.constantValue) < 0, false);
             }
-            if (left.isAlwaysNumber() && right.isAlwaysNumberOrNaN()) {
+
+            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
                 return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
             }
-            if (left.isAlwaysNumberOrNaN() && right.isAlwaysNumber()) {
-                return new TypedInput(`!(${left.asNumber()} >= ${right.asNumber()})`, TYPES.BOOLEAN);
-            }
-            if ((left.isAlwaysNumber() && right.isAlwaysNumber()) ||
-                (left.isNeverNumber() || right.isNeverNumber())) {
+            if (left.isAlwaysNumber() && right.isAlwaysNumber()) {
                 return new TypedInput(`(${left.asNumber()} < ${right.asNumber()})`, TYPES.BOOLEAN);
+            }
+            // When either operand is known to never be a number, avoid all number parsing.
+            if (left.isNeverNumber() || right.isNeverNumber()) {
+                return new TypedInput(`(${left.asLowerString()} < ${right.asLowerString()})`, TYPES.BOOLEAN);
             }
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
@@ -868,6 +875,10 @@ class JSGenerator {
         }
         case BLOCKS.OP.SIN: {
             const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput((Math.round(Math.sin((Math.PI * val) / 180) * 1e10) / 1e10), false);
+            }
             this.usedMathFunctions.add('sin');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
@@ -884,9 +895,15 @@ class JSGenerator {
             this.usedMathFunctions.add('sqrt');
             return new TypedInput(`sqrt(${numStr})`, TYPES.NUMBER_NAN);
         }
-        case BLOCKS.OP.TAN:
-            // this.usedMathFunctions.add('tan');
+        case BLOCKS.OP.TAN: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.tan(val * Math.PI / 180), false);
+            }
+            this.usedMathFunctions.add('tan');
             return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
+        }
         case BLOCKS.OP.TENEXP:
             return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
 
@@ -1259,12 +1276,7 @@ class JSGenerator {
 
         case BLOCKS.LIST.ADD: {
             const list = this.referenceVariable(node.list);
-            const item = this.descendInput(node.item);
-            if (item.type === TYPES.NUMBER_NAN) {
-                this.source += `${list}.value.push(isNaN(${item.source}) ? '' : ${item.source});\n`;
-            } else {
-                this.source += `${list}.value.push(${item.asUnknown()});\n`;
-            }
+            this.source += `${list}.value.push(${this.descendInput(node.item).asSafe()});\n`;
             this._pushMonitorUpdate(list);
             break;
         }
@@ -1278,12 +1290,6 @@ class JSGenerator {
             }
             if (index.isConstant(1)) {
                 this.source += `${list}.value.shift();\n`;
-                this._pushMonitorUpdate(list);
-                break;
-            }
-            if (index.isAlwaysInt() && index.isAlwaysConstant()) {
-                const idx = (+index.constantValue) | 0;
-                this.source += `${list}.value.splice(${idx - 1}, 1);\n`;
                 this._pushMonitorUpdate(list);
                 break;
             }
@@ -1304,32 +1310,20 @@ class JSGenerator {
             if (index.isConstant(1)) {
                 this.source += `${list}.value.unshift(${item.asSafe()});\n`;
                 this._pushMonitorUpdate(list);
-            } else if (index.isConstant('last')) {
+                break;
+            }
+            if (index.isConstant('last')) {
                 this.source += `${list}.value.push(${item.asSafe()});\n`;
                 this._pushMonitorUpdate(list);
-            } else if (index.isAlwaysInt() && index.isAlwaysConstant()) {
-                const idx = (+index.constantValue) | 0;
-                this.source += `${list}.value.splice(${idx - 1}, 0, ${item.asSafe()});\n`;
-                this._pushMonitorUpdate(list);
-            } else {
-                this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
+                break;
             }
+            this.source += `listInsert(${list}, ${index.asUnknown()}, ${item.asSafe()});\n`;
             break;
         }
         case BLOCKS.LIST.REPLACE: {
             const listRef = this.referenceVariable(node.list);
             const idxInput = this.descendInput(node.index);
-            const item = this.descendInput(node.item);
-            if (idxInput.isAlwaysInt() && idxInput.isAlwaysConstant()) {
-                const idx = (+idxInput.constantValue) | 0;
-                this.source += `${listRef}.value[${idx - 1}] = ${item.asSafe()};\n`;
-                this.source += `${listRef}._monitorUpToDate = false;\n`;
-            } else if (idxInput.isConstant('last')) {
-                this.source += `${listRef}.value[${listRef}.value.length - 1] = ${item.asSafe()};\n`;
-                this.source += `${listRef}._monitorUpToDate = false;\n`;
-            } else {
-                this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${item.asSafe()});\n`;
-            }
+            this.source += `listReplace(${listRef}, ${idxInput.asUnknown()}, ${this.descendInput(node.item).asSafe()});\n`;
             break;
         }
         case BLOCKS.LIST.SHOW:
@@ -1503,6 +1497,13 @@ class JSGenerator {
             const stack = procedureData.stack;
             if (stack === null || stack.length === 0) {
                 // Procedure has no body; still evaluate arguments for side effects
+                break;
+            }
+
+            if (this._canInlineProcedureCallInStack(node, procedureData)) {
+                this._emitInlinedProcedureCallInStack(node, procedureData);
+                this.resetVariableInputs();
+                this.clearVariableTypes();
                 break;
             }
 
@@ -1718,9 +1719,7 @@ class JSGenerator {
     stopScript () {
         this._flushMonitorUpdates();
         if (this.isProcedure) {
-            if (this.script.stack[0]?.kind !== BLOCKS.PROCEDURES.RETURN) {
-                this.source += 'return "";\n';
-            }
+            this.source += 'return "";\n';
         } else {
             this.retire();
         }

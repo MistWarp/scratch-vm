@@ -10,12 +10,12 @@ const b0 = target.variables["gTtSj;o_E;Snkn620KF."];
 const b1 = target.variables["zShM`!CD?d_|Z,]5X}N6"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-b0.value = "2";
+b0.value = 2;
 if ((toNotNaN(+b0.value) === 2)) {
 runtime.ext_scratch3_looks._say("pass variable", target);
 }
 b1.value = [];
-b1.value.push("3");
+b1.value.push(3);
 if ((toNotNaN(+(b1.value[0] ?? "")) === 3)) {
 runtime.ext_scratch3_looks._say("pass list", target);
 }

@@ -10,7 +10,7 @@ const max=Math.max;
 const b0 = stage.variables["PsY$$vp$IVH;dDAr[q2h"];
 const b1 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"];
 return function* genXYZ () {
-b0.value = "0";
+b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 0", target);
 for (var a0 = 30; a0 >= 0.5; a0--) {
 b1.value = runtime.ioDevices.clock.projectTimer();
@@ -24,7 +24,7 @@ yield;
 thread.timer = null;
 yield;
 }
-b0.value = "1";
+b0.value = 1;
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
@@ -49,7 +49,7 @@ retire(); return;
 }
 yield;
 }
-if (compareEqual(b2.value, "0")) {
+if (compareEqual(b2.value, 0)) {
 runtime.ext_scratch3_looks._say("fail", target);
 }
 retire(); return;

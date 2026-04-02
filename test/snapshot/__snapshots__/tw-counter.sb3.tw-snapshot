@@ -21,7 +21,7 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 5", target);
-if (compareEqual(runtime.ext_scratch3_control._counter, "0")) {
+if (compareEqual(runtime.ext_scratch3_control._counter, 0)) {
 runtime.ext_scratch3_looks._say("pass initial value = 0", target);
 }
 runtime.ext_scratch3_control._counter++;
@@ -33,7 +33,7 @@ if ((runtime.ext_scratch3_control._counter === 2)) {
 runtime.ext_scratch3_looks._say("pass incr 2", target);
 }
 runtime.ext_scratch3_control._counter = 0;
-if (compareEqual(runtime.ext_scratch3_control._counter, "0")) {
+if (compareEqual(runtime.ext_scratch3_control._counter, 0)) {
 runtime.ext_scratch3_looks._say("pass clear = 0", target);
 }
 for (var a0 = 10; a0 >= 0.5; a0--) {

@@ -9,7 +9,7 @@ const stage = runtime.getTargetForStage();
 const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ () {
-b0.value = "0";
+b0.value = 0;
 while (true) {
 b0.value = (toNotNaN(+b0.value) + 1);
 thread.timer = timer();
@@ -33,7 +33,7 @@ const stage = runtime.getTargetForStage();
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-b0.value = "0";
+b0.value = 0;
 runtime.ext_scratch3_looks._say("pass invalid params reporter", target);
 runtime.ext_scratch3_looks._say("pass invalid params boolean", target);
 runtime.stopForTarget(target, thread);
@@ -48,6 +48,7 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_invalid_params___rep () {
 return 0;
+return "";
 }; })
 
 // Sprite1 Zinvalid params - boolean
@@ -57,4 +58,5 @@ const runtime = target.runtime;
 const stage = runtime.getTargetForStage();
 return function funXYZ_invalid_params___boo () {
 return 0;
+return "";
 }; })
