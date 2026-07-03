@@ -292,10 +292,31 @@ const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, rej
         throw error;
     });
 
+const prefetchExtensionScript = extensionURL => {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    const parsed = parseURL(extensionURL);
+    if (!parsed || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) {
+        return;
+    }
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'script';
+    link.href = extensionURL;
+    link.onload = () => link.remove();
+    link.onerror = () => link.remove();
+    document.head.appendChild(link);
+};
+
 // Because loading unsandboxed extensions requires messing with global state (global.Scratch),
-// only let one extension load at a time.
+// only let one extension register at a time. The script download is started up front (in
+// parallel across extensions) so only the registration step is serialized.
 const limiter = new AsyncLimiter(loadUnsandboxedExtension, 1);
-const load = (extensionURL, vm) => limiter.do(extensionURL, vm);
+const load = (extensionURL, vm) => {
+    prefetchExtensionScript(extensionURL);
+    return limiter.do(extensionURL, vm);
+};
 
 module.exports = {
     setupUnsandboxedExtensionAPI,

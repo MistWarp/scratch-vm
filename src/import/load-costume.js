@@ -150,14 +150,15 @@ const _persistentReadImage = async asset => {
                 firstError = e;
             }
             log.warn(e);
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 2000));
+            await new Promise(resolve => setTimeout(resolve, (i * 500) + (Math.random() * 100)));
         }
     }
     throw firstError;
 };
 
 // Browsers break when we do too many createImageBitmap at the same time.
-const readImage = new AsyncLimiter(_persistentReadImage, 25);
+const MAX_CONCURRENT_IMAGE_DECODES = 50;
+const readImage = new AsyncLimiter(_persistentReadImage, MAX_CONCURRENT_IMAGE_DECODES);
 
 /**
  * Return a promise to fetch a bitmap from storage and return it as a canvas

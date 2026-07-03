@@ -495,7 +495,7 @@ class VirtualMachine extends EventEmitter {
             input = JSON.stringify(input);
         }
         const validationPromise = new Promise((resolve, reject) => {
-            const validate = require('scratch-parser');
+            const validate = require('./serialization/validate-project');
             // The second argument of false below indicates to the validator that the
             // input should be parsed/validated as an entire project (and not a single sprite)
             validate(input, false, (error, res) => {
@@ -927,7 +927,7 @@ class VirtualMachine extends EventEmitter {
         }
 
         const validationPromise = new Promise((resolve, reject) => {
-            const validate = require('scratch-parser');
+            const validate = require('./serialization/validate-project');
             // The second argument of true below indicates to the parser/validator
             // that the given input should be treated as a single sprite and not
             // an entire project
