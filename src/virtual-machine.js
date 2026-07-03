@@ -338,6 +338,10 @@ class VirtualMachine extends EventEmitter {
         this.runtime.setInterpolation(interpolationEnabled);
     }
 
+    setExtendableOperators (extendableOperators) {
+        this.runtime.setExtendableOperators(extendableOperators);
+    }
+
     setRuntimeOptions (runtimeOptions) {
         this.runtime.setRuntimeOptions(runtimeOptions);
     }

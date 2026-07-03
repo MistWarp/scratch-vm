@@ -1,6 +1,15 @@
 const Cast = require('../util/cast.js');
 const MathUtil = require('../util/math-util.js');
 
+const operandCount = args => {
+    const mutation = args.mutation;
+    if (mutation && mutation.itemcount) {
+        const count = parseInt(mutation.itemcount, 10);
+        if (count >= 2) return count;
+    }
+    return 2;
+};
+
 class Scratch3OperatorsBlocks {
     constructor (runtime) {
         /**
@@ -40,19 +49,41 @@ class Scratch3OperatorsBlocks {
     }
 
     add (args) {
-        return Cast.toNumber(args.NUM1) + Cast.toNumber(args.NUM2);
+        const count = operandCount(args);
+        if (count <= 2) return Cast.toNumber(args.NUM1) + Cast.toNumber(args.NUM2);
+        let result = 0;
+        for (let i = 1; i <= count; i++) {
+            result += Cast.toNumber(args[`NUM${i}`]);
+        }
+        return result;
     }
 
     subtract (args) {
-        return Cast.toNumber(args.NUM1) - Cast.toNumber(args.NUM2);
+        const count = operandCount(args);
+        let result = Cast.toNumber(args.NUM1) - Cast.toNumber(args.NUM2);
+        for (let i = 3; i <= count; i++) {
+            result -= Cast.toNumber(args[`NUM${i}`]);
+        }
+        return result;
     }
 
     multiply (args) {
-        return Cast.toNumber(args.NUM1) * Cast.toNumber(args.NUM2);
+        const count = operandCount(args);
+        if (count <= 2) return Cast.toNumber(args.NUM1) * Cast.toNumber(args.NUM2);
+        let result = 1;
+        for (let i = 1; i <= count; i++) {
+            result *= Cast.toNumber(args[`NUM${i}`]);
+        }
+        return result;
     }
 
     divide (args) {
-        return Cast.toNumber(args.NUM1) / Cast.toNumber(args.NUM2);
+        const count = operandCount(args);
+        let result = Cast.toNumber(args.NUM1) / Cast.toNumber(args.NUM2);
+        for (let i = 3; i <= count; i++) {
+            result /= Cast.toNumber(args[`NUM${i}`]);
+        }
+        return result;
     }
 
     lt (args) {
@@ -68,11 +99,21 @@ class Scratch3OperatorsBlocks {
     }
 
     and (args) {
-        return Cast.toBoolean(args.OPERAND1) && Cast.toBoolean(args.OPERAND2);
+        const count = operandCount(args);
+        if (count <= 2) return Cast.toBoolean(args.OPERAND1) && Cast.toBoolean(args.OPERAND2);
+        for (let i = 1; i <= count; i++) {
+            if (!Cast.toBoolean(args[`OPERAND${i}`])) return false;
+        }
+        return true;
     }
 
     or (args) {
-        return Cast.toBoolean(args.OPERAND1) || Cast.toBoolean(args.OPERAND2);
+        const count = operandCount(args);
+        if (count <= 2) return Cast.toBoolean(args.OPERAND1) || Cast.toBoolean(args.OPERAND2);
+        for (let i = 1; i <= count; i++) {
+            if (Cast.toBoolean(args[`OPERAND${i}`])) return true;
+        }
+        return false;
     }
 
     not (args) {
@@ -96,7 +137,13 @@ class Scratch3OperatorsBlocks {
     }
 
     join (args) {
-        return Cast.toString(args.STRING1) + Cast.toString(args.STRING2);
+        const count = operandCount(args);
+        if (count <= 2) return Cast.toString(args.STRING1) + Cast.toString(args.STRING2);
+        let result = '';
+        for (let i = 1; i <= count; i++) {
+            result += Cast.toString(args[`STRING${i}`]);
+        }
+        return result;
     }
 
     letterOf (args) {
@@ -120,12 +167,19 @@ class Scratch3OperatorsBlocks {
         return format(args.STRING1).includes(format(args.STRING2));
     }
 
-    mod (args) {
-        const n = Cast.toNumber(args.NUM1);
-        const modulus = Cast.toNumber(args.NUM2);
+    _mod (n, modulus) {
         let result = n % modulus;
         // Scratch mod uses floored division instead of truncated division.
         if (result / modulus < 0) result += modulus;
+        return result;
+    }
+
+    mod (args) {
+        const count = operandCount(args);
+        let result = this._mod(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
+        for (let i = 3; i <= count; i++) {
+            result = this._mod(result, Cast.toNumber(args[`NUM${i}`]));
+        }
         return result;
     }
 

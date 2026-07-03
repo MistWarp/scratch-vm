@@ -475,6 +475,8 @@ class Runtime extends EventEmitter {
 
         this.interpolationEnabled = false;
 
+        this.extendableOperators = true;
+
         this._defaultStoredSettings = this._generateAllProjectOptions();
 
         /**
@@ -2734,6 +2736,10 @@ class Runtime extends EventEmitter {
         this.interpolationEnabled = interpolationEnabled;
         this.frameLoop.setInterpolation(this.interpolationEnabled);
         this.emit(Runtime.INTERPOLATION_CHANGED, interpolationEnabled);
+    }
+
+    setExtendableOperators (extendableOperators) {
+        this.extendableOperators = !!extendableOperators;
     }
 
     /**

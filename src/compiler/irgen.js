@@ -185,6 +185,28 @@ class ScriptTreeGenerator {
         return this.descendInput(block);
     }
 
+    descendVariadicOperator (block, prefix, kind) {
+        const mutation = block.mutation;
+        let count = 2;
+        if (mutation && mutation.itemcount) {
+            const parsed = parseInt(mutation.itemcount, 10);
+            if (parsed >= 2) count = parsed;
+        }
+        let node = {
+            kind,
+            left: this.descendInputOfBlock(block, `${prefix}1`),
+            right: this.descendInputOfBlock(block, `${prefix}2`)
+        };
+        for (let i = 3; i <= count; i++) {
+            node = {
+                kind,
+                left: node,
+                right: this.descendInputOfBlock(block, `${prefix}${i}`)
+            };
+        }
+        return node;
+    }
+
     /**
      * Descend into an input. (eg. "length of ( )")
      * @param {*} block The parent Scratch block input.
@@ -366,17 +388,9 @@ class ScriptTreeGenerator {
             };
 
         case 'operator_add':
-            return {
-                kind: BLOCKS.OP.ADD,
-                left: this.descendInputOfBlock(block, 'NUM1'),
-                right: this.descendInputOfBlock(block, 'NUM2')
-            };
+            return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.ADD);
         case 'operator_and':
-            return {
-                kind: BLOCKS.OP.AND,
-                left: this.descendInputOfBlock(block, 'OPERAND1'),
-                right: this.descendInputOfBlock(block, 'OPERAND2')
-            };
+            return this.descendVariadicOperator(block, 'OPERAND', BLOCKS.OP.AND);
         case 'operator_contains':
             return {
                 kind: BLOCKS.OP.CONTAINS,
@@ -384,11 +398,7 @@ class ScriptTreeGenerator {
                 contains: this.descendInputOfBlock(block, 'STRING2')
             };
         case 'operator_divide':
-            return {
-                kind: BLOCKS.OP.DIVIDE,
-                left: this.descendInputOfBlock(block, 'NUM1'),
-                right: this.descendInputOfBlock(block, 'NUM2')
-            };
+            return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.DIVIDE);
         case 'operator_equals':
             return {
                 kind: BLOCKS.OP.EQUALS,
@@ -402,11 +412,7 @@ class ScriptTreeGenerator {
                 right: this.descendInputOfBlock(block, 'OPERAND2')
             };
         case 'operator_join':
-            return {
-                kind: BLOCKS.OP.JOIN,
-                left: this.descendInputOfBlock(block, 'STRING1'),
-                right: this.descendInputOfBlock(block, 'STRING2')
-            };
+            return this.descendVariadicOperator(block, 'STRING', BLOCKS.OP.JOIN);
         case 'operator_length':
             return {
                 kind: BLOCKS.OP.LENGTH,
@@ -491,11 +497,7 @@ class ScriptTreeGenerator {
             }
         }
         case 'operator_mod':
-            return {
-                kind: BLOCKS.OP.MOD,
-                left: this.descendInputOfBlock(block, 'NUM1'),
-                right: this.descendInputOfBlock(block, 'NUM2')
-            };
+            return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.MOD);
         case 'operator_pi':
             return {
                 kind: BLOCKS.CONSTANT,
@@ -507,22 +509,14 @@ class ScriptTreeGenerator {
                 value: '\n'
             };
         case 'operator_multiply':
-            return {
-                kind: BLOCKS.OP.MULTIPLY,
-                left: this.descendInputOfBlock(block, 'NUM1'),
-                right: this.descendInputOfBlock(block, 'NUM2')
-            };
+            return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.MULTIPLY);
         case 'operator_not':
             return {
                 kind: BLOCKS.OP.NOT,
                 operand: this.descendInputOfBlock(block, 'OPERAND')
             };
         case 'operator_or':
-            return {
-                kind: BLOCKS.OP.OR,
-                left: this.descendInputOfBlock(block, 'OPERAND1'),
-                right: this.descendInputOfBlock(block, 'OPERAND2')
-            };
+            return this.descendVariadicOperator(block, 'OPERAND', BLOCKS.OP.OR);
         case 'operator_random': {
             const from = this.descendInputOfBlock(block, 'FROM');
             const to = this.descendInputOfBlock(block, 'TO');
@@ -596,11 +590,7 @@ class ScriptTreeGenerator {
                 value: this.descendInputOfBlock(block, 'NUM')
             };
         case 'operator_subtract':
-            return {
-                kind: BLOCKS.OP.SUBTRACT,
-                left: this.descendInputOfBlock(block, 'NUM1'),
-                right: this.descendInputOfBlock(block, 'NUM2')
-            };
+            return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.SUBTRACT);
 
         case 'procedures_call':
             return this.descendProcedure(block);

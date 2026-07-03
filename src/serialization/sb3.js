@@ -99,6 +99,156 @@ const primitiveOpcodeInfoMap = {
 // We don't enforce this limit, but Scratch does, so we need to handle it for compatibility.
 const UPSTREAM_MAX_COMMENT_LENGTH = 8000;
 
+const EXTENDABLE_OPERATORS = {
+    operator_add: 'NUM',
+    operator_subtract: 'NUM',
+    operator_multiply: 'NUM',
+    operator_divide: 'NUM',
+    operator_mod: 'NUM',
+    operator_and: 'OPERAND',
+    operator_or: 'OPERAND',
+    operator_join: 'STRING'
+};
+
+const getOperatorItemCount = block => {
+    const mutation = block.mutation;
+    if (mutation && mutation.itemcount) {
+        const count = parseInt(mutation.itemcount, 10);
+        if (count >= 2) return count;
+    }
+    return 2;
+};
+
+const makeItemCountMutation = count => ({
+    tagName: 'mutation',
+    children: [],
+    itemcount: String(count)
+});
+
+const collapseOperators = function (blocks) {
+    const renameInput = (input, name) => (
+        input ? {name, block: input.block, shadow: input.shadow} : {name, block: null, shadow: null}
+    );
+    const reparentInput = (input, parentId) => {
+        if (input.block && blocks[input.block]) blocks[input.block].parent = parentId;
+        if (input.shadow && input.shadow !== input.block && blocks[input.shadow]) {
+            blocks[input.shadow].parent = parentId;
+        }
+    };
+    for (const id in blocks) {
+        if (!hasOwnProperty.call(blocks, id)) continue;
+        const block = blocks[id];
+        if (!block || Array.isArray(block) || !block.inputs) continue;
+        const prefix = EXTENDABLE_OPERATORS[block.opcode];
+        if (!prefix) continue;
+        for (;;) {
+            const count = getOperatorItemCount(block);
+            const headInput = block.inputs[`${prefix}1`];
+            if (!headInput || !headInput.block) break;
+            const child = blocks[headInput.block];
+            if (!child || Array.isArray(child) || child.opcode !== block.opcode) break;
+            if (child.shadow || child.comment) break;
+            const childCount = getOperatorItemCount(child);
+            const tail = [];
+            for (let i = 2; i <= count; i++) tail.push(block.inputs[`${prefix}${i}`]);
+            const newInputs = {};
+            for (let i = 1; i <= childCount; i++) {
+                const name = `${prefix}${i}`;
+                newInputs[name] = renameInput(child.inputs[`${prefix}${i}`], name);
+                reparentInput(newInputs[name], id);
+            }
+            for (let j = 0; j < tail.length; j++) {
+                const name = `${prefix}${childCount + 1 + j}`;
+                newInputs[name] = renameInput(tail[j], name);
+            }
+            block.inputs = newInputs;
+            block.mutation = makeItemCountMutation(childCount + count - 1);
+            delete blocks[headInput.block];
+        }
+    }
+    return blocks;
+};
+
+const expandOperators = function (blocks) {
+    const result = {};
+    for (const id in blocks) {
+        if (hasOwnProperty.call(blocks, id)) result[id] = blocks[id];
+    }
+    const cloneBlock = id => {
+        const original = result[id];
+        if (!original || Array.isArray(original)) return original;
+        const copy = Object.assign({}, original);
+        if (original.inputs) {
+            copy.inputs = {};
+            for (const name in original.inputs) {
+                copy.inputs[name] = Object.assign({}, original.inputs[name]);
+            }
+        }
+        result[id] = copy;
+        return copy;
+    };
+    const reparent = (childId, parentId) => {
+        if (childId && result[childId] && !Array.isArray(result[childId])) {
+            cloneBlock(childId).parent = parentId;
+        }
+    };
+    const originalIds = Object.keys(result);
+    for (const id of originalIds) {
+        const orig = result[id];
+        if (!orig || Array.isArray(orig) || !orig.inputs) continue;
+        const prefix = EXTENDABLE_OPERATORS[orig.opcode];
+        if (!prefix) continue;
+        const count = getOperatorItemCount(orig);
+        if (count <= 2) {
+            if (orig.mutation && orig.mutation.itemcount) {
+                delete cloneBlock(id).mutation;
+            }
+            continue;
+        }
+        const opcode = orig.opcode;
+        const P = cloneBlock(id);
+        const operands = [];
+        for (let i = 1; i <= count; i++) {
+            operands.push(P.inputs[`${prefix}${i}`] || {block: null, shadow: null});
+        }
+        const makeOp = (in1, in2) => {
+            const newId = uid();
+            result[newId] = {
+                id: newId,
+                opcode,
+                next: null,
+                parent: null,
+                inputs: {
+                    [`${prefix}1`]: {name: `${prefix}1`, block: in1.block, shadow: in1.shadow},
+                    [`${prefix}2`]: {name: `${prefix}2`, block: in2.block, shadow: in2.shadow}
+                },
+                fields: {},
+                shadow: false,
+                topLevel: false
+            };
+            reparent(in1.block, newId);
+            if (in1.shadow && in1.shadow !== in1.block) reparent(in1.shadow, newId);
+            reparent(in2.block, newId);
+            if (in2.shadow && in2.shadow !== in2.block) reparent(in2.shadow, newId);
+            return newId;
+        };
+        let prevId = makeOp(operands[0], operands[1]);
+        for (let i = 2; i <= count - 2; i++) {
+            prevId = makeOp({block: prevId, shadow: null}, operands[i]);
+        }
+        const last = operands[count - 1];
+        P.inputs = {
+            [`${prefix}1`]: {name: `${prefix}1`, block: prevId, shadow: null},
+            [`${prefix}2`]: {name: `${prefix}2`, block: last.block, shadow: last.shadow}
+        };
+        reparent(prevId, id);
+        reparent(last.block, id);
+        if (last.shadow && last.shadow !== last.block) reparent(last.shadow, id);
+        delete P.mutation;
+    }
+    return result;
+};
+
 /**
  * Serializes primitives described above into a more compact format
  * @param {object} block the block to serialize
@@ -591,7 +741,7 @@ const serializeTarget = function (target, extensions) {
     obj.variables = vars.variables;
     obj.lists = vars.lists;
     obj.broadcasts = vars.broadcasts;
-    [obj.blocks, targetExtensions] = serializeBlocks(target.blocks);
+    [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(target.blocks));
     obj.comments = serializeComments(target.comments);
 
     // TODO remove this check/patch when (#1901) is fixed
@@ -1177,6 +1327,9 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
     }
     if (Object.prototype.hasOwnProperty.call(object, 'blocks')) {
         deserializeBlocks(object.blocks);
+        if (runtime.extendableOperators) {
+            collapseOperators(object.blocks);
+        }
         // Take a second pass to create objects and add extensions
         for (const blockId in object.blocks) {
             if (!Object.prototype.hasOwnProperty.call(object.blocks, blockId)) continue;
