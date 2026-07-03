@@ -1,4 +1,5 @@
 const Cast = require('../util/cast');
+const MathUtil = require('../util/math-util');
 const BlockType = require('../extension-support/block-type');
 const VariablePool = require('./variable-pool');
 const jsexecute = require('./jsexecute');
@@ -626,10 +627,16 @@ class JSGenerator {
             this.usedMathFunctions.add('PI');
             return new TypedInput(`((asin(${numStr}) * 180) / PI)`, TYPES.NUMBER_NAN);
         }
-        case BLOCKS.OP.ATAN:
+        case BLOCKS.OP.ATAN: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput((Math.atan(val) * 180) / Math.PI, false);
+            }
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
-            return new TypedInput(`((atan(${this.descendInput(node.value).asNumber()}) * 180) / PI)`, TYPES.NUMBER);
+            return new TypedInput(`((atan(${value.asNumber()}) * 180) / PI)`, TYPES.NUMBER);
+        }
         case BLOCKS.OP.CEILING: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysConstant()) {
@@ -698,9 +705,15 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareEqual(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
         }
-        case BLOCKS.OP.EXP:
+        case BLOCKS.OP.EXP: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.exp(val), false);
+            }
             this.usedMathFunctions.add('exp');
-            return new TypedInput(`exp(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
+            return new TypedInput(`exp(${value.asNumber()})`, TYPES.NUMBER);
+        }
         case BLOCKS.OP.FLOOR: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysConstant()) {
@@ -848,7 +861,7 @@ class JSGenerator {
             if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
                 const leftVal = left.constantValue;
                 const rightVal = right.constantValue;
-                return new ConstantInput(Cast.compare(leftVal, rightVal) > 0, false);
+                return new ConstantInput(Cast.toBoolean(leftVal) || Cast.toBoolean(rightVal), false);
             }
             return new TypedInput(`(${left.asBoolean()} || ${right.asBoolean()})`, TYPES.BOOLEAN);
         }
@@ -902,13 +915,19 @@ class JSGenerator {
             const value = this.descendInput(node.value);
             if (value.isAlwaysConstant()) {
                 const val = toNotNaN(+value.constantValue);
-                return new ConstantInput(Math.tan(val * Math.PI / 180), false);
+                return new ConstantInput(MathUtil.tan(val), false);
             }
             this.usedMathFunctions.add('tan');
             return new TypedInput(`tan(${value.asNumber()})`, TYPES.NUMBER_NAN);
         }
-        case BLOCKS.OP.TENEXP:
-            return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
+        case BLOCKS.OP.TENEXP: {
+            const value = this.descendInput(node.value);
+            if (value.isAlwaysConstant()) {
+                const val = toNotNaN(+value.constantValue);
+                return new ConstantInput(Math.pow(10, val), false);
+            }
+            return new TypedInput(`(10 ** ${value.asNumber()})`, TYPES.NUMBER);
+        }
 
         case BLOCKS.PROCEDURES.CALL: {
             const procedureCode = node.code;

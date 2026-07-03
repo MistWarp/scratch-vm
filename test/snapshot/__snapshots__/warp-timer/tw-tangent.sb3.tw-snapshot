@@ -9,6 +9,20 @@ const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 15", target);
 runtime.ext_scratch3_looks._say("pass 0", target);
+runtime.ext_scratch3_looks._say("pass 90", target);
+runtime.ext_scratch3_looks._say("pass 180", target);
+runtime.ext_scratch3_looks._say("pass 270", target);
+runtime.ext_scratch3_looks._say("pass 360", target);
+runtime.ext_scratch3_looks._say("pass 450", target);
+runtime.ext_scratch3_looks._say("pass 540", target);
+runtime.ext_scratch3_looks._say("pass 630", target);
+runtime.ext_scratch3_looks._say("pass 720", target);
+runtime.ext_scratch3_looks._say("pass 810", target);
+runtime.ext_scratch3_looks._say("pass -90", target);
+runtime.ext_scratch3_looks._say("pass -180", target);
+runtime.ext_scratch3_looks._say("pass -270", target);
+runtime.ext_scratch3_looks._say("pass -360", target);
+runtime.ext_scratch3_looks._say("pass -450", target);
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
