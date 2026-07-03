@@ -386,6 +386,7 @@ class JSGenerator {
     }
 
     /**
+     * Forget the tracked type of a single variable across every enclosing scope.
      * @param {string} name
      */
     clearVariableType (name) {
@@ -395,7 +396,9 @@ class JSGenerator {
     }
 
     clearVariableTypes () {
-        this.getCurrentTypeCtx().clear();
+        for (const ctx of this.typeCtxs) {
+            ctx.clear();
+        }
     }
 
     /**
@@ -658,7 +661,7 @@ class JSGenerator {
             this.usedMathFunctions.add('cos');
             this.usedMathFunctions.add('PI');
             this.usedMathFunctions.add('round');
-            return new TypedInput(`(round(cos((PI * ${this.descendInput(node.value).asNumber()}) / 180) * 1e10) / 1e10)`, TYPES.NUMBER_NAN);
+            return new TypedInput(`(round(cos((PI * ${value.asNumber()}) / 180) * 1e10) / 1e10)`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.EQUALS: {
             const left = this.descendInput(node.left);
@@ -902,7 +905,7 @@ class JSGenerator {
                 return new ConstantInput(Math.tan(val * Math.PI / 180), false);
             }
             this.usedMathFunctions.add('tan');
-            return new TypedInput(`tan(${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER_NAN);
+            return new TypedInput(`tan(${value.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.TENEXP:
             return new TypedInput(`(10 ** ${this.descendInput(node.value).asNumber()})`, TYPES.NUMBER);
@@ -1412,16 +1415,30 @@ class JSGenerator {
         case BLOCKS.MOTION.SET_DIRECTION:
             this.source += `target.setDirection(${this.descendInput(node.direction).asNumber()});\n`;
             break;
-        case BLOCKS.MOTION.POINT_TOWARDS_XY:
+        case BLOCKS.MOTION.POINT_TOWARDS_XY: {
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
-            this.source += `target.setDirection(180 + ((atan((${this.descendInput(node.x).asNumber()} - target.x) / (${this.descendInput(node.y).asNumber()} - target.y)) * 180 / PI) + (${this.descendInput(node.y).asNumber()} > target.y ? 180 : 0)));\n`;
+            const x = this.localVariables.next();
+            const y = this.localVariables.next();
+            this.source += `const ${x} = ${this.descendInput(node.x).asNumber()};\n`;
+            this.source += `const ${y} = ${this.descendInput(node.y).asNumber()};\n`;
+            this.source += `target.setDirection(180 + ((atan((${x} - target.x) / (${y} - target.y)) * 180 / PI) + (${y} > target.y ? 180 : 0)));\n`;
             break;
-        case BLOCKS.MOTION.POINT_TOWARDS_XY_FROM:
+        }
+        case BLOCKS.MOTION.POINT_TOWARDS_XY_FROM: {
             this.usedMathFunctions.add('atan');
             this.usedMathFunctions.add('PI');
-            this.source += `target.setDirection(180 + ((atan((${this.descendInput(node.x).asNumber()} - ${this.descendInput(node.fromx).asNumber()}) / (${this.descendInput(node.y).asNumber()} - ${this.descendInput(node.fromy).asNumber()})) * 180 / PI) + (${this.descendInput(node.y).asNumber()} > ${this.descendInput(node.fromy).asNumber()} ? 180 : 0)));\n`;
+            const x = this.localVariables.next();
+            const fromx = this.localVariables.next();
+            const y = this.localVariables.next();
+            const fromy = this.localVariables.next();
+            this.source += `const ${x} = ${this.descendInput(node.x).asNumber()};\n`;
+            this.source += `const ${fromx} = ${this.descendInput(node.fromx).asNumber()};\n`;
+            this.source += `const ${y} = ${this.descendInput(node.y).asNumber()};\n`;
+            this.source += `const ${fromy} = ${this.descendInput(node.fromy).asNumber()};\n`;
+            this.source += `target.setDirection(180 + ((atan((${x} - ${fromx}) / (${y} - ${fromy})) * 180 / PI) + (${y} > ${fromy} ? 180 : 0)));\n`;
             break;
+        }
         case BLOCKS.MOTION.SET_ROTATION_STYLE:
             this.source += `target.setRotationStyle("${sanitize(node.style)}");\n`;
             break;
