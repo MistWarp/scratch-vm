@@ -342,6 +342,10 @@ class VirtualMachine extends EventEmitter {
         this.runtime.setExtendableOperators(extendableOperators);
     }
 
+    setCollapseSwitches (collapseSwitches) {
+        this.runtime.setCollapseSwitches(collapseSwitches);
+    }
+
     setRuntimeOptions (runtimeOptions) {
         this.runtime.setRuntimeOptions(runtimeOptions);
     }

@@ -1734,22 +1734,22 @@ class JSGenerator {
 
         case BLOCKS.CONTROL.SWITCH: {
             const value = this.descendInput(node.value);
-            this.source += `switch (${node.useNumbers ? value.asNumber() : value.asString()}) {\n`;
+            this.source += `switch (${node.useNumbers ? value.asNumber() : value.asLowerString()}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
         }
         case BLOCKS.CONTROL.CASE: {
             const value = this.descendInput(node.value);
-            this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}: {\n`;
-            
+            this.source += `case ${node.useNumbers ? value.asNumber() : value.asLowerString()}: {\n`;
+
             this.descendStack(node.do, new Frame(false));
             this.source += 'break; }\n';
             break;
         }
         case BLOCKS.CONTROL.DEFAULT: {
             this.source += `default:\n`;
-            
+
             this.descendStack(node.do, new Frame(false));
             break;
         }
@@ -1759,7 +1759,7 @@ class JSGenerator {
         }
         case BLOCKS.CONTROL.CASE_FALLTHROUGH: {
             const value = this.descendInput(node.value);
-            this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}:\n`;
+            this.source += `case ${node.useNumbers ? value.asNumber() : value.asLowerString()}:\n`;
             // No break statement - allows fallthrough to next case
             break;
         }

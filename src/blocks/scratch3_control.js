@@ -216,11 +216,12 @@ class Scratch3ControlBlocks {
         const frame = util.stackFrame;
         if (!frame.switchExecuted) {
             frame.switchExecuted = true;
-            frame.switchValue = Cast.toString(args.VALUE);
+            frame.switchValue = Cast.toString(args.VALUE).toLowerCase();
             frame.isSwitch = true;
             frame.isBreakable = true;
             frame.caseMatched = false;
             frame.hasDefaultRun = false;
+            frame.pendingFallthroughValues = [];
             util.startBranch(1, false);
         }
     }
@@ -240,11 +241,13 @@ class Scratch3ControlBlocks {
             frame.caseExecuted = true;
             frame.isBreakable = true;
             frame.caseValue = Cast.toString(args.VALUE);
-            
-            // Check if this case matches or if we're falling through
-            const shouldExecute = (parentFrame.switchValue === frame.caseValue) || parentFrame.caseMatched;
-            
-            if (shouldExecute) {
+
+            const pendingValues = parentFrame.pendingFallthroughValues || [];
+            parentFrame.pendingFallthroughValues = [];
+            const matches = parentFrame.switchValue === frame.caseValue.toLowerCase() ||
+                pendingValues.some(value => parentFrame.switchValue === value);
+
+            if (!parentFrame.caseMatched && matches) {
                 parentFrame.caseMatched = true;
                 util.startBranch(1, false);
             }
@@ -389,11 +392,21 @@ class Scratch3ControlBlocks {
         }
     }
 
-    caseFallthrough () {
-        // This is a marker block for fallthrough cases
-        // It doesn't execute anything - just provides the case value
-        // The actual logic is handled by the switch block
-        return;
+    caseFallthrough (args, util) {
+        const frame = util.stackFrame;
+        const parentFrame = this._getParentSwitchFrame(util.thread);
+
+        if (!parentFrame || !parentFrame.isSwitch) return;
+
+        if (!frame.caseExecuted) {
+            frame.caseExecuted = true;
+            if (!parentFrame.pendingFallthroughValues) {
+                parentFrame.pendingFallthroughValues = [];
+            }
+            if (!parentFrame.caseMatched) {
+                parentFrame.pendingFallthroughValues.push(Cast.toString(args.VALUE).toLowerCase());
+            }
+        }
     }
 
     /**

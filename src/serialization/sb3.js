@@ -249,6 +249,827 @@ const expandOperators = function (blocks) {
     return result;
 };
 
+const expandSwitches = function (blocks) {
+    const result = {};
+    for (const id in blocks) {
+        if (hasOwnProperty.call(blocks, id)) result[id] = blocks[id];
+    }
+    const tempVariables = {};
+
+    const cloneBlock = id => {
+        const original = result[id];
+        if (!original || Array.isArray(original)) return original;
+        const copy = Object.assign({}, original);
+        if (original.inputs) {
+            copy.inputs = {};
+            for (const name in original.inputs) {
+                copy.inputs[name] = Object.assign({}, original.inputs[name]);
+            }
+        }
+        result[id] = copy;
+        return copy;
+    };
+
+    const reparent = (childId, parentId) => {
+        if (childId && result[childId] && !Array.isArray(result[childId])) {
+            cloneBlock(childId).parent = parentId;
+        }
+    };
+
+    const cloneSubtree = (rootId, parentId) => {
+        const original = result[rootId];
+        if (!original || Array.isArray(original)) return null;
+        const newId = uid();
+        const copy = Object.assign({}, original);
+        copy.id = newId;
+        copy.parent = parentId;
+        copy.next = null;
+        copy.topLevel = false;
+        delete copy.comment;
+        copy.fields = {};
+        for (const name in original.fields) {
+            copy.fields[name] = Object.assign({}, original.fields[name]);
+        }
+        copy.inputs = {};
+        for (const name in original.inputs) {
+            const input = original.inputs[name];
+            const blockId = input.block ? cloneSubtree(input.block, newId) : null;
+            const shadowId = input.shadow === input.block ? blockId :
+                (input.shadow ? cloneSubtree(input.shadow, newId) : null);
+            copy.inputs[name] = {name, block: blockId, shadow: shadowId};
+        }
+        result[newId] = copy;
+        return newId;
+    };
+
+    const deleteSubtree = rootId => {
+        const block = result[rootId];
+        delete result[rootId];
+        if (!block || Array.isArray(block) || !block.inputs) return;
+        for (const name in block.inputs) {
+            const input = block.inputs[name];
+            if (input.block) deleteSubtree(input.block);
+            if (input.shadow && input.shadow !== input.block) deleteSubtree(input.shadow);
+        }
+    };
+
+    const getInputBlockId = (block, name) => {
+        const input = block.inputs && block.inputs[name];
+        return (input && input.block) || null;
+    };
+
+    const substackContains = (headId, predicate) => {
+        let currentId = headId;
+        while (currentId) {
+            const block = result[currentId];
+            if (!block || Array.isArray(block)) return false;
+            if (predicate(block)) return true;
+            if (block.inputs) {
+                for (const name in block.inputs) {
+                    const input = block.inputs[name];
+                    if (input.block && input.block !== input.shadow &&
+                        substackContains(input.block, predicate)) {
+                        return true;
+                    }
+                }
+            }
+            currentId = block.next;
+        }
+        return false;
+    };
+
+    const bodyContainsSwitch = headId => substackContains(headId, block =>
+        block.opcode === 'control_switch');
+
+    const isLoopBlock = opcode => (
+        opcode === 'control_repeat' ||
+        opcode === 'control_repeat_until' ||
+        opcode === 'control_while' ||
+        opcode === 'control_for_each' ||
+        opcode === 'control_forever'
+    );
+
+    const isSubstackInput = name => name === 'SUBSTACK' || name === 'SUBSTACK2';
+
+    const stackHasBreakInLoop = (headId, insideLoop) => {
+        let currentId = headId;
+        while (currentId) {
+            const block = result[currentId];
+            if (!block || Array.isArray(block)) return false;
+            if (block.opcode === 'control_break') return insideLoop;
+            if (block.inputs) {
+                const childInsideLoop = insideLoop || isLoopBlock(block.opcode);
+                for (const name in block.inputs) {
+                    const input = block.inputs[name];
+                    if (isSubstackInput(name) && input.block &&
+                        stackHasBreakInLoop(input.block, childInsideLoop)) {
+                        return true;
+                    }
+                }
+            }
+            currentId = block.next;
+        }
+        return false;
+    };
+
+    const stackNeedsBreakFlag = headId => {
+        let currentId = headId;
+        while (currentId) {
+            const block = result[currentId];
+            if (!block || Array.isArray(block)) return false;
+            if (block.opcode === 'control_break') {
+                return block.next !== null;
+            }
+            if (block.inputs) {
+                for (const name in block.inputs) {
+                    const input = block.inputs[name];
+                    if (isSubstackInput(name) && input.block &&
+                        substackContains(input.block, b => b.opcode === 'control_break')) {
+                        return true;
+                    }
+                }
+            }
+            currentId = block.next;
+        }
+        return false;
+    };
+
+    const lowerSwitch = switchId => {
+        const sw = result[switchId];
+        if (!sw || Array.isArray(sw) || sw.opcode !== 'control_switch' || sw.comment) return false;
+
+        const groups = [];
+        let pendingLabelIds = [];
+        let defaultId = null;
+        let childId = getInputBlockId(sw, 'SUBSTACK');
+        while (childId) {
+            const child = result[childId];
+            if (!child || Array.isArray(child) || child.comment || defaultId) return false;
+            if (child.opcode === 'control_case_fallthrough') {
+                pendingLabelIds.push(childId);
+            } else if (child.opcode === 'control_case') {
+                groups.push({labelIds: pendingLabelIds, caseId: childId});
+                pendingLabelIds = [];
+            } else if (child.opcode === 'control_default') {
+                defaultId = childId;
+            } else {
+                return false;
+            }
+            childId = child.next;
+        }
+        if (groups.length === 0 && !defaultId) return false;
+
+        for (const group of groups) {
+            const bodyHead = getInputBlockId(result[group.caseId], 'SUBSTACK');
+            if (bodyContainsSwitch(bodyHead)) return false;
+            if (stackHasBreakInLoop(bodyHead, false)) return false;
+        }
+        if (defaultId) {
+            const defaultBody = getInputBlockId(result[defaultId], 'SUBSTACK');
+            if (bodyContainsSwitch(defaultBody)) return false;
+            if (stackHasBreakInLoop(defaultBody, false)) return false;
+        }
+
+        const valueInput = (sw.inputs && sw.inputs.VALUE) || {block: null, shadow: null};
+
+        const makeBlock = opcode => {
+            const newId = uid();
+            result[newId] = {
+                id: newId,
+                opcode,
+                next: null,
+                parent: null,
+                inputs: {},
+                fields: {},
+                shadow: false,
+                topLevel: false
+            };
+            return newId;
+        };
+
+        const makeLiteral = (value, parentId) => {
+            const literalId = makeBlock('text');
+            result[literalId].parent = parentId;
+            result[literalId].shadow = true;
+            result[literalId].fields = {TEXT: {name: 'TEXT', value}};
+            return literalId;
+        };
+
+        const setInput = (blockId, name, inputBlockId, inputShadowId) => {
+            result[blockId].inputs[name] = {name, block: inputBlockId, shadow: inputShadowId};
+        };
+
+        const bodyNeedsBreakFlag = ownerId => {
+            const headId = getInputBlockId(result[ownerId], 'SUBSTACK');
+            return stackNeedsBreakFlag(headId);
+        };
+
+        // Decide whether the switch value must be evaluated once into a temp variable.
+        const valueBlock = valueInput.block ? result[valueInput.block] : null;
+        const valueIsComplex = Boolean(valueBlock && !Array.isArray(valueBlock) &&
+            valueBlock.inputs && Object.keys(valueBlock.inputs).length > 0);
+        const needsBreakFlag = groups.some(group => bodyNeedsBreakFlag(group.caseId)) ||
+            (defaultId && bodyNeedsBreakFlag(defaultId));
+
+        let tempVarId = null;
+        let setId = null;
+        let movedSimpleValue = false;
+        if (valueIsComplex) {
+            tempVarId = uid();
+            tempVariables[tempVarId] = ['switch value', ''];
+            setId = makeBlock('data_setvariableto');
+            result[setId].fields = {VARIABLE: {name: 'switch value', id: tempVarId}};
+            reparent(valueInput.block, setId);
+            if (valueInput.shadow !== valueInput.block) reparent(valueInput.shadow, setId);
+            setInput(setId, 'VALUE', valueInput.block || null, valueInput.shadow || null);
+        }
+
+        let breakFlagVarId = null;
+        let clearBreakFlagId = null;
+        if (needsBreakFlag) {
+            breakFlagVarId = uid();
+            tempVariables[breakFlagVarId] = ['switch broken', '0'];
+            clearBreakFlagId = makeBlock('data_setvariableto');
+            result[clearBreakFlagId].fields = {VARIABLE: {name: 'switch broken', id: breakFlagVarId}};
+            const literalId = makeLiteral('0', clearBreakFlagId);
+            setInput(clearBreakFlagId, 'VALUE', literalId, literalId);
+        }
+
+        const makeSetBreakFlag = () => {
+            const blockId = makeBlock('data_setvariableto');
+            result[blockId].fields = {VARIABLE: {name: 'switch broken', id: breakFlagVarId}};
+            const literalId = makeLiteral('1', blockId);
+            setInput(blockId, 'VALUE', literalId, literalId);
+            return blockId;
+        };
+
+        const makeBreakFlagGuard = bodyHeadId => {
+            const guardId = makeBlock('control_if');
+            const notId = makeBlock('operator_not');
+            const varId = makeBlock('data_variable');
+            result[varId].parent = notId;
+            result[varId].fields = {VARIABLE: {name: 'switch broken', id: breakFlagVarId}};
+            setInput(notId, 'OPERAND', varId, null);
+            reparent(notId, guardId);
+            setInput(guardId, 'CONDITION', notId, null);
+            if (bodyHeadId) {
+                reparent(bodyHeadId, guardId);
+                setInput(guardId, 'SUBSTACK', bodyHeadId, null);
+            }
+            return guardId;
+        };
+
+        const transformBreaksInStack = headId => {
+            let currentId = headId;
+            let newHeadId = headId;
+            let previousId = null;
+
+            while (currentId) {
+                const block = result[currentId];
+                if (!block || Array.isArray(block)) break;
+                const nextId = block.next;
+
+                if (block.opcode === 'control_break') {
+                    const setFlagId = makeSetBreakFlag();
+                    if (previousId) {
+                        cloneBlock(previousId).next = setFlagId;
+                        reparent(setFlagId, previousId);
+                    } else {
+                        newHeadId = setFlagId;
+                        result[setFlagId].parent = block.parent;
+                    }
+                    if (nextId) {
+                        const rest = transformBreaksInStack(nextId);
+                        const guardId = makeBreakFlagGuard(rest.headId);
+                        cloneBlock(setFlagId).next = guardId;
+                        reparent(guardId, setFlagId);
+                    }
+                    delete result[currentId];
+                    return {headId: newHeadId, mayBreak: true};
+                }
+
+                let nestedMayBreak = false;
+                if (block.inputs && !isLoopBlock(block.opcode)) {
+                    const clonedBlock = cloneBlock(currentId);
+                    for (const name in clonedBlock.inputs) {
+                        const input = clonedBlock.inputs[name];
+                        if (isSubstackInput(name) && input.block) {
+                            const nested = transformBreaksInStack(input.block);
+                            input.block = nested.headId;
+                            if (nested.headId) reparent(nested.headId, currentId);
+                            nestedMayBreak = nestedMayBreak || nested.mayBreak;
+                        }
+                    }
+                }
+
+                if (nestedMayBreak && nextId) {
+                    const rest = transformBreaksInStack(nextId);
+                    const guardId = makeBreakFlagGuard(rest.headId);
+                    cloneBlock(currentId).next = guardId;
+                    reparent(guardId, currentId);
+                    return {headId: newHeadId, mayBreak: true};
+                }
+
+                previousId = currentId;
+                currentId = nextId;
+            }
+
+            return {headId: newHeadId, mayBreak: false};
+        };
+
+        const makeValueOperand = parentId => {
+            if (valueIsComplex) {
+                const varId = makeBlock('data_variable');
+                result[varId].parent = parentId;
+                result[varId].fields = {VARIABLE: {name: 'switch value', id: tempVarId}};
+                return {block: varId, shadow: null};
+            }
+            if (!movedSimpleValue) {
+                movedSimpleValue = true;
+                reparent(valueInput.block, parentId);
+                if (valueInput.shadow !== valueInput.block) reparent(valueInput.shadow, parentId);
+                return {block: valueInput.block || null, shadow: valueInput.shadow || null};
+            }
+            const blockId = valueInput.block ? cloneSubtree(valueInput.block, parentId) : null;
+            const shadowId = valueInput.shadow === valueInput.block ? blockId :
+                (valueInput.shadow ? cloneSubtree(valueInput.shadow, parentId) : null);
+            return {block: blockId, shadow: shadowId};
+        };
+
+        const makeEquals = labelOrCaseId => {
+            const eqId = makeBlock('operator_equals');
+            const operand1 = makeValueOperand(eqId);
+            setInput(eqId, 'OPERAND1', operand1.block, operand1.shadow);
+            const source = result[labelOrCaseId];
+            const caseInput = (source.inputs && source.inputs.VALUE) || {block: null, shadow: null};
+            reparent(caseInput.block, eqId);
+            if (caseInput.shadow !== caseInput.block) reparent(caseInput.shadow, eqId);
+            setInput(eqId, 'OPERAND2', caseInput.block || null, caseInput.shadow || null);
+            return eqId;
+        };
+
+        const makeCondition = group => {
+            const parts = group.labelIds.map(makeEquals);
+            parts.push(makeEquals(group.caseId));
+            let conditionId = parts[0];
+            for (let i = 1; i < parts.length; i++) {
+                const orId = makeBlock('operator_or');
+                setInput(orId, 'OPERAND1', conditionId, null);
+                setInput(orId, 'OPERAND2', parts[i], null);
+                reparent(conditionId, orId);
+                reparent(parts[i], orId);
+                conditionId = orId;
+            }
+            return conditionId;
+        };
+
+        // Detach a case body, stripping a single trailing break (the idiomatic explicit break;
+        // a plain if/else already breaks after its body).
+        const takeBody = ownerId => {
+            const headId = getInputBlockId(result[ownerId], 'SUBSTACK');
+            if (!headId) return null;
+            let lastId = headId;
+            while (result[lastId] && result[lastId].next) lastId = result[lastId].next;
+            if (result[lastId] && result[lastId].opcode === 'control_break') {
+                delete result[lastId];
+                if (lastId === headId) return null;
+                let prevId = headId;
+                while (result[prevId].next !== lastId) prevId = result[prevId].next;
+                cloneBlock(prevId).next = null;
+            }
+            return needsBreakFlag ? transformBreaksInStack(headId).headId : headId;
+        };
+
+        const defaultBody = defaultId ? takeBody(defaultId) : null;
+        let elseHeadId = defaultBody;
+        for (let i = groups.length - 1; i >= 0; i--) {
+            const group = groups[i];
+            const bodyHead = takeBody(group.caseId);
+            const hasElse = elseHeadId !== null;
+            const nodeId = makeBlock(hasElse ? 'control_if_else' : 'control_if');
+            const conditionId = makeCondition(group);
+            reparent(conditionId, nodeId);
+            setInput(nodeId, 'CONDITION', conditionId, null);
+            if (bodyHead) {
+                reparent(bodyHead, nodeId);
+                setInput(nodeId, 'SUBSTACK', bodyHead, null);
+            }
+            if (hasElse) {
+                reparent(elseHeadId, nodeId);
+                setInput(nodeId, 'SUBSTACK2', elseHeadId, null);
+            }
+            elseHeadId = nodeId;
+        }
+
+        // The entry block is the temp-var assignment (if any), then the break flag
+        // initializer (if any), followed by the if chain.
+        let entryHeadId = elseHeadId;
+        if (needsBreakFlag) {
+            if (entryHeadId) {
+                cloneBlock(clearBreakFlagId).next = entryHeadId;
+                reparent(entryHeadId, clearBreakFlagId);
+            }
+            entryHeadId = clearBreakFlagId;
+        }
+        if (valueIsComplex) {
+            if (entryHeadId) {
+                cloneBlock(setId).next = entryHeadId;
+                reparent(entryHeadId, setId);
+            }
+            entryHeadId = setId;
+        }
+
+        const parentId = sw.parent;
+        const nextId = sw.next;
+
+        if (entryHeadId) {
+            let tailId = elseHeadId || entryHeadId;
+            while (result[tailId].next) tailId = result[tailId].next;
+            reparent(entryHeadId, parentId || null);
+            if (nextId) {
+                cloneBlock(tailId).next = nextId;
+                reparent(nextId, tailId);
+            }
+            if (sw.topLevel) {
+                const head = cloneBlock(entryHeadId);
+                head.topLevel = true;
+                head.x = sw.x;
+                head.y = sw.y;
+            }
+        } else if (nextId) {
+            reparent(nextId, parentId || null);
+            if (sw.topLevel) {
+                const head = cloneBlock(nextId);
+                head.topLevel = true;
+                head.x = sw.x;
+                head.y = sw.y;
+            }
+        }
+
+        const newChildId = entryHeadId || nextId || null;
+        if (parentId && result[parentId] && !Array.isArray(result[parentId])) {
+            const parentBlock = cloneBlock(parentId);
+            if (parentBlock.next === switchId) {
+                parentBlock.next = newChildId;
+            } else if (parentBlock.inputs) {
+                for (const name in parentBlock.inputs) {
+                    if (parentBlock.inputs[name].block === switchId) {
+                        parentBlock.inputs[name].block = newChildId;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!valueIsComplex && !movedSimpleValue) {
+            if (valueInput.block) deleteSubtree(valueInput.block);
+            if (valueInput.shadow && valueInput.shadow !== valueInput.block) deleteSubtree(valueInput.shadow);
+        }
+        for (const group of groups) {
+            for (const labelId of group.labelIds) delete result[labelId];
+            delete result[group.caseId];
+        }
+        for (const labelId of pendingLabelIds) {
+            const label = result[labelId];
+            const labelInput = (label && label.inputs && label.inputs.VALUE) || null;
+            if (labelInput) {
+                if (labelInput.block) deleteSubtree(labelInput.block);
+                if (labelInput.shadow && labelInput.shadow !== labelInput.block) deleteSubtree(labelInput.shadow);
+            }
+            delete result[labelId];
+        }
+        if (defaultId) delete result[defaultId];
+        delete result[switchId];
+        return true;
+    };
+
+    // Fixpoint so nested switches lower innermost-first.
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const switchId of Object.keys(result)) {
+            const block = result[switchId];
+            if (!block || Array.isArray(block) || block.opcode !== 'control_switch') continue;
+            if (lowerSwitch(switchId)) changed = true;
+        }
+    }
+
+    return {blocks: result, variables: tempVariables};
+};
+
+// Recognize the vanilla if/else + operator_equals chains produced by expandSwitches purely
+// by their shape (block ids do not survive .sb3 compression) and fold them back into switch
+// blocks so a project degraded for vanilla Scratch can be edited as a switch again.
+const collapseSwitches = function (blocks, variables) {
+    const getInput = (block, name) => (block && block.inputs && block.inputs[name]) || null;
+    const getInputBlockId = (block, name) => {
+        const input = getInput(block, name);
+        return (input && input.block) || null;
+    };
+
+    // Structural key for a reporter/operand that ignores block ids, so cloned copies of the
+    // same switch value compare equal.
+    const nodeKey = id => {
+        if (!id) return 'null';
+        const b = blocks[id];
+        if (!b || Array.isArray(b)) return 'null';
+        const parts = [b.opcode];
+        const fieldNames = Object.keys(b.fields || {}).sort();
+        for (const fn of fieldNames) {
+            const f = b.fields[fn];
+            parts.push(`f:${fn}=${f.value}#${f.id || ''}`);
+        }
+        const inputNames = Object.keys(b.inputs || {}).sort();
+        for (const inp of inputNames) {
+            const input = b.inputs[inp];
+            parts.push(`i:${inp}=${nodeKey(input.block)}/${nodeKey(input.shadow)}`);
+        }
+        return `(${parts.join(',')})`;
+    };
+    const operandKey = (block, name) => {
+        const input = getInput(block, name);
+        if (!input) return 'none';
+        return `${nodeKey(input.block)}/${nodeKey(input.shadow)}`;
+    };
+
+    const conditionLeftKey = condId => {
+        const b = blocks[condId];
+        if (!b || Array.isArray(b)) return null;
+        if (b.opcode === 'operator_equals') return operandKey(b, 'OPERAND1');
+        if (b.opcode === 'operator_or') return conditionLeftKey(getInputBlockId(b, 'OPERAND1'));
+        return null;
+    };
+
+    // Flatten a left-nested or-tree of equals (all sharing leftKey) into an ordered equals list.
+    const flattenEquals = (condId, leftKey) => {
+        const b = blocks[condId];
+        if (!b || Array.isArray(b)) return null;
+        if (b.opcode === 'operator_equals') {
+            if (operandKey(b, 'OPERAND1') !== leftKey) return null;
+            return [condId];
+        }
+        if (b.opcode === 'operator_or') {
+            const left = flattenEquals(getInputBlockId(b, 'OPERAND1'), leftKey);
+            const right = flattenEquals(getInputBlockId(b, 'OPERAND2'), leftKey);
+            if (!left || !right) return null;
+            return left.concat(right);
+        }
+        return null;
+    };
+
+    const nodeMatchesKey = (nodeId, leftKey) => {
+        const n = blocks[nodeId];
+        if (!n || Array.isArray(n)) return false;
+        if (n.opcode !== 'control_if' && n.opcode !== 'control_if_else') return false;
+        const condId = getInputBlockId(n, 'CONDITION');
+        return flattenEquals(condId, leftKey) !== null;
+    };
+
+    const isChainHead = nodeId => {
+        const n = blocks[nodeId];
+        if (!n || Array.isArray(n)) return false;
+        if (n.opcode !== 'control_if' && n.opcode !== 'control_if_else') return false;
+        const condId = getInputBlockId(n, 'CONDITION');
+        const leftKey = conditionLeftKey(condId);
+        if (leftKey === null || flattenEquals(condId, leftKey) === null) return false;
+        // Not a head if its parent is a matching node whose else-branch is exactly this node.
+        const parentId = n.parent;
+        if (parentId && blocks[parentId]) {
+            const p = blocks[parentId];
+            if (p.opcode === 'control_if_else' &&
+                getInputBlockId(p, 'SUBSTACK2') === nodeId &&
+                nodeMatchesKey(parentId, leftKey)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const deleteSubtree = rootId => {
+        const block = blocks[rootId];
+        delete blocks[rootId];
+        if (!block || Array.isArray(block) || !block.inputs) return;
+        for (const name in block.inputs) {
+            const input = block.inputs[name];
+            if (input.block) deleteSubtree(input.block);
+            if (input.shadow && input.shadow !== input.block) deleteSubtree(input.shadow);
+        }
+    };
+
+    const detachInput = (block, name) => {
+        const input = block.inputs && block.inputs[name];
+        if (!input) return {block: null, shadow: null};
+        delete block.inputs[name];
+        return {block: input.block || null, shadow: input.shadow || null};
+    };
+
+    const makeBlock = opcode => {
+        const newId = uid();
+        blocks[newId] = {
+            id: newId,
+            opcode,
+            next: null,
+            parent: null,
+            inputs: {},
+            fields: {},
+            shadow: false,
+            topLevel: false
+        };
+        return newId;
+    };
+
+    const attach = (blockId, name, source) => {
+        blocks[blockId].inputs[name] = {name, block: source.block, shadow: source.shadow};
+        if (source.block && blocks[source.block]) blocks[source.block].parent = blockId;
+        if (source.shadow && source.shadow !== source.block && blocks[source.shadow]) {
+            blocks[source.shadow].parent = blockId;
+        }
+    };
+
+    const variableRefCount = varId => {
+        let count = 0;
+        for (const id in blocks) {
+            const b = blocks[id];
+            if (!b || Array.isArray(b) || !b.fields) continue;
+            const field = b.fields.VARIABLE;
+            if (field && field.id === varId) count++;
+        }
+        return count;
+    };
+
+    const collapseOneHead = () => {
+        for (const headId of Object.keys(blocks)) {
+            if (!isChainHead(headId)) continue;
+
+            const headBlock = blocks[headId];
+            const leftKey = conditionLeftKey(getInputBlockId(headBlock, 'CONDITION'));
+
+            // Gather the chain of nodes plus a trailing default body.
+            const nodes = [];
+            let defaultBodyHead = null;
+            let currentId = headId;
+            while (currentId) {
+                const n = blocks[currentId];
+                const condId = getInputBlockId(n, 'CONDITION');
+                const eqIds = flattenEquals(condId, leftKey);
+                if (!eqIds) break;
+                nodes.push({id: currentId, condId, eqIds, bodyHead: getInputBlockId(n, 'SUBSTACK')});
+                if (n.opcode === 'control_if_else') {
+                    const elseHead = getInputBlockId(n, 'SUBSTACK2');
+                    if (elseHead && blocks[elseHead] && blocks[elseHead].next === null &&
+                        nodeMatchesKey(elseHead, leftKey)) {
+                        currentId = elseHead;
+                    } else {
+                        defaultBodyHead = elseHead || null;
+                        currentId = null;
+                    }
+                } else {
+                    currentId = null;
+                }
+            }
+
+            const totalValues = nodes.reduce((sum, node) => sum + node.eqIds.length, 0);
+            // Avoid folding a lone plain `if <a = b>`; require a real switch shape.
+            if (nodes.length < 2 && totalValues < 2) continue;
+
+            // Detect the temp-variable pattern: shared operand is a variable written by the
+            // immediately preceding set block and used nowhere else.
+            const firstEq = blocks[nodes[0].eqIds[0]];
+            const sharedOperand1 = getInput(firstEq, 'OPERAND1');
+            const sharedVarBlock = sharedOperand1 && sharedOperand1.block ? blocks[sharedOperand1.block] : null;
+            let tempInline = false;
+            let setBlockId = null;
+            let tempVarId = null;
+            if (sharedVarBlock && sharedVarBlock.opcode === 'data_variable' && sharedVarBlock.fields.VARIABLE) {
+                tempVarId = sharedVarBlock.fields.VARIABLE.id;
+                const predId = headBlock.parent;
+                const pred = predId ? blocks[predId] : null;
+                if (pred && pred.opcode === 'data_setvariableto' && pred.next === headId &&
+                    pred.fields.VARIABLE && pred.fields.VARIABLE.id === tempVarId) {
+                    const operandReads = nodes.reduce((sum, node) =>
+                        sum + node.eqIds.filter(eqId => {
+                            const op1 = getInputBlockId(blocks[eqId], 'OPERAND1');
+                            return op1 && blocks[op1] && blocks[op1].opcode === 'data_variable' &&
+                                blocks[op1].fields.VARIABLE && blocks[op1].fields.VARIABLE.id === tempVarId;
+                        }).length, 0);
+                    // set block + one read per comparison == every reference to the variable.
+                    if (variableRefCount(tempVarId) === operandReads + 1) {
+                        tempInline = true;
+                        setBlockId = predId;
+                    }
+                }
+            }
+
+            const switchId = makeBlock('control_switch');
+            let sequenceHeadId = null;
+            let sequenceTailId = null;
+            const appendToSequence = blockId => {
+                if (sequenceHeadId) {
+                    blocks[sequenceTailId].next = blockId;
+                    blocks[blockId].parent = sequenceTailId;
+                } else {
+                    sequenceHeadId = blockId;
+                    blocks[blockId].parent = switchId;
+                }
+                sequenceTailId = blockId;
+            };
+
+            let switchValue = null;
+            let capturedValue = false;
+            for (const node of nodes) {
+                for (let k = 0; k < node.eqIds.length; k++) {
+                    const eq = blocks[node.eqIds[k]];
+                    const operand1 = detachInput(eq, 'OPERAND1');
+                    const operand2 = detachInput(eq, 'OPERAND2');
+                    if (capturedValue) {
+                        if (operand1.block) deleteSubtree(operand1.block);
+                        if (operand1.shadow && operand1.shadow !== operand1.block) deleteSubtree(operand1.shadow);
+                    } else {
+                        switchValue = operand1;
+                        capturedValue = true;
+                    }
+                    if (k === node.eqIds.length - 1) {
+                        const caseId = makeBlock('control_case');
+                        attach(caseId, 'VALUE', operand2);
+                        if (node.bodyHead) {
+                            blocks[caseId].inputs.SUBSTACK = {name: 'SUBSTACK', block: node.bodyHead, shadow: null};
+                            blocks[node.bodyHead].parent = caseId;
+                        }
+                        appendToSequence(caseId);
+                    } else {
+                        const labelId = makeBlock('control_case_fallthrough');
+                        attach(labelId, 'VALUE', operand2);
+                        appendToSequence(labelId);
+                    }
+                }
+                deleteSubtree(node.condId);
+            }
+
+            if (defaultBodyHead) {
+                const defaultId = makeBlock('control_default');
+                blocks[defaultId].inputs.SUBSTACK = {name: 'SUBSTACK', block: defaultBodyHead, shadow: null};
+                blocks[defaultBodyHead].parent = defaultId;
+                appendToSequence(defaultId);
+            }
+
+            const entryId = tempInline ? setBlockId : headId;
+            const parentId = blocks[entryId] ? blocks[entryId].parent : null;
+            const afterId = blocks[headId] ? blocks[headId].next : null;
+            const entryTopLevel = blocks[entryId] && blocks[entryId].topLevel;
+            const entryX = blocks[entryId] && blocks[entryId].x;
+            const entryY = blocks[entryId] && blocks[entryId].y;
+
+            if (tempInline) {
+                if (switchValue) {
+                    if (switchValue.block) deleteSubtree(switchValue.block);
+                    if (switchValue.shadow && switchValue.shadow !== switchValue.block) {
+                        deleteSubtree(switchValue.shadow);
+                    }
+                }
+                switchValue = detachInput(blocks[setBlockId], 'VALUE');
+            }
+
+            attach(switchId, 'VALUE', switchValue || {block: null, shadow: null});
+            if (sequenceHeadId) {
+                blocks[switchId].inputs.SUBSTACK = {name: 'SUBSTACK', block: sequenceHeadId, shadow: null};
+                blocks[sequenceHeadId].parent = switchId;
+            }
+            blocks[switchId].parent = parentId || null;
+            blocks[switchId].next = afterId || null;
+            if (afterId && blocks[afterId]) blocks[afterId].parent = switchId;
+            if (entryTopLevel) {
+                blocks[switchId].topLevel = true;
+                blocks[switchId].x = entryX;
+                blocks[switchId].y = entryY;
+            }
+            if (parentId && blocks[parentId]) {
+                const parentBlock = blocks[parentId];
+                if (parentBlock.next === entryId) {
+                    parentBlock.next = switchId;
+                } else if (parentBlock.inputs) {
+                    for (const name in parentBlock.inputs) {
+                        if (parentBlock.inputs[name].block === entryId) {
+                            parentBlock.inputs[name].block = switchId;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (const node of nodes) delete blocks[node.id];
+            if (tempInline) {
+                delete blocks[setBlockId];
+                if (variables && tempVarId) delete variables[tempVarId];
+            }
+            return true;
+        }
+        return false;
+    };
+
+    while (collapseOneHead()) { /* keep folding until stable (handles nesting) */ }
+    return blocks;
+};
+
 /**
  * Serializes primitives described above into a more compact format
  * @param {object} block the block to serialize
@@ -741,7 +1562,11 @@ const serializeTarget = function (target, extensions) {
     obj.variables = vars.variables;
     obj.lists = vars.lists;
     obj.broadcasts = vars.broadcasts;
-    [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(target.blocks));
+    const expandedSwitches = expandSwitches(target.blocks);
+    for (const tempVarId in expandedSwitches.variables) {
+        obj.variables[tempVarId] = expandedSwitches.variables[tempVarId];
+    }
+    [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(expandedSwitches.blocks));
     obj.comments = serializeComments(target.comments);
 
     // TODO remove this check/patch when (#1901) is fixed
@@ -1330,6 +2155,9 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
         if (runtime.extendableOperators) {
             collapseOperators(object.blocks);
         }
+        if (runtime.collapseSwitches) {
+            collapseSwitches(object.blocks, object.variables);
+        }
         // Take a second pass to create objects and add extensions
         for (const blockId in object.blocks) {
             if (!Object.prototype.hasOwnProperty.call(object.blocks, blockId)) continue;
@@ -1769,5 +2597,7 @@ module.exports = {
     serializeBlocks: serializeBlocks,
     deserializeStandaloneBlocks: deserializeStandaloneBlocks,
     serializeStandaloneBlocks: serializeStandaloneBlocks,
-    getExtensionIdForOpcode: getExtensionIdForOpcode
+    getExtensionIdForOpcode: getExtensionIdForOpcode,
+    expandSwitches: expandSwitches,
+    collapseSwitches: collapseSwitches
 };
