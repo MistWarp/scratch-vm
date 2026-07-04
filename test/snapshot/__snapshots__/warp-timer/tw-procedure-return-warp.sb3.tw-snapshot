@@ -47,7 +47,7 @@ const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ_non_warp () {
 b0.value = 0;
-for (var a0 = 5; a0 >= 0.5; a0--) {
+for (var a0 = 5; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();
@@ -65,7 +65,7 @@ if ((("" + (yield* thread.procedures["Wverify runs warp %s"]((yield* thread.proc
 runtime.ext_scratch3_looks._say("pass non warp and warp mix", target);
 }
 b0.value = 0;
-for (var a2 = 5; a2 >= 0.5; a2--) {
+for (var a2 = 5; a2 > 0; a2--) {
 thread.timer = timer();
 var a3 = max(0, 1000 * 0);
 runtime.requestRedraw();
@@ -91,7 +91,7 @@ const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ_verify_runs_warp_ (p0) {
 b0.value = 0;
-for (var a0 = 5; a0 >= 0.5; a0--) {
+for (var a0 = 5; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();
@@ -117,7 +117,7 @@ const max=Math.max;
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
 return function* genXYZ_verify_runs_non_warp (p0) {
 b0.value = 0;
-for (var a0 = 5; a0 >= 0.5; a0--) {
+for (var a0 = 5; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();

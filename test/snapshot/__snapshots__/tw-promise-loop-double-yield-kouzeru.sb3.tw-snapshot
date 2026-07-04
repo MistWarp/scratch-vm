@@ -34,7 +34,7 @@ const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"];
 return function* genXYZ () {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 15", target);
-for (var a0 = 15; a0 >= 0.5; a0--) {
+for (var a0 = 15; a0 > 0; a0--) {
 if ((toNotNaN(+b1.value) === 200)) {
 b1.value = 50;
 } else {

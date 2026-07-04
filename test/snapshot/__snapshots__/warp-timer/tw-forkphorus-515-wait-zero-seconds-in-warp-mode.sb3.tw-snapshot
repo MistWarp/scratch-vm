@@ -32,7 +32,7 @@ const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_no_refresh () {
-for (var a0 = 30; a0 >= 0.5; a0--) {
+for (var a0 = 30; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();
@@ -67,7 +67,7 @@ const max=Math.max;
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
 return function* genXYZ_has_refresh () {
-for (var a0 = 30; a0 >= 0.5; a0--) {
+for (var a0 = 30; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);
 runtime.requestRedraw();

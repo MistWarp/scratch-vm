@@ -12,7 +12,7 @@ const b1 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"];
 return function* genXYZ () {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 0", target);
-for (var a0 = 30; a0 >= 0.5; a0--) {
+for (var a0 = 30; a0 > 0; a0--) {
 b1.value = runtime.ioDevices.clock.projectTimer();
 thread.timer = timer();
 var a1 = max(0, 1000 * 0);

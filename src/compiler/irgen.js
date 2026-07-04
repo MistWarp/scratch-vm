@@ -2048,55 +2048,92 @@ class IRGenerator {
      * @private
      * @returns {object|null} The converted node, or null if the conversion failed.
      */
+    _switchKeyOfCondition (cond) {
+        if (!cond) return null;
+        if (cond.kind === BLOCKS.OP.EQUALS) {
+            if (!cond.right || cond.right.kind !== BLOCKS.CONSTANT) return null;
+            return this._nodeKey(cond.left);
+        }
+        if (cond.kind === BLOCKS.OP.OR) {
+            return this._switchKeyOfCondition(cond.left);
+        }
+        return null;
+    }
+
+    _collectEqualsValues (cond, leftKey, out) {
+        if (!cond) return false;
+        if (cond.kind === BLOCKS.OP.EQUALS) {
+            if (this._nodeKey(cond.left) !== leftKey) return false;
+            if (!cond.right || cond.right.kind !== BLOCKS.CONSTANT) return false;
+            out.push(cond.right);
+            return true;
+        }
+        if (cond.kind === BLOCKS.OP.OR) {
+            return this._collectEqualsValues(cond.left, leftKey, out) &&
+                this._collectEqualsValues(cond.right, leftKey, out);
+        }
+        return false;
+    }
+
     _tryConvertEqualsIfChain (nodes, startIndex) {
         const first = nodes[startIndex];
         if (!first || first.kind !== BLOCKS.CONTROL.IF) return null;
-        const cond = first.condition;
-        if (!cond || cond.kind !== BLOCKS.OP.EQUALS) return null;
         if (first.whenFalse && first.whenFalse.length) return null;
-        const leftKey = this._nodeKey(cond.left);
+        const leftKey = this._switchKeyOfCondition(first.condition);
+        if (leftKey === null || leftKey === '') return null;
+
         const cases = [];
         let i = startIndex;
         while (i < nodes.length) {
             const n = nodes[i];
             if (!n || n.kind !== BLOCKS.CONTROL.IF) break;
-            const c = n.condition;
-            if (!c || c.kind !== BLOCKS.OP.EQUALS) break;
-            if (this._nodeKey(c.left) !== leftKey) break;
-            if (!c.right || c.right.kind !== BLOCKS.CONSTANT) break;
             if (n.whenFalse && n.whenFalse.length) break;
-            cases.push({value: c.right, body: this._optimizeSubstack(n.whenTrue)});
+            const values = [];
+            if (!this._collectEqualsValues(n.condition, leftKey, values) || !values.length) break;
+            cases.push({values, body: this._optimizeSubstack(n.whenTrue)});
             i += 1;
         }
         if (cases.length < 2) return null;
-        const switchBody = [];
-        let allNumbers = true;
+
         for (const cs of cases) {
-            const cur = cs.value;
-            if (cur.kind !== BLOCKS.CONSTANT) {
-                return null;
-            }
-            const asNum = +cur.value;
-            if (Number.isNaN(asNum)) {
-                allNumbers = false;
-            } else {
-                cur.value = asNum;
-            }
-            switchBody.push({
-                kind: BLOCKS.CONTROL.CASE,
-                value: cur,
-                do: cs.body,
-                useNumbers: false
-            });
             const last = cs.body[cs.body.length - 1];
-            if (last && (last.kind !== BLOCKS.CONTROL.BREAK && last.kind !== BLOCKS.CONTROL.STOP_SCRIPT)) {
-                // we cant turn this if chain into a switch case if the code doesnt handle fallthrough
+            if (last &&
+                last.kind !== BLOCKS.CONTROL.BREAK &&
+                last.kind !== BLOCKS.CONTROL.STOP_SCRIPT &&
+                last.kind !== BLOCKS.PROCEDURES.RETURN) {
                 return null;
             }
         }
 
-        for (const cs of switchBody) {
-            cs.useNumbers = allNumbers;
+        let allNumbers = true;
+        for (const cs of cases) {
+            for (const v of cs.values) {
+                if (v.kind !== BLOCKS.CONSTANT || Number.isNaN(+v.value)) {
+                    allNumbers = false;
+                }
+            }
+        }
+
+        const switchBody = [];
+        for (const cs of cases) {
+            for (let vi = 0; vi < cs.values.length; vi++) {
+                const cur = cs.values[vi];
+                if (allNumbers) cur.value = +cur.value;
+                if (vi === cs.values.length - 1) {
+                    switchBody.push({
+                        kind: BLOCKS.CONTROL.CASE,
+                        value: cur,
+                        do: cs.body,
+                        useNumbers: allNumbers
+                    });
+                } else {
+                    switchBody.push({
+                        kind: BLOCKS.CONTROL.CASE_FALLTHROUGH,
+                        value: cur,
+                        useNumbers: allNumbers
+                    });
+                }
+            }
         }
 
         const switchNode = {

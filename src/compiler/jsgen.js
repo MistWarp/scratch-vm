@@ -209,6 +209,98 @@ class JSGenerator {
         return false;
     }
 
+    _collectAssignedVariables (node, out) {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) {
+            for (const n of node) this._collectAssignedVariables(n, out);
+            return;
+        }
+        if ((node.kind === BLOCKS.VAR.SET || node.kind === BLOCKS.CONTROL.FOR) && node.variable) {
+            out.set(node.variable.id, node.variable);
+        }
+        for (const v of Object.values(node)) {
+            if (v && typeof v === 'object') this._collectAssignedVariables(v, out);
+        }
+    }
+
+    _clearTypesForVariables (variables) {
+        const sources = new Set();
+        for (const variable of variables.values()) {
+            const scope = variable.scope === 'target' ? 'target' : 'stage';
+            sources.add(`${scope}.variables["${sanitize(variable.id)}"]`);
+        }
+        for (const source of Object.keys(this._setupVariables)) {
+            if (sources.has(source)) {
+                this.clearVariableType(`${this._setupVariables[source]}.value`);
+            }
+        }
+    }
+
+    _clearLoopAssignedTypes (body) {
+        const variables = new Map();
+        this._collectAssignedVariables(body, variables);
+        this._clearTypesForVariables(variables);
+    }
+
+    _scanProcWrites (node, writes, calls) {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) {
+            for (const n of node) this._scanProcWrites(n, writes, calls);
+            return;
+        }
+        if ((node.kind === BLOCKS.VAR.SET || node.kind === BLOCKS.CONTROL.FOR) && node.variable) {
+            writes.set(node.variable.id, node.variable);
+        } else if (node.kind === BLOCKS.PROCEDURES.CALL && node.variant) {
+            calls.add(node.variant);
+        }
+        for (const v of Object.values(node)) {
+            if (v && typeof v === 'object') this._scanProcWrites(v, writes, calls);
+        }
+    }
+
+    _ensureProcWriteSets () {
+        if (this._procWriteSets) return;
+        const procedures = this.ir.procedures;
+        const direct = new Map();
+        for (const variant of Object.keys(procedures)) {
+            const writes = new Map();
+            const calls = new Set();
+            this._scanProcWrites(procedures[variant].stack, writes, calls);
+            direct.set(variant, {writes, calls});
+        }
+        const result = new Map();
+        for (const variant of direct.keys()) {
+            result.set(variant, new Map(direct.get(variant).writes));
+        }
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const [variant, {calls}] of direct) {
+                const set = result.get(variant);
+                for (const callee of calls) {
+                    const calleeSet = result.get(callee);
+                    if (!calleeSet) continue;
+                    for (const [id, variable] of calleeSet) {
+                        if (!set.has(id)) {
+                            set.set(id, variable);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        this._procWriteSets = result;
+    }
+
+    _getProcedureWrittenVars (variant) {
+        this._ensureProcWriteSets();
+        return this._procWriteSets.get(variant) || new Map();
+    }
+
+    _clearWrittenGlobals (writtenVars) {
+        this._clearTypesForVariables(writtenVars);
+    }
+
     /**
      * @param {any} node
      * @param {string} variant
@@ -761,7 +853,7 @@ class JSGenerator {
             if (value.isAlwaysConstant()) {
                 return new ConstantInput(`${value.constantValue}`.length, false);
             }
-            return new TypedInput(`${value.asString()}.length`, TYPES.NUMBER);
+            return new TypedInput(`${value.asString()}.length`, TYPES.NUMBER_WHOLE);
         }
         case BLOCKS.OP.LESS: {
             const left = this.descendInput(node.left);
@@ -837,10 +929,16 @@ class JSGenerator {
                 const rightVal = toNotNaN(+rightStr);
                 return new ConstantInput(mod(leftVal, rightVal), false);
             }
-            // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
-            if (left.isAlwaysFinite() && right.isAlwaysFinite()) {
-                return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER_NAN);
+            if (left.isAlwaysFinite() && right.isAlwaysConstant()) {
+                const rightVal = +right.constantValue;
+                if (Number.isFinite(rightVal) && rightVal !== 0) {
+                    if (Number.isInteger(rightVal)) {
+                        return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER_INT);
+                    }
+                    return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER);
+                }
             }
+            // Needs to be marked as NaN because mod(0, 0) (and others) == NaN
             return new TypedInput(`mod(${leftStr}, ${rightStr})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.PI:
@@ -1089,6 +1187,9 @@ class JSGenerator {
                 this.source += `${this.generateCompatibilityLayerCall(node, isLastInLoop)};\n`;
             } else if (blockType === BlockType.CONDITIONAL || blockType === BlockType.LOOP) {
                 const branchVariable = this.localVariables.next();
+                if (blockType === BlockType.LOOP) {
+                    this._clearLoopAssignedTypes(node.substacks);
+                }
                 this.source += `const ${branchVariable} = createBranchInfo(${blockType === BlockType.LOOP});\n`;
                 this.source += `while (${branchVariable}.branch = +(${this.generateCompatibilityLayerCall(node, false, branchVariable)})) {\n`;
                 this.source += `switch (${branchVariable}.branch) {\n`;
@@ -1129,6 +1230,7 @@ class JSGenerator {
             this.source += `${index}++; `;
             const loopVarRef = this.referenceVariable(node.variable);
             this.source += `${loopVarRef}.value = ${index};\n`;
+            this._clearLoopAssignedTypes(node.do);
             // The loop index variable is always an integer.
             this.setVariableType(`${loopVarRef}.value`, TYPES.NUMBER_INT);
             this.descendStack(node.do, new Frame(true));
@@ -1186,12 +1288,14 @@ class JSGenerator {
             ]);
 
             for (const name of mergedKeys) {
-                const tTrue = trueEffective.get(name);
-                const tFalse = falseEffective.get(name);
-                if (typeof tTrue === 'number' && tTrue === tFalse) {
-                    this.setVariableType(name, tTrue);
-                } else {
+                const entryT = entryEffective.has(name) ? entryEffective.get(name) : TYPES.ANY;
+                const tTrue = trueEffective.has(name) ? trueEffective.get(name) : entryT;
+                const tFalse = falseEffective.has(name) ? falseEffective.get(name) : entryT;
+                const merged = tTrue | tFalse;
+                if (merged === TYPES.ANY) {
                     this.clearVariableType(name);
+                } else {
+                    this.setVariableType(name, merged);
                 }
             }
 
@@ -1199,8 +1303,21 @@ class JSGenerator {
             break;
         }
         case BLOCKS.CONTROL.REPEAT: {
+            const timesInput = this.descendInput(node.times);
             const i = this.localVariables.next();
-            this.source += `for (var ${i} = ${this.descendInput(node.times).asNumber()}; ${i} >= 0.5; ${i}--) {\n`;
+            let intCount = null;
+            if (timesInput.isAlwaysConstant()) {
+                const c = +timesInput.constantValue;
+                if (Number.isInteger(c) && c >= 0 && c <= 0x7fffffff) {
+                    intCount = c;
+                }
+            }
+            if (intCount === null) {
+                this.source += `for (var ${i} = ${timesInput.asNumber()}; ${i} >= 0.5; ${i}--) {\n`;
+            } else {
+                this.source += `for (var ${i} = ${intCount}; ${i} > 0; ${i}--) {\n`;
+            }
+            this._clearLoopAssignedTypes(node.do);
             this.descendStack(node.do, new Frame(true));
             this.yieldLoop();
             this.source += `}\n`;
@@ -1243,6 +1360,7 @@ class JSGenerator {
         }
         case BLOCKS.CONTROL.WHILE:
             this.resetVariableInputs();
+            this._clearLoopAssignedTypes(node.do);
             this.source += `while (${this.descendInput(node.condition).asBoolean()}) {\n`;
             this.descendStack(node.do, new Frame(true));
             if (node.warpTimer) {
@@ -1539,7 +1657,7 @@ class JSGenerator {
             if (this._canInlineProcedureCallInStack(node, procedureData)) {
                 this._emitInlinedProcedureCallInStack(node, procedureData);
                 this.resetVariableInputs();
-                this.clearVariableTypes();
+                this._clearWrittenGlobals(this._getProcedureWrittenVars(procedureVariant));
                 break;
             }
 
@@ -1567,7 +1685,11 @@ class JSGenerator {
             this.source += ');\n';
 
             this.resetVariableInputs();
-            this.clearVariableTypes();
+            if (procedureData.yields || yieldForRecursion) {
+                this.clearVariableTypes();
+            } else {
+                this._clearWrittenGlobals(this._getProcedureWrittenVars(procedureVariant));
+            }
             break;
         }
         case BLOCKS.PROCEDURES.RETURN:
@@ -1636,7 +1758,8 @@ class JSGenerator {
             break;
         }
         case BLOCKS.CONTROL.CASE_FALLTHROUGH: {
-            this.source += `case ${this.descendInput(node.value).asString()}:\n`;
+            const value = this.descendInput(node.value);
+            this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}:\n`;
             // No break statement - allows fallthrough to next case
             break;
         }

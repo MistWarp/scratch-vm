@@ -3,7 +3,12 @@ const parse = require('scratch-parser/lib/parse');
 
 const ajv = require('ajv')();
 ajv.addSchema(require('scratch-parser/lib/sb2_definitions.json'));
-ajv.addSchema(require('scratch-parser/lib/sb3_definitions.json'));
+const sb3Definitions = require('scratch-parser/lib/sb3_definitions.json');
+const sb3ListDefinition = sb3Definitions.definitions && sb3Definitions.definitions.list;
+if (sb3ListDefinition && Array.isArray(sb3ListDefinition.items) && sb3ListDefinition.items[1]) {
+    delete sb3ListDefinition.items[1].items;
+}
+ajv.addSchema(sb3Definitions);
 
 const validateSb3 = ajv.compile(require('scratch-parser/lib/sb3_schema.json'));
 const validateSprite3 = ajv.compile(require('scratch-parser/lib/sprite3_schema.json'));

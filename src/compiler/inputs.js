@@ -2,6 +2,16 @@ const {TYPES} = require('./enums');
 const Cast = require('../util/cast');
 const {sanitize} = require('./shared');
 
+const getNumberInputType = number => {
+    if (number === Infinity) return TYPES.NUMBER_POS_INF;
+    if (number === -Infinity) return TYPES.NUMBER_NEG_INF;
+    if (number < 0) return Number.isInteger(number) ? TYPES.NUMBER_NEG_INT : TYPES.NUMBER_NEG_FRACT;
+    if (number > 0) return Number.isInteger(number) ? TYPES.NUMBER_POS_INT : TYPES.NUMBER_POS_FRACT;
+    if (Number.isNaN(number)) return TYPES.NAN;
+    if (Object.is(number, -0)) return TYPES.NUMBER_NEG_ZERO;
+    return TYPES.NUMBER_ZERO;
+};
+
 let CURRENT_GENERATOR;
 
 const setCurrentGenerator = generator => {
@@ -57,43 +67,47 @@ class TypedInput {
         this._lastLinePos = -1;
     }
 
+    isAlwaysType (type) {
+        return (this.type & type) === this.type;
+    }
+
+    isSometimesType (type) {
+        return (this.type & type) !== 0;
+    }
+
     asNumber () {
-        if (this.type === TYPES.NUMBER) return this.source;
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (this.isAlwaysType(TYPES.NUMBER)) return this.source;
+        if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER) return `(${this.source} | 0)`;
-        return `toNotNaN(${this.source} | 0)`;
+        if (this.isAlwaysType(TYPES.NUMBER_INT)) return this.source;
+        return `(${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN ||
-            this.type === TYPES.NUMBER_INT) return this.source;
+        if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return this.source;
         return `(+${this.source})`;
     }
 
     asStringOrEmpty () {
-        if (this.type === TYPES.STRING) return this.source;
+        if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asString () {
-        if (this.type === TYPES.STRING) return this.source;
+        if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
-        if (this.type === TYPES.LOWER_STRING) return this.source;
+        if (this.isAlwaysType(TYPES.LOWER_STRING)) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
-        if (this.type === TYPES.BOOLEAN) return this.source;
+        if (this.isAlwaysType(TYPES.BOOLEAN)) return this.source;
         return `toBoolean(${this.source})`;
     }
 
@@ -114,26 +128,23 @@ class TypedInput {
     }
 
     isAlwaysInt () {
-        return this.type === TYPES.NUMBER_INT;
+        return this.isAlwaysType(TYPES.NUMBER_INT);
     }
 
     isAlwaysNumber () {
-        return this.type === TYPES.NUMBER ||
-               this.type === TYPES.NUMBER_INT;
+        return this.isAlwaysType(TYPES.NUMBER);
     }
 
     isAlwaysNumberOrNaN () {
-        return this.type === TYPES.NUMBER ||
-               this.type === TYPES.NUMBER_NAN ||
-               this.type === TYPES.NUMBER_INT;
+        return this.isAlwaysType(TYPES.NUMBER_OR_NAN);
     }
 
     isNeverNumber () {
-        return false;
+        return !this.isSometimesType(TYPES.NUMBER_INTERPRETABLE);
     }
 
     isAlwaysFinite () {
-        return this.type === TYPES.NUMBER_INT;
+        return this.isAlwaysType(TYPES.NUMBER_REAL);
     }
 
     isAlwaysConstant () {
@@ -163,9 +174,7 @@ class ConstantInput {
 
         this.type = TYPES.UNKNOWN;
         if (Number.isFinite(constantValue)) {
-            this.type = Number.isInteger(constantValue) ?
-                TYPES.NUMBER_INT :
-                TYPES.NUMBER;
+            this.type = getNumberInputType(constantValue);
         } else if (typeof constantValue === 'string') {
             this.type = TYPES.STRING;
         } else if (typeof constantValue === 'boolean') {
@@ -173,6 +182,14 @@ class ConstantInput {
         } else if (Number.isNaN(this.constantValue)) {
             this.type = TYPES.NUMBER_NAN;
         }
+    }
+
+    isAlwaysType (type) {
+        return (this.type & type) === this.type;
+    }
+
+    isSometimesType (type) {
+        return (this.type & type) !== 0;
     }
 
     asNumber () {
@@ -374,44 +391,48 @@ class VariableInput {
         }
     }
 
+    isAlwaysType (type) {
+        return (this.type & type) === this.type;
+    }
+
+    isSometimesType (type) {
+        return (this.type & type) !== 0;
+    }
+
     asNumber () {
-        if (this.type === TYPES.NUMBER) return this.source;
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER_NAN) return `toNotNaN(${this.source})`;
+        if (this.isAlwaysType(TYPES.NUMBER)) return this.source;
+        if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
-        if (this.type === TYPES.NUMBER_INT) return this.source;
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN) return `(${this.source} | 0)`;
-        return `toNotNaN(+${this.source} | 0)`;
+        if (this.isAlwaysType(TYPES.NUMBER_INT)) return this.source;
+        if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `(${this.source} | 0)`;
+        return `(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
-        if (this.type === TYPES.NUMBER ||
-            this.type === TYPES.NUMBER_NAN ||
-            this.type === TYPES.NUMBER_INT) return this.source;
+        if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return this.source;
         return `(+${this.source})`;
     }
 
     asString () {
-        if (this.type === TYPES.STRING) return this.source;
+        if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asStringOrEmpty () {
-        if (this.type === TYPES.STRING) return this.source;
+        if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
-        if (this.type === TYPES.LOWER_STRING) return this.source;
+        if (this.isAlwaysType(TYPES.LOWER_STRING)) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
 
     asBoolean () {
-        if (this.type === TYPES.BOOLEAN) return this.source;
+        if (this.isAlwaysType(TYPES.BOOLEAN)) return this.source;
         return `toBoolean(${this.source})`;
     }
 
