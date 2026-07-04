@@ -477,6 +477,8 @@ class Runtime extends EventEmitter {
 
         this.extendableOperators = true;
 
+        this.collapseSwitches = true;
+
         this._defaultStoredSettings = this._generateAllProjectOptions();
 
         /**
@@ -2740,6 +2742,10 @@ class Runtime extends EventEmitter {
 
     setExtendableOperators (extendableOperators) {
         this.extendableOperators = !!extendableOperators;
+    }
+
+    setCollapseSwitches (collapseSwitches) {
+        this.collapseSwitches = !!collapseSwitches;
     }
 
     /**
