@@ -809,10 +809,14 @@ const collapseSwitches = function (blocks, variables) {
             return [condId];
         }
         if (b.opcode === 'operator_or') {
-            const left = flattenEquals(getInputBlockId(b, 'OPERAND1'), leftKey);
-            const right = flattenEquals(getInputBlockId(b, 'OPERAND2'), leftKey);
-            if (!left || !right) return null;
-            return left.concat(right);
+            const count = getOperatorItemCount(b);
+            const result = [];
+            for (let i = 1; i <= count; i++) {
+                const part = flattenEquals(getInputBlockId(b, `OPERAND${i}`), leftKey);
+                if (!part) return null;
+                for (const eqId of part) result.push(eqId);
+            }
+            return result;
         }
         return null;
     };

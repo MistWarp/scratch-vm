@@ -498,3 +498,99 @@ test('expandSwitches lowers nested switches innermost-first', t => {
     t.notOk(opcodes.includes('control_case'), 'no cases left');
     t.end();
 });
+
+test('collapseSwitches folds a variadic operator_or into every case', t => {
+    const eqBlock = (id, value, parent) => ({
+        id,
+        opcode: 'operator_equals',
+        next: null,
+        parent,
+        inputs: {
+            OPERAND1: {name: 'OPERAND1', block: `${id}var`, shadow: null},
+            OPERAND2: {name: 'OPERAND2', block: `${id}val`, shadow: `${id}val`}
+        },
+        fields: {},
+        shadow: false,
+        topLevel: false
+    });
+    const varReporter = (id, parent) => ({
+        id,
+        opcode: 'data_variable',
+        next: null,
+        parent,
+        inputs: {},
+        fields: {VARIABLE: {name: 'VARIABLE', value: 'switch value', id: 'svid'}},
+        shadow: false,
+        topLevel: false
+    });
+
+    const values = ['5', '4', '2', '3'];
+    const orInputs = {};
+    const blocks = {
+        top: {
+            id: 'top',
+            opcode: 'event_whenflagclicked',
+            next: 'if',
+            parent: null,
+            inputs: {},
+            fields: {},
+            shadow: false,
+            topLevel: true,
+            x: 0,
+            y: 0
+        },
+        if: {
+            id: 'if',
+            opcode: 'control_if_else',
+            next: null,
+            parent: 'top',
+            inputs: {
+                CONDITION: {name: 'CONDITION', block: 'or', shadow: null},
+                SUBSTACK: {name: 'SUBSTACK', block: 'body', shadow: null},
+                SUBSTACK2: {name: 'SUBSTACK2', block: 'defbody', shadow: null}
+            },
+            fields: {},
+            shadow: false,
+            topLevel: false
+        },
+        body: stackBlock('body', 'looks_show', 'if', null),
+        defbody: stackBlock('defbody', 'looks_hide', 'if', null)
+    };
+    values.forEach((value, i) => {
+        const eqId = `eq${i}`;
+        orInputs[`OPERAND${i + 1}`] = {name: `OPERAND${i + 1}`, block: eqId, shadow: null};
+        blocks[eqId] = eqBlock(eqId, value, 'or');
+        blocks[`${eqId}var`] = varReporter(`${eqId}var`, eqId);
+        blocks[`${eqId}val`] = textShadow(`${eqId}val`, value, eqId);
+    });
+    blocks.or = {
+        id: 'or',
+        opcode: 'operator_or',
+        next: null,
+        parent: 'if',
+        inputs: orInputs,
+        fields: {},
+        shadow: false,
+        topLevel: false,
+        mutation: {tagName: 'mutation', children: [], itemcount: '4'}
+    };
+
+    const collapsed = sb3.collapseSwitches(blocks, {});
+    const switchId = Object.keys(collapsed).find(id => collapsed[id].opcode === 'control_switch');
+    t.ok(switchId, 'switch created');
+
+    const caseValues = [];
+    let cur = collapsed[switchId].inputs.SUBSTACK.block;
+    while (cur) {
+        const block = collapsed[cur];
+        if (block.opcode === 'control_case' || block.opcode === 'control_case_fallthrough') {
+            const valInput = block.inputs.VALUE;
+            const valBlock = collapsed[valInput.block || valInput.shadow];
+            caseValues.push(valBlock.fields.TEXT.value);
+        }
+        cur = block.next;
+    }
+    t.same(caseValues, ['5', '4', '2', '3'], 'all four operands became cases');
+    t.notOk(Object.values(collapsed).some(b => b.opcode === 'operator_or'), 'variadic or consumed');
+    t.end();
+});
