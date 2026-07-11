@@ -3,3 +3,4 @@ dist/*
 node_modules/*
 playground/*
 benchmark/*
+src/scsf-bundle.js
