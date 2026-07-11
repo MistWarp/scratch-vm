@@ -1,5 +1,12 @@
 const unpack = require('scratch-parser/lib/unpack');
 const parse = require('scratch-parser/lib/parse');
+let scsfReader;
+try {
+    const scsfModule = require('../scsf-bundle.js');
+    scsfReader = scsfModule.Reader;
+} catch (e) {
+    // @flufi/scsf not available, scsf support disabled
+}
 
 const ajv = require('ajv')();
 ajv.addSchema(require('scratch-parser/lib/sb2_definitions.json'));
@@ -59,13 +66,31 @@ const validateWithFix = function (isSprite, input, callback) {
     });
 };
 
+const tryConvertScsf = function (content) {
+    if (!scsfReader) return content;
+    try {
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+            const reader = new scsfReader();
+            const project = reader.readProject(parsed);
+            const json = project.outputJson();
+            json.projectVersion = 3;
+            return JSON.stringify(json);
+        }
+    } catch (e) {
+        // not scsf, proceed with normal parsing
+    }
+    return content;
+};
+
 module.exports = function (input, isSprite, callback) {
     unpack(input, isSprite, (unpackError, unpackedProject) => {
         if (unpackError) {
             callback(unpackError);
             return;
         }
-        parse(unpackedProject[0], (parseError, parsedProject) => {
+        const projectContent = tryConvertScsf(unpackedProject[0]);
+        parse(projectContent, (parseError, parsedProject) => {
             if (parseError) {
                 callback(parseError);
                 return;
