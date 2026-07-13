@@ -238,12 +238,16 @@ class Scratch3ControlBlocks {
         
         if (!frame.caseExecuted) {
             frame.caseExecuted = true;
-            frame.isBreakable = true;
+            // A `break` inside a case exits the whole switch, so only the switch frame is
+            // breakable; if the case itself were breakable, break would just fall through.
             frame.caseValue = Cast.toString(args.VALUE);
             
-            // Check if this case matches or if we're falling through
-            const shouldExecute = (parentFrame.switchValue === frame.caseValue) || parentFrame.caseMatched;
-            
+            // A plain case does not fall through (the compiler auto-breaks each case; explicit
+            // fallthrough uses control_case_fallthrough). Once any case has matched, later cases
+            // and the default are skipped.
+            const shouldExecute = !parentFrame.caseMatched &&
+                parentFrame.switchValue === frame.caseValue;
+
             if (shouldExecute) {
                 parentFrame.caseMatched = true;
                 util.startBranch(1, false);
@@ -264,8 +268,7 @@ class Scratch3ControlBlocks {
         
         if (!frame.defaultExecuted) {
             frame.defaultExecuted = true;
-            frame.isBreakable = true;
-            
+
             // Execute default only if no case has matched and we haven't run it yet
             if (!parentFrame.caseMatched && !parentFrame.hasDefaultRun) {
                 parentFrame.hasDefaultRun = true;
@@ -323,9 +326,12 @@ class Scratch3ControlBlocks {
      */
     _getParentSwitchFrame (thread) {
         const frames = thread.stackFrames;
+        // Switch/case bookkeeping lives on the frame's executionContext (that is what
+        // BlockUtility.stackFrame exposes), not on the _StackFrame itself.
         for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].isSwitch) {
-                return frames[i];
+            const ctx = frames[i].executionContext;
+            if (ctx && ctx.isSwitch) {
+                return ctx;
             }
         }
         return null;
@@ -340,8 +346,9 @@ class Scratch3ControlBlocks {
     _getParentCaseFrame (thread) {
         const frames = thread.stackFrames;
         for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].caseValue) {
-                return frames[i];
+            const ctx = frames[i].executionContext;
+            if (ctx && ctx.caseValue) {
+                return ctx;
             }
         }
         return null;
@@ -361,7 +368,10 @@ class Scratch3ControlBlocks {
         let loopFrameBlock = null;
         
         for (let i = frames.length - 1; i >= 0; i--) {
-            if (frames[i].isLoop || frames[i].isBreakable) {
+            // isLoop is a native _StackFrame flag; isBreakable is set by switch/case on the
+            // frame's executionContext.
+            const ctx = frames[i].executionContext;
+            if (frames[i].isLoop || (ctx && ctx.isBreakable)) {
                 loopFrameIndex = i;
                 loopFrameBlock = frames[i].op ? frames[i].op.id : null;
                 break;

@@ -26,6 +26,31 @@ const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
 
 /**
+ * Whether a constant `=` operand can be a case label in a numeric switch.
+ * Letters are rejected because Scratch compares a non-numeric subject against the label as a
+ * lowercased string, so labels like "Infinity" or "1e3" would match subjects ("INFINITY") that
+ * a numeric switch cannot. Without letters, only a numeric subject can ever match.
+ * @param {*} value The constant operand
+ * @returns {boolean} true if the value is safe to use as a numeric case label
+ */
+const isSwitchNumberLabel = value => {
+    const str = `${value}`;
+    if (str.trim() === '' || /[a-z]/i.test(str)) return false;
+    return !Number.isNaN(Number(str));
+};
+
+/**
+ * Whether a constant `=` operand can be a case label in a string switch. Scratch always compares
+ * a non-numeric label as a lowercased string, so such labels are always safe.
+ * @param {*} value The constant operand
+ * @returns {boolean} true if the value is safe to use as a string case label
+ */
+const isSwitchStringLabel = value => {
+    const str = `${value}`;
+    return str.trim() === '' || Number.isNaN(Number(str));
+};
+
+/**
  * Create a variable codegen object.
  * @param {'target'|'stage'} scope The scope of this variable -- which object owns it.
  * @param {import('../engine/variable.js')} varObj The Scratch Variable
@@ -2060,6 +2085,26 @@ class IRGenerator {
         return null;
     }
 
+    // The `=` if-chain evaluates the subject once per branch, but a switch evaluates it once.
+    // Only convert when the subject is a read whose value can't change between those evaluations
+    // and that has no side effects -- otherwise e.g. `pick random` would be drawn once instead of
+    // once per branch. These reporters take no value inputs, so they are unconditionally stable.
+    _isStableSwitchSubject (cond) {
+        if (!cond) return false;
+        if (cond.kind === BLOCKS.OP.EQUALS) {
+            const left = cond.left;
+            return !!left && (
+                left.kind === BLOCKS.VAR.GET ||
+                left.kind === BLOCKS.SENSING.ANSWER ||
+                left.kind === BLOCKS.LIST.CONTENTS
+            );
+        }
+        if (cond.kind === BLOCKS.OP.OR) {
+            return this._isStableSwitchSubject(cond.left);
+        }
+        return false;
+    }
+
     _collectEqualsValues (cond, leftKey, out) {
         if (!cond) return false;
         if (cond.kind === BLOCKS.OP.EQUALS) {
@@ -2081,6 +2126,7 @@ class IRGenerator {
         if (first.whenFalse && first.whenFalse.length) return null;
         const leftKey = this._switchKeyOfCondition(first.condition);
         if (leftKey === null || leftKey === '') return null;
+        if (!this._isStableSwitchSubject(first.condition)) return null;
 
         const cases = [];
         let i = startIndex;
@@ -2105,20 +2151,32 @@ class IRGenerator {
             }
         }
 
-        let allNumbers = true;
+        // A JS switch can only reproduce Scratch's `=` if every label is compared the same way.
+        // Scratch compares numerically only when both sides are numbers, and compares strings
+        // case-insensitively otherwise, so a mix of numeric and non-numeric labels cannot be
+        // expressed as one switch.
+        let numericLabels = 0;
+        let stringLabels = 0;
         for (const cs of cases) {
             for (const v of cs.values) {
-                if (v.kind !== BLOCKS.CONSTANT || Number.isNaN(+v.value)) {
-                    allNumbers = false;
+                if (v.kind !== BLOCKS.CONSTANT) return null;
+                if (isSwitchNumberLabel(v.value)) {
+                    numericLabels += 1;
+                } else if (isSwitchStringLabel(v.value)) {
+                    stringLabels += 1;
+                } else {
+                    return null;
                 }
             }
         }
+        if (numericLabels && stringLabels) return null;
+        const allNumbers = stringLabels === 0;
 
         const switchBody = [];
         for (const cs of cases) {
             for (let vi = 0; vi < cs.values.length; vi++) {
                 const cur = cs.values[vi];
-                if (allNumbers) cur.value = +cur.value;
+                cur.value = allNumbers ? +cur.value : `${cur.value}`.toLowerCase();
                 if (vi === cs.values.length - 1) {
                     switchBody.push({
                         kind: BLOCKS.CONTROL.CASE,

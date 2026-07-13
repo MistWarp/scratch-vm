@@ -50,10 +50,9 @@ class Scratch3OperatorsBlocks {
 
     add (args) {
         const count = operandCount(args);
-        if (count <= 2) return Cast.toNumber(args.NUM1) + Cast.toNumber(args.NUM2);
-        let result = 0;
-        for (let i = 1; i <= count; i++) {
-            result += Cast.toNumber(args[`NUM${i}`]);
+        let result = Cast.toNumber(args.NUM1) + Cast.toNumber(args.NUM2);
+        for (let i = 3; i <= count; i++) {
+            result = Cast.toNumber(result) + Cast.toNumber(args[`NUM${i}`]);
         }
         return result;
     }
@@ -62,17 +61,16 @@ class Scratch3OperatorsBlocks {
         const count = operandCount(args);
         let result = Cast.toNumber(args.NUM1) - Cast.toNumber(args.NUM2);
         for (let i = 3; i <= count; i++) {
-            result -= Cast.toNumber(args[`NUM${i}`]);
+            result = Cast.toNumber(result) - Cast.toNumber(args[`NUM${i}`]);
         }
         return result;
     }
 
     multiply (args) {
         const count = operandCount(args);
-        if (count <= 2) return Cast.toNumber(args.NUM1) * Cast.toNumber(args.NUM2);
-        let result = 1;
-        for (let i = 1; i <= count; i++) {
-            result *= Cast.toNumber(args[`NUM${i}`]);
+        let result = Cast.toNumber(args.NUM1) * Cast.toNumber(args.NUM2);
+        for (let i = 3; i <= count; i++) {
+            result = Cast.toNumber(result) * Cast.toNumber(args[`NUM${i}`]);
         }
         return result;
     }
@@ -81,7 +79,7 @@ class Scratch3OperatorsBlocks {
         const count = operandCount(args);
         let result = Cast.toNumber(args.NUM1) / Cast.toNumber(args.NUM2);
         for (let i = 3; i <= count; i++) {
-            result /= Cast.toNumber(args[`NUM${i}`]);
+            result = Cast.toNumber(result) / Cast.toNumber(args[`NUM${i}`]);
         }
         return result;
     }
@@ -178,7 +176,7 @@ class Scratch3OperatorsBlocks {
         const count = operandCount(args);
         let result = this._mod(Cast.toNumber(args.NUM1), Cast.toNumber(args.NUM2));
         for (let i = 3; i <= count; i++) {
-            result = this._mod(result, Cast.toNumber(args[`NUM${i}`]));
+            result = this._mod(Cast.toNumber(result), Cast.toNumber(args[`NUM${i}`]));
         }
         return result;
     }

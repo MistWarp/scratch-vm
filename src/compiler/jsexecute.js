@@ -284,6 +284,18 @@ baseRuntime += `const compareEqualSlow = (v1, v2) => {
 const compareEqual = (v1, v2) => (typeof v1 === 'number' && typeof v2 === 'number' && (v1 === v1) && (v2 === v2) || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
 
 /**
+ * Convert a value to the number a switch generated from an `=` if-chain should compare against.
+ * Values that Scratch would not treat as numbers become NaN, which matches no case label -- the
+ * same outcome as compareEqual's string comparison against a numeric label.
+ * @param {*} v A value
+ * @returns {number} v as a number, or NaN
+ */
+runtimeFunctions.toSwitchNumber = `const toSwitchNumber = v => {
+    const n = +v;
+    return (n === 0 && isNotActuallyZero(v)) ? NaN : n;
+};`;
+
+/**
  * Determine if one value is greater than another.
  * @param {*} v1 First value
  * @param {*} v2 Second value

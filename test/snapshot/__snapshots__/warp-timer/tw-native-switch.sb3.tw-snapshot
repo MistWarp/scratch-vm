@@ -1,0 +1,62 @@
+// TW Snapshot
+// Input SHA-256: cb45d7d2caeedd6bfe00857c96f32600d3d9b7d8a64de88ca67eb4b30319f67c
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const b0 = stage.variables["sl-id"];
+return function* genXYZ () {
+runtime.ext_scratch3_looks._say("plan 3", target);
+switch (("" + (b0.value[0] ?? ""))) {
+case "hello": {
+runtime.ext_scratch3_looks._say("fail-wrong-case", target);
+break;
+break; }
+case "Hello": {
+runtime.ext_scratch3_looks._say("pass s0", target);
+break;
+break; }
+case "x": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+default:
+runtime.ext_scratch3_looks._say("fail-default", target);
+}
+switch (("" + (b0.value[1] ?? ""))) {
+case "0": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+case "1": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+case "2": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+default:
+runtime.ext_scratch3_looks._say("pass s1-default", target);
+}
+switch (("" + (b0.value[2] ?? ""))) {
+case "1": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+case "2": {
+runtime.ext_scratch3_looks._say("pass s2", target);
+break;
+break; }
+case "3": {
+runtime.ext_scratch3_looks._say("fail", target);
+break;
+break; }
+default:
+runtime.ext_scratch3_looks._say("fail-default", target);
+}
+runtime.ext_scratch3_looks._say("end", target);
+retire(); return;
+}; })

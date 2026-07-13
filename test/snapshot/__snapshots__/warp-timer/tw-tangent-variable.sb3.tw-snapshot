@@ -1,0 +1,37 @@
+// TW Snapshot
+// Input SHA-256: 43dcff5e846d45386f48c6abe43837fd1897103159da213feb9b8283ed63e971
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+runtime.ext_scratch3_looks._say("plan 4", target);
+target.setXY(45, 0);
+if ((toNotNaN(tan(limitPrecision(target.x))) === 1)) {
+runtime.ext_scratch3_looks._say("pass tan 45", target);
+} else {
+runtime.ext_scratch3_looks._say("fail tan 45 (expected 1)", target);
+}
+target.setXY(90, 0);
+if ((toNotNaN(tan(limitPrecision(target.x))) === Infinity)) {
+runtime.ext_scratch3_looks._say("pass tan 90", target);
+} else {
+runtime.ext_scratch3_looks._say("fail tan 90 (expected Infinity)", target);
+}
+target.setXY(30, 0);
+if ((toNotNaN(tan(limitPrecision(target.x))) === 0.5773502692)) {
+runtime.ext_scratch3_looks._say("pass tan 30", target);
+} else {
+runtime.ext_scratch3_looks._say("fail tan 30 (expected 0.5773502692)", target);
+}
+target.setXY(-45, 0);
+if ((toNotNaN(tan(limitPrecision(target.x))) === -1)) {
+runtime.ext_scratch3_looks._say("pass tan -45", target);
+} else {
+runtime.ext_scratch3_looks._say("fail tan -45 (expected -1)", target);
+}
+runtime.ext_scratch3_looks._say("end", target);
+retire(); return;
+}; })

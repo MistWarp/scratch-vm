@@ -204,82 +204,62 @@ const teardownUnsandboxedExtensionAPI = () => {
  */
 const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, reject) => {
     let isResolved = false;
-    
-    // Add timeout to setupUnsandboxedExtensionAPI to catch scripts that load but don't register
-    const setupWithTimeout = () => new Promise((setupResolve, setupReject) => {
-        const setupTimeout = setTimeout(() => {
-            setupReject(new Error(`Extension did not register within timeout period`));
-        }, 10000); // 10 second timeout for extension registration
-        
-        setupUnsandboxedExtensionAPI(vm).then(extensionObjects => {
-            clearTimeout(setupTimeout);
-            setupResolve(extensionObjects);
-        })
-            .catch(setupReject);
-    });
-    
-    setupWithTimeout()
-        .then(extensionObjects => {
-            if (!isResolved) {
-                isResolved = true;
-                resolve(extensionObjects);
-            }
-        })
+    let registrationTimeout = null;
+    let overallTimeout = null;
+
+    const settle = (fn, arg) => {
+        if (isResolved) return;
+        isResolved = true;
+        clearTimeout(registrationTimeout);
+        clearTimeout(overallTimeout);
+        fn(arg);
+    };
+
+    setupUnsandboxedExtensionAPI(vm)
+        .then(extensionObjects => settle(resolve, extensionObjects))
         .catch(error => {
-            if (!isResolved) {
-                isResolved = true;
-                error.url = extensionURL;
-                error.type = 'registration-timeout';
-                console.error(`Extension registration timeout for ${extensionURL}:`, error);
-                reject(error);
-            }
+            error.url = extensionURL;
+            error.type = 'registration-error';
+            settle(reject, error);
         });
 
     const script = document.createElement('script');
-    
-    // Enhanced error handling
+
     script.onerror = event => {
-        if (!isResolved) {
-            isResolved = true;
-            const error = new Error(`Failed to load extension script from ${extensionURL}`);
-            error.url = extensionURL;
-            error.event = event;
-            error.type = 'script-load-error';
-            console.error(`Error loading unsandboxed script ${extensionURL}:`, error);
-            reject(error);
-        }
+        const error = new Error(`Failed to load extension script from ${extensionURL}`);
+        error.url = extensionURL;
+        error.event = event;
+        error.type = 'script-load-error';
+        console.error(`Error loading unsandboxed script ${extensionURL}:`, error);
+        settle(reject, error);
     };
-    
-    // Handle load success but potential runtime errors
+
+    // Only start the registration deadline once the script has actually executed. A well-behaved
+    // extension calls register() synchronously as it runs, so it has already resolved by now; this
+    // grace period only catches scripts that ran but never registered. Arming it before the script
+    // executes (e.g. during a slow download) would release the load queue while this script is
+    // still pending, letting the next extension's global.Scratch capture this one's late
+    // register() call. See tw-unsandboxed-extension-runner registration serialization.
     script.onload = () => {
-        console.log(`Successfully loaded extension script from ${extensionURL}`);
-    };
-    
-    // Add overall timeout to catch hanging scripts
-    const overallTimeout = setTimeout(() => {
-        if (!isResolved) {
-            isResolved = true;
-            const error = new Error(`Overall timeout loading extension script from ${extensionURL}`);
+        if (isResolved) return;
+        registrationTimeout = setTimeout(() => {
+            const error = new Error(`Extension did not register within timeout period`);
             error.url = extensionURL;
-            error.type = 'overall-timeout';
-            console.error(`Overall timeout loading unsandboxed script ${extensionURL}`);
-            reject(error);
-        }
+            error.type = 'registration-timeout';
+            console.error(`Extension registration timeout for ${extensionURL}:`, error);
+            settle(reject, error);
+        }, 10000); // 10 second registration deadline, measured from script execution
+    };
+
+    // Catch scripts that never load or execute at all.
+    overallTimeout = setTimeout(() => {
+        const error = new Error(`Overall timeout loading extension script from ${extensionURL}`);
+        error.url = extensionURL;
+        error.type = 'overall-timeout';
+        console.error(`Overall timeout loading unsandboxed script ${extensionURL}`);
+        settle(reject, error);
     }, 30000); // 30 second overall timeout
-    
-    // Clear timeout if promise resolves
-    const originalResolve = resolve;
-    resolve = (...args) => {
-        clearTimeout(overallTimeout);
-        return originalResolve(...args);
-    };
-    
-    const originalReject = reject;
-    reject = (...args) => {
-        clearTimeout(overallTimeout);
-        return originalReject(...args);
-    };
-    
+
     script.src = extensionURL;
     document.body.appendChild(script);
 })

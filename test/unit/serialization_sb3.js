@@ -361,3 +361,79 @@ test('do not serialize origin value if it is not present', t => {
             t.end();
         });
 });
+
+// Nested same-opcode operators (e.g. ((a+b)+c)+d) are merged into one variadic block on load
+// (collapseOperators) and rebuilt on save (expandOperators). When the user typed a value into a
+// slot and then dropped a reporter on top of it, that "obscured" shadow has no place in the merged
+// block and must be set aside and restored, or the value is lost on the next save. This also has to
+// work regardless of the order blocks appear in the project and at every nesting depth.
+const buildNestedAddChain = (depth, order) => {
+    const blocks = {};
+    let childId = null;
+    for (let i = 0; i < depth; i++) {
+        const id = `op${i}`;
+        const headShadow = `hs${i}`;
+        const tailShadow = `ts${i}`;
+        blocks[headShadow] = {opcode: 'math_number', next: null, parent: id, inputs: {},
+            fields: {NUM: [String(90 + i), null]}, shadow: true, topLevel: false};
+        blocks[tailShadow] = {opcode: 'math_number', next: null, parent: id, inputs: {},
+            fields: {NUM: [String(200 + i), null]}, shadow: true, topLevel: false};
+        blocks[id] = {opcode: 'operator_add', next: null, parent: null, inputs: {
+            NUM1: childId ? [3, childId, headShadow] : [1, headShadow],
+            NUM2: [1, tailShadow]
+        }, fields: {}, shadow: false, topLevel: false};
+        if (childId) blocks[childId].parent = id;
+        childId = id;
+    }
+    blocks.hat = {opcode: 'event_whenflagclicked', next: 'say', parent: null, inputs: {},
+        fields: {}, shadow: false, topLevel: true, x: 0, y: 0};
+    blocks.say = {opcode: 'looks_say', next: null, parent: 'hat',
+        inputs: {MESSAGE: [3, childId, [10, '']]}, fields: {}, shadow: false, topLevel: false};
+    blocks[childId].parent = 'say';
+    const keys = order ? order(Object.keys(blocks)) : Object.keys(blocks);
+    const ordered = {};
+    for (const k of keys) ordered[k] = blocks[k];
+    return {
+        targets: [
+            {isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {},
+                comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 0,
+                tempo: 60, videoTransparency: 50, videoState: 'off', textToSpeechLanguage: null},
+            {isStage: false, name: 'Sprite1', variables: {}, lists: {}, broadcasts: {}, blocks: ordered,
+                comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 1,
+                visible: true, x: 0, y: 0, size: 100, direction: 90, draggable: false,
+                rotationStyle: 'all around'}
+        ], monitors: [], extensions: [], meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+    };
+};
+
+test('extendable operators preserve obscured shadows across a load/save round trip', t => {
+    const orderings = [
+        keys => keys,
+        keys => [...keys].reverse(),
+        keys => [...keys].sort(),
+        keys => [...keys].sort().reverse()
+    ];
+    const runtime = new Runtime();
+    runtime.extendableOperators = true;
+    const checkDepth = async (depth, order) => {
+        const project = buildNestedAddChain(depth, order);
+        const {targets} = await sb3.deserialize(JSON.parse(JSON.stringify(project)), runtime);
+        for (const target of targets) runtime.addTarget(target);
+        const raw = JSON.stringify(sb3.serialize(runtime).targets[1].blocks);
+        for (const target of targets) runtime.disposeTarget(target);
+        for (let i = 0; i < depth; i++) {
+            t.ok(raw.includes(`"${90 + i}"`), `depth ${depth}: obscured/head shadow ${90 + i} preserved`);
+            t.ok(raw.includes(`"${200 + i}"`), `depth ${depth}: tail shadow ${200 + i} preserved`);
+        }
+        // The internal bookkeeping annotation must never leak into the saved project.
+        t.notOk(raw.includes('obscuredHeadShadows'), `depth ${depth}: annotation not serialized`);
+    };
+    (async () => {
+        for (const depth of [2, 3, 4, 5, 6]) {
+            for (const order of orderings) {
+                await checkDepth(depth, order);
+            }
+        }
+        t.end();
+    })();
+});

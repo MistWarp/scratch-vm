@@ -1,0 +1,31 @@
+// TW Snapshot
+// Input SHA-256: 08f68e9596033cbccc0ceef75cb1c105f167293e03bb42363de679bb09d280e7
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+runtime.ext_scratch3_looks._say("plan 3", target);
+target.setXY(0, 0);
+if (compareEqual((toNotNaN((toNotNaN((0 / limitPrecision(target.x))) / 0)) / 3), 0)) {
+runtime.ext_scratch3_looks._say("pass div 0", target);
+} else {
+runtime.ext_scratch3_looks._say("fail div 0 (want 0)", target);
+}
+target.setXY(6, 0);
+if (((toNotNaN((toNotNaN((12 / limitPrecision(target.x))) / 0)) / 2) === Infinity)) {
+runtime.ext_scratch3_looks._say("pass div 1", target);
+} else {
+runtime.ext_scratch3_looks._say("fail div 1 (want Infinity)", target);
+}
+target.setXY(4, 0);
+if (((toNotNaN((8 / limitPrecision(target.x))) / 2) === 1)) {
+runtime.ext_scratch3_looks._say("pass div 2", target);
+} else {
+runtime.ext_scratch3_looks._say("fail div 2 (want 1)", target);
+}
+runtime.ext_scratch3_looks._say("end", target);
+retire(); return;
+}; })

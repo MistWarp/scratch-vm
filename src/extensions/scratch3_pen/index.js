@@ -1162,6 +1162,7 @@ class Scratch3PenBlocks {
         const penAtt = this._getPenState(target).penAttributes;
 
         this.runtime.renderer.penTriangle(penSkinId, penAtt, x0, y0, x1, y1, x2, y2);
+        this.runtime.requestRedraw();
     }
 
     /**
@@ -1205,33 +1206,29 @@ class Scratch3PenBlocks {
         const penLayerID = this._getPenLayerID();
         if (penLayerID < 0) return;
         
+        const renderer = this.runtime.renderer;
+        if (!renderer) return;
+
         const width = this.bitmapCanvas.width;
         const height = this.bitmapCanvas.height;
-        
-        // Make sure we have a renderer
-        if (!this.runtime.renderer) return;
-        
+
         context.restore();
-        
-        // Create or update bitmap skin
-        if (this.bitmapSkinID < 0 && this.runtime.renderer.createBitmapSkin) {
-            // Create initial empty imageData with canvas dimensions
-            const initialImageData = context.createImageData(width, height);
-            this.bitmapSkinID = this.runtime.renderer.createBitmapSkin(initialImageData, 1);
-            this.bitmapDrawableID = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
-            this.runtime.renderer.updateDrawableSkinId(this.bitmapDrawableID, this.bitmapSkinID);
+
+        const imageData = context.getImageData(0, 0, width, height);
+        const resolution = renderer._allSkins[penLayerID].renderQuality;
+
+        if (this.bitmapSkinID < 0) {
+            this.bitmapSkinID = renderer.createBitmapSkin(imageData, resolution);
+            this.bitmapDrawableID = renderer.createDrawable(StageLayering.PEN_LAYER);
+            renderer.updateDrawableSkinId(this.bitmapDrawableID, this.bitmapSkinID);
+            // This drawable only exists to be stamped; penStamp ignores visibility.
+            renderer.updateDrawableVisible(this.bitmapDrawableID, false);
+        } else {
+            renderer.updateBitmapSkin(this.bitmapSkinID, imageData, resolution);
         }
-        
-        if (this.bitmapSkinID >= 0) {
-            const bitmapSkin = this.runtime.renderer._allSkins[this.bitmapSkinID];
-            if (bitmapSkin && bitmapSkin._setTexture) {
-                const imageData = context.getImageData(0, 0, width, height);
-                bitmapSkin._setTexture(imageData);
-                
-                this.runtime.renderer.penStamp(penLayerID, this.bitmapDrawableID);
-                this.runtime.requestRedraw();
-            }
-        }
+
+        renderer.penStamp(penLayerID, this.bitmapDrawableID);
+        this.runtime.requestRedraw();
     }
 
     _printText (text, x, y, target) { // used by compiler

@@ -1,0 +1,61 @@
+// TW Snapshot
+// Input SHA-256: 55ae20c1bc8ad00aa7aa1ae5c85ce475c797652408507387fbbc6788a58a48fa
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+runtime.ext_scratch3_looks._say("plan 2", target);
+yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "t1" }));
+yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "t2" }));
+runtime.ext_scratch3_looks._say("end", target);
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const b0 = stage.variables["switchsubj-id"];
+const b1 = stage.variables["switchlist-id"];
+return function* genXYZ () {
+b0.value = (b1.value[0] ?? "");
+switch ((("" + b0.value)).toLowerCase()) {
+case "hello": {
+runtime.ext_scratch3_looks._say("pass string", target);
+retire(); return;
+break; }
+case "world": {
+runtime.ext_scratch3_looks._say("fail string-wrong-branch", target);
+retire(); return;
+break; }
+}
+runtime.ext_scratch3_looks._say("fail string-no-match", target);
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) {
+const target = thread.target;
+const runtime = target.runtime;
+const stage = runtime.getTargetForStage();
+const b0 = stage.variables["switchsubj-id"];
+const b1 = stage.variables["switchlist-id"];
+return function* genXYZ () {
+b0.value = (b1.value[1] ?? "");
+switch (toSwitchNumber(b0.value)) {
+case 0: {
+runtime.ext_scratch3_looks._say("fail numeric-matched-0", target);
+retire(); return;
+break; }
+case 1: {
+runtime.ext_scratch3_looks._say("fail numeric-matched-1", target);
+retire(); return;
+break; }
+}
+runtime.ext_scratch3_looks._say("pass numeric", target);
+retire(); return;
+}; })

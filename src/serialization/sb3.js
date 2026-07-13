@@ -135,12 +135,33 @@ const collapseOperators = function (blocks) {
             blocks[input.shadow].parent = parentId;
         }
     };
+    // A block that is the head input of a same-opcode extendable parent must not be collapsed on
+    // its own: its parent absorbs the whole chain top-down. Collapsing an inner block first would
+    // delete it (and its obscuredHeadShadows annotation) when the parent later merges it, losing
+    // the shadows of every level below the outermost. Only start from chain tops.
+    const isHeadChildOfSameOp = new Set();
     for (const id in blocks) {
         if (!hasOwnProperty.call(blocks, id)) continue;
         const block = blocks[id];
         if (!block || Array.isArray(block) || !block.inputs) continue;
         const prefix = EXTENDABLE_OPERATORS[block.opcode];
         if (!prefix) continue;
+        const headInput = block.inputs[`${prefix}1`];
+        if (!headInput || !headInput.block) continue;
+        const child = blocks[headInput.block];
+        if (child && !Array.isArray(child) && child.opcode === block.opcode &&
+            !child.shadow && !child.comment) {
+            isHeadChildOfSameOp.add(headInput.block);
+        }
+    }
+    for (const id in blocks) {
+        if (!hasOwnProperty.call(blocks, id)) continue;
+        if (isHeadChildOfSameOp.has(id)) continue;
+        const block = blocks[id];
+        if (!block || Array.isArray(block) || !block.inputs) continue;
+        const prefix = EXTENDABLE_OPERATORS[block.opcode];
+        if (!prefix) continue;
+        const obscured = [];
         for (;;) {
             const count = getOperatorItemCount(block);
             const headInput = block.inputs[`${prefix}1`];
@@ -161,10 +182,17 @@ const collapseOperators = function (blocks) {
                 const name = `${prefix}${childCount + 1 + j}`;
                 newInputs[name] = renameInput(tail[j], name);
             }
+            // The shadow the child obscured in the head input has no slot in the merged block.
+            // Remember it, outermost first, so expandOperators can put it back -- otherwise the
+            // value the user typed before dropping a reporter on top is lost on the next save,
+            // and the input is left with no shadow to fall back to.
+            obscured.push(headInput.shadow && headInput.shadow !== headInput.block ?
+                headInput.shadow : null);
             block.inputs = newInputs;
             block.mutation = makeItemCountMutation(childCount + count - 1);
             delete blocks[headInput.block];
         }
+        if (obscured.length) block.obscuredHeadShadows = obscured;
     }
     return blocks;
 };
@@ -232,19 +260,29 @@ const expandOperators = function (blocks) {
             if (in2.shadow && in2.shadow !== in2.block) reparent(in2.shadow, newId);
             return newId;
         };
+        // Shadows collapseOperators had to set aside, outermost first. Each nested head input it
+        // rebuilds gets its own back; the innermost merge is the last one recorded.
+        const obscured = orig.obscuredHeadShadows || [];
+        const obscuredAt = index => {
+            const shadowId = obscured[index];
+            return shadowId && result[shadowId] ? shadowId : null;
+        };
         let prevId = makeOp(operands[0], operands[1]);
         for (let i = 2; i <= count - 2; i++) {
-            prevId = makeOp({block: prevId, shadow: null}, operands[i]);
+            prevId = makeOp({block: prevId, shadow: obscuredAt(count - 1 - i)}, operands[i]);
         }
         const last = operands[count - 1];
+        const headShadow = obscuredAt(0);
         P.inputs = {
-            [`${prefix}1`]: {name: `${prefix}1`, block: prevId, shadow: null},
+            [`${prefix}1`]: {name: `${prefix}1`, block: prevId, shadow: headShadow},
             [`${prefix}2`]: {name: `${prefix}2`, block: last.block, shadow: last.shadow}
         };
         reparent(prevId, id);
+        if (headShadow) reparent(headShadow, id);
         reparent(last.block, id);
         if (last.shadow && last.shadow !== last.block) reparent(last.shadow, id);
         delete P.mutation;
+        delete P.obscuredHeadShadows;
     }
     return result;
 };
@@ -895,6 +933,7 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
         });
 
     const fonts = runtime.fontManager.serializeJSON();
+    const customAssets = runtime.assetManager.serializeJSON();
 
     if (targetId) {
         const target = serializedTargets[0];

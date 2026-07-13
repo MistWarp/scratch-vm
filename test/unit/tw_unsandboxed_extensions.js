@@ -12,15 +12,31 @@ const setScript = (src, callback) => {
 };
 global.document = {
     createElement: tagName => {
-        if (tagName.toLowerCase() !== 'script') {
-            throw new Error(`Unknown element: ${tagName}`);
+        const tag = tagName.toLowerCase();
+        if (tag === 'script') {
+            return {
+                tagName: 'SCRIPT',
+                src: '',
+                onload: () => {},
+                onerror: () => {}
+            };
         }
-        return {
-            tagName: 'SCRIPT',
-            src: '',
-            onload: () => {},
-            onerror: () => {}
-        };
+        // prefetchExtensionScript appends a <link rel=preload> to speed up downloads.
+        if (tag === 'link') {
+            return {
+                tagName: 'LINK',
+                rel: '',
+                as: '',
+                href: '',
+                onload: () => {},
+                onerror: () => {},
+                remove: () => {}
+            };
+        }
+        throw new Error(`Unknown element: ${tagName}`);
+    },
+    head: {
+        appendChild: () => {}
     },
     body: {
         appendChild: element => {

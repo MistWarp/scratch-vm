@@ -99,7 +99,6 @@ const MATH_CACHE = {
     RAD_TO_DEG: 'const RAD_TO_DEG=180/PI;',
     sin: 'const sin=Math.sin;',
     cos: 'const cos=Math.cos;',
-    tan: 'const tan=Math.tan;',
     asin: 'const asin=Math.asin;',
     acos: 'const acos=Math.acos;',
     atan: 'const atan=Math.atan;',
@@ -161,6 +160,10 @@ class JSGenerator {
         this._setupVariablesPool = new VariablePool('b');
         this._setupVariables = Object.create(null);
         this.usedMathFunctions = new Set();
+
+        // Procedure variants currently being inlined, to stop a recursive reporter from
+        // inlining itself forever.
+        this._inliningProcedures = new Set();
 
         this.prependFunctions = new Map();
 
@@ -612,7 +615,7 @@ class JSGenerator {
         case BLOCKS.OP.ABS: {
             const value = this.descendInput(node.value);
             if (value.isAlwaysConstant()) {
-                return new ConstantInput(Math.abs(+value.constantValue), false);
+                return new ConstantInput(Math.abs(toNotNaN(+value.constantValue)), false);
             }
             this.usedMathFunctions.add('abs');
             return new TypedInput(`abs(${value.asNumber()})`, TYPES.NUMBER);
@@ -682,17 +685,19 @@ class JSGenerator {
             const right = this.descendInput(node.right);
             const leftStr = left.asNumber();
             const rightStr = right.asNumber();
+            if (left.isAlwaysConstant() && right.isAlwaysConstant()) {
+                const leftVal = toNotNaN(+left.constantValue);
+                const rightVal = toNotNaN(+right.constantValue);
+                return new ConstantInput(leftVal / rightVal, false);
+            }
             if (right.isAlwaysConstant()) {
-                if (left.isAlwaysConstant()) {
-                    const leftVal = toNotNaN(+left.constantValue);
-                    const rightVal = toNotNaN(+right.constantValue);
-                    return new ConstantInput(leftVal / rightVal, false);
-                }
-                if (!right.isConstant(0)) {
-                    return new TypedInput(`(${left.asNumber()} / ${right.asNumber()})`, TYPES.NUMBER);
-                }
-                if (left.isConstant(0)) {
-                    return new TypedInput('NaN', TYPES.NUMBER_NAN);
+                // Dividing by a finite nonzero constant can never yield NaN: asNumber() strips NaN
+                // from the left, and a finite or Infinite value divided by a finite nonzero number
+                // stays finite or Infinite. A zero or non-numeric divisor -- which asNumber()
+                // coerces to 0 -- can give 0/0 = NaN, so those must stay NUMBER_NAN.
+                const rightVal = +right.constantValue;
+                if (Number.isFinite(rightVal) && rightVal !== 0) {
+                    return new TypedInput(`(${leftStr} / ${rightStr})`, TYPES.NUMBER);
                 }
             }
             return new TypedInput(`(${leftStr} / ${rightStr})`, TYPES.NUMBER_NAN);
@@ -887,7 +892,9 @@ class JSGenerator {
                 l = `${l} - 1`;
             }
             if (string.isAlwaysConstant() && letterIsConstant) {
-                const s = `${string.constantValue}`.toLowerCase();
+                // `letter of` preserves case (unlike `contains`); must match the runtime path
+                // and the interpreter, which index the string as-is.
+                const s = `${string.constantValue}`;
                 return new ConstantInput(s[l] || '', false);
             }
             return new TypedInput(`((${string.asString()})[${l}] || "")`, TYPES.STRING);
@@ -1015,7 +1022,7 @@ class JSGenerator {
                 const val = toNotNaN(+value.constantValue);
                 return new ConstantInput(MathUtil.tan(val), false);
             }
-            this.usedMathFunctions.add('tan');
+            // tan() comes from runtimeFunctions; it works in degrees, unlike Math.tan.
             return new TypedInput(`tan(${value.asNumber()})`, TYPES.NUMBER_NAN);
         }
         case BLOCKS.OP.TENEXP: {
@@ -1044,9 +1051,11 @@ class JSGenerator {
                 return new TypedInput('""', TYPES.STRING);
             }
 
-            if (node.arguments.length === 0) {
+            if (node.arguments.length === 0 && !this._inliningProcedures.has(procedureVariant)) {
                 if (stack[0].kind === BLOCKS.PROCEDURES.RETURN) {
+                    this._inliningProcedures.add(procedureVariant);
                     const input = this.descendInput(stack[0].value);
+                    this._inliningProcedures.delete(procedureVariant);
                     return input;
                 }
             }
@@ -1734,7 +1743,20 @@ class JSGenerator {
 
         case BLOCKS.CONTROL.SWITCH: {
             const value = this.descendInput(node.value);
-            this.source += `switch (${node.useNumbers ? value.asNumber() : value.asString()}) {\n`;
+            let discriminant;
+            if (node.useNumbers === true) {
+                // Numeric `=` if-chain conversion: a non-numeric subject becomes NaN so it matches
+                // no case, as Scratch's `=` would.
+                discriminant = `toSwitchNumber(${value.asUnknown()})`;
+            } else if (node.useNumbers === false) {
+                // String `=` if-chain conversion: Scratch `=` is case-insensitive. Case labels are
+                // lowercased in irgen, so lowercase the subject to match.
+                discriminant = `(${value.asString()}).toLowerCase()`;
+            } else {
+                // Native control_switch block: case-sensitive string match, like the interpreter.
+                discriminant = value.asString();
+            }
+            this.source += `switch (${discriminant}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
@@ -1742,7 +1764,7 @@ class JSGenerator {
         case BLOCKS.CONTROL.CASE: {
             const value = this.descendInput(node.value);
             this.source += `case ${node.useNumbers ? value.asNumber() : value.asString()}: {\n`;
-            
+
             this.descendStack(node.do, new Frame(false));
             this.source += 'break; }\n';
             break;
