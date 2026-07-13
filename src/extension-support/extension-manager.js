@@ -38,7 +38,8 @@ const coreExtensions = [
     'sensing',
     'operators',
     'data',
-    'procedures'
+    'procedures',
+    'assets'
 ];
 
 /**

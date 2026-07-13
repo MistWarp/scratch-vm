@@ -653,9 +653,11 @@ class VirtualMachine extends EventEmitter {
                 .concat(target.sprite.costumes.map(costume => costume.asset))
         ), []);
         const fonts = this.runtime.fontManager.serializeAssets();
+        const customAssets = this.runtime.assetManager.serializeAssets();
         return [
             ...costumesAndSounds,
-            ...fonts
+            ...fonts,
+            ...customAssets
         ];
     }
 
@@ -670,10 +672,15 @@ class VirtualMachine extends EventEmitter {
             fileName: `${asset.assetId}.${asset.dataFormat}`,
             fileContent: asset.data
         }));
+        const customAssetDescs = targetId ? [] : this.runtime.assetManager.serializeAssets().map(asset => ({
+            fileName: `${asset.assetId}.${asset.dataFormat}`,
+            fileContent: asset.data
+        }));
         return [
             ...costumeDescs,
             ...soundDescs,
-            ...fontDescs
+            ...fontDescs,
+            ...customAssetDescs
         ];
     }
 

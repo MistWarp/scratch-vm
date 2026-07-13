@@ -1,13 +1,6 @@
 const EventEmitter = require('events');
 const AssetUtil = require('../util/tw-asset-util');
-const StringUtil = require('../util/string-util');
 const log = require('../util/log');
-
-/**
- * @typedef InternalAsset
- * @property {string} name The asset's name
- * @property {Asset} asset scratch-storage asset holding the raw bytes
- */
 
 const FALLBACK_ASSET_TYPE = {
     contentType: 'application/octet-stream',
@@ -16,25 +9,60 @@ const FALLBACK_ASSET_TYPE = {
     immutable: true
 };
 
+const CONTENT_TYPES = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    bmp: 'image/bmp',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    wav: 'audio/wav',
+    mp3: 'audio/mpeg',
+    ogg: 'audio/ogg',
+    mp4: 'video/mp4',
+    json: 'application/json',
+    txt: 'text/plain',
+    csv: 'text/csv',
+    html: 'text/html'
+};
+
+const getContentType = dataFormat => CONTENT_TYPES[dataFormat] || 'application/octet-stream';
+
+const UNSAFE_PATH_CHARS = '<>:"|?*';
+
+const stripUnsafe = segment => Array.from(segment)
+    .filter(character => character.charCodeAt(0) > 0x1f && !UNSAFE_PATH_CHARS.includes(character))
+    .join('');
+
+const normalizePath = path => String(path)
+    .replace(/\\/g, '/')
+    .split('/')
+    .map(segment => stripUnsafe(segment.trim()))
+    .filter(segment => segment !== '' && segment !== '.' && segment !== '..')
+    .join('/');
+
+const getFolder = path => {
+    const index = path.lastIndexOf('/');
+    return index === -1 ? '' : path.substring(0, index);
+};
+
+const getBaseName = path => {
+    const index = path.lastIndexOf('/');
+    return index === -1 ? path : path.substring(index + 1);
+};
+
 class AssetManager extends EventEmitter {
-    /**
-     * @param {Runtime} runtime
-     */
     constructor (runtime) {
         super();
 
-        /** @type {Runtime} */
         this.runtime = runtime;
 
-        /** @type {Array<InternalAsset>} */
         this.assets = [];
+
+        this._objectURLs = new Map();
     }
 
-    /**
-     * scratch-storage asset type used for custom assets. Registered by scratch-gui; VM-only
-     * environments fall back to a local definition so tests and the playground still work.
-     * @returns {object}
-     */
     get assetType () {
         const storage = this.runtime.storage;
         if (storage && storage.AssetType && storage.AssetType.CustomAsset) {
@@ -43,60 +71,122 @@ class AssetManager extends EventEmitter {
         return FALLBACK_ASSET_TYPE;
     }
 
-    /**
-     * @param {string} name Untrusted name input
-     * @returns {string} A name not already in use
-     */
-    getUnusedName (name) {
-        return StringUtil.caseInsensitiveUnusedName(name, this.assets.map(i => i.name));
-    }
-
-    /**
-     * @param {string} name
-     * @returns {InternalAsset|null}
-     */
-    getAsset (name) {
-        return this.assets.find(i => i.name.toLowerCase() === String(name).toLowerCase()) || null;
-    }
-
-    /**
-     * @param {string} name
-     * @param {Asset} asset scratch-storage asset
-     */
-    addAsset (name, asset) {
-        const existingIndex = this.assets.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
-        if (existingIndex !== -1) {
-            this.assets.splice(existingIndex, 1);
+    getUnusedName (path) {
+        const normalized = normalizePath(path) || 'asset';
+        if (!this.getAsset(normalized)) {
+            return normalized;
         }
-        this.assets.push({name, asset});
-        this.changed();
+        const folder = getFolder(normalized);
+        const base = getBaseName(normalized);
+        const dot = base.lastIndexOf('.');
+        const stem = dot > 0 ? base.substring(0, dot) : base;
+        const extension = dot > 0 ? base.substring(dot) : '';
+        const prefix = folder ? `${folder}/` : '';
+        for (let i = 2; ; i++) {
+            const candidate = `${prefix}${stem}${i}${extension}`;
+            if (!this.getAsset(candidate)) {
+                return candidate;
+            }
+        }
     }
 
-    /**
-     * @param {number} index
-     * @param {string} newName
-     */
-    renameAsset (index, newName) {
-        const entry = this.assets[index];
-        if (!entry || entry.name === newName) {
+    getAsset (name) {
+        const normalized = normalizePath(name).toLowerCase();
+        return this.assets.find(i => i.name.toLowerCase() === normalized) || null;
+    }
+
+    listFolder (folder) {
+        const normalized = normalizePath(folder);
+        return this.assets.filter(i => getFolder(i.name).toLowerCase() === normalized.toLowerCase());
+    }
+
+    addAsset (name, asset) {
+        const normalized = normalizePath(name);
+        if (!normalized) {
             return;
         }
-        entry.name = StringUtil.caseInsensitiveUnusedName(
-            newName,
-            this.assets.filter(i => i !== entry).map(i => i.name)
-        );
+        const existingIndex = this.assets.findIndex(i => i.name.toLowerCase() === normalized.toLowerCase());
+        if (existingIndex !== -1) {
+            this.releaseObjectURL(this.assets[existingIndex].name);
+            this.assets.splice(existingIndex, 1);
+        }
+        this.assets.push({name: normalized, asset});
         this.changed();
     }
 
-    /**
-     * @param {number} index
-     */
+    createAsset (name, data, dataFormat) {
+        const asset = this.runtime.storage.createAsset(
+            this.assetType,
+            dataFormat,
+            data,
+            null,
+            true
+        );
+        this.addAsset(name, asset);
+        return asset;
+    }
+
+    renameAsset (index, newName) {
+        const entry = this.assets[index];
+        const normalized = normalizePath(newName);
+        if (!entry || !normalized || entry.name === normalized) {
+            return;
+        }
+        this.releaseObjectURL(entry.name);
+        const conflict = this.assets.some(i => i !== entry && i.name.toLowerCase() === normalized.toLowerCase());
+        entry.name = conflict ? this.getUnusedName(normalized) : normalized;
+        this.changed();
+    }
+
     deleteAsset (index) {
+        const entry = this.assets[index];
+        if (!entry) {
+            return;
+        }
+        this.releaseObjectURL(entry.name);
         this.assets.splice(index, 1);
         this.changed();
     }
 
+    deleteAssetByName (name) {
+        const normalized = normalizePath(name).toLowerCase();
+        const index = this.assets.findIndex(i => i.name.toLowerCase() === normalized);
+        if (index !== -1) {
+            this.deleteAsset(index);
+        }
+    }
+
+    getObjectURL (name) {
+        const entry = this.getAsset(name);
+        if (!entry) {
+            return '';
+        }
+        if (this._objectURLs.has(entry.name)) {
+            return this._objectURLs.get(entry.name);
+        }
+        if (typeof URL === 'undefined' || typeof Blob === 'undefined' || !URL.createObjectURL) {
+            return '';
+        }
+        const blob = new Blob([entry.asset.data], {
+            type: getContentType(entry.asset.dataFormat)
+        });
+        const url = URL.createObjectURL(blob);
+        this._objectURLs.set(entry.name, url);
+        return url;
+    }
+
+    releaseObjectURL (name) {
+        const url = this._objectURLs.get(name);
+        if (url) {
+            URL.revokeObjectURL(url);
+            this._objectURLs.delete(name);
+        }
+    }
+
     clear () {
+        for (const name of Array.from(this._objectURLs.keys())) {
+            this.releaseObjectURL(name);
+        }
         if (this.assets.length === 0) {
             return;
         }
@@ -108,10 +198,6 @@ class AssetManager extends EventEmitter {
         this.emit('change');
     }
 
-    /**
-     * Get data to save in project.json and sb3 files.
-     * @returns {Array<{name: string; md5ext: string}>|null}
-     */
     serializeJSON () {
         if (this.assets.length === 0) {
             return null;
@@ -123,19 +209,10 @@ class AssetManager extends EventEmitter {
         }));
     }
 
-    /**
-     * @returns {Asset[]} list of scratch-storage assets
-     */
     serializeAssets () {
         return this.assets.map(i => i.asset);
     }
 
-    /**
-     * @param {unknown} json
-     * @param {JSZip} [zip]
-     * @param {boolean} [keepExisting]
-     * @returns {Promise<void>}
-     */
     async deserialize (json, zip, keepExisting) {
         if (!keepExisting) {
             this.clear();
@@ -167,3 +244,6 @@ class AssetManager extends EventEmitter {
 }
 
 module.exports = AssetManager;
+module.exports.getContentType = getContentType;
+module.exports.getFolder = getFolder;
+module.exports.normalizePath = normalizePath;

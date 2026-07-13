@@ -6,6 +6,11 @@
 // Please keep these lists alphabetical.
 
 const stacked = [
+    'assets_delete',
+    'assets_load',
+    'assets_set',
+    'assets_unload',
+    'assets_unloadall',
     'looks_changestretchby',
     'looks_hideallsprites',
     'looks_sayforsecs',
@@ -32,6 +37,11 @@ const stacked = [
 ];
 
 const inputs = [
+    'assets_allnames',
+    'assets_byte',
+    'assets_check',
+    'assets_get',
+    'assets_infolder',
     'motion_xscroll',
     'motion_yscroll',
     'sensing_loud',

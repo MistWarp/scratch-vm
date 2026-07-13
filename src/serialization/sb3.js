@@ -46,6 +46,7 @@ const INPUT_DIFF_BLOCK_SHADOW = 3; // obscured shadow
 // Constants used during deserialization of an SB3 file
 const CORE_EXTENSIONS = [
     'argument',
+    'assets',
     'colour',
     'control',
     'data',
@@ -997,6 +998,10 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
         obj.customFonts = fonts;
     }
 
+    if (customAssets) {
+        obj.customAssets = customAssets;
+    }
+
     // Assemble metadata
     const meta = Object.create(null);
     meta.semver = '3.0.0';
@@ -1796,6 +1801,11 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
         fontPromise = runtime.fontManager.deserialize(json.customFonts, zip, isSingleSprite);
     } else {
         fontPromise = Promise.resolve();
+    }
+
+    if (json.customAssets) {
+        fontPromise = fontPromise.then(() => runtime.assetManager.deserialize(
+            json.customAssets, zip, isSingleSprite));
     }
 
     // First keep track of the current target order in the json,
