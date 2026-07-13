@@ -114,6 +114,7 @@ class VirtualMachine extends EventEmitter {
          * @type {Target}
          */
         this.editingTarget = null;
+        this._broadcastCleanupNeeded = true;
 
         /**
          * The currently dragging target, for redirecting IO data.
@@ -177,6 +178,7 @@ class VirtualMachine extends EventEmitter {
             this.emit(Runtime.BLOCKSINFO_UPDATE, categoryInfo);
         });
         this.runtime.on(Runtime.BLOCKS_NEED_UPDATE, () => {
+            this._broadcastCleanupNeeded = true;
             this.emitWorkspaceUpdate();
         });
         this.runtime.on(Runtime.TOOLBOX_EXTENSIONS_NEED_UPDATE, () => {
@@ -404,6 +406,7 @@ class VirtualMachine extends EventEmitter {
     clear () {
         this.runtime.dispose();
         this.editingTarget = null;
+        this._broadcastCleanupNeeded = true;
         this.emitTargetsUpdate(false /* Don't emit project change */);
     }
 
@@ -791,7 +794,7 @@ class VirtualMachine extends EventEmitter {
                 );
 
                 this.emitLoadProgress('installing');
-        safePerformanceMark('scratch-vm-installTargets-start');
+                safePerformanceMark('scratch-vm-installTargets-start');
                 return this.installTargets(targets, extensions, true).then(result => {
                     safePerformanceMark('scratch-vm-installTargets-end');
                     safePerformanceMeasure(
@@ -913,10 +916,11 @@ class VirtualMachine extends EventEmitter {
             this.runtime.parseProjectOptions();
         }
 
+        this._broadcastCleanupNeeded = true;
+        this.runtime.setEditingTarget(this.editingTarget);
         // Update the VM user's knowledge of targets and blocks on the workspace.
         this.emitTargetsUpdate(false /* Don't emit project change */);
         this.emitWorkspaceUpdate();
-        this.runtime.setEditingTarget(this.editingTarget);
         this.runtime.ioDevices.cloud.setStage(this.runtime.getTargetForStage());
         safePerformanceMark('scratch-vm-installTargets-finalize-end');
         safePerformanceMeasure(
@@ -1450,6 +1454,7 @@ class VirtualMachine extends EventEmitter {
             // Remove monitors from the runtime state and remove the
             // target-specific monitored blocks (e.g. local variables)
             target.deleteMonitors();
+            this._broadcastCleanupNeeded = true;
             const currentEditingTarget = this.editingTarget;
             for (let i = 0; i < sprite.clones.length; i++) {
                 const clone = sprite.clones[i];
@@ -1568,6 +1573,9 @@ class VirtualMachine extends EventEmitter {
      */
     blockListener (e) {
         if (this.editingTarget) {
+            if (e && ['create', 'change', 'delete', 'var_create', 'var_delete'].includes(e.type)) {
+                this._broadcastCleanupNeeded = true;
+            }
             this.editingTarget.blocks.blocklyListen(e);
         }
     }
@@ -1627,10 +1635,12 @@ class VirtualMachine extends EventEmitter {
         const target = this.runtime.getTargetById(targetId);
         if (target) {
             this.editingTarget = target;
+            // Start target-dependent extension work before the synchronous UI
+            // workspace rebuild so the two can overlap.
+            this.runtime.setEditingTarget(target);
             // Emit appropriate UI updates.
             this.emitTargetsUpdate(false /* Don't emit project change */);
             this.emitWorkspaceUpdate();
-            this.runtime.setEditingTarget(target);
         }
     }
 
@@ -1679,6 +1689,7 @@ class VirtualMachine extends EventEmitter {
                 target.blocks.createBlock(block);
             });
             target.blocks.updateTargetSpecificBlocks(target.isStage);
+            this._broadcastCleanupNeeded = true;
         });
     }
 
@@ -1775,28 +1786,28 @@ class VirtualMachine extends EventEmitter {
      * of the current editing target's blocks.
      */
     emitWorkspaceUpdate () {
-        // Create a list of broadcast message Ids according to the stage variables
         const stageVariables = this.runtime.getTargetForStage().variables;
-        const messageIds = new Set();
-        for (const varId in stageVariables) {
-            if (stageVariables[varId].type === Variable.BROADCAST_MESSAGE_TYPE) {
-                messageIds.add(varId);
-            }
-        }
-        // Go through all blocks on all targets, removing referenced
-        // broadcast ids from the list.
-        for (let i = 0; i < this.runtime.targets.length; i++) {
-            const currTarget = this.runtime.targets[i];
-            const currBlocks = currTarget.blocks._blocks;
-            for (const blockId in currBlocks) {
-                if (currBlocks[blockId].fields.BROADCAST_OPTION) {
-                    messageIds.delete(currBlocks[blockId].fields.BROADCAST_OPTION.id);
+        // This project-wide scan used to run on every sprite switch. Blocks only
+        // need it after a block/variable mutation or a new project is installed.
+        if (this._broadcastCleanupNeeded) {
+            const messageIds = new Set();
+            for (const varId in stageVariables) {
+                if (stageVariables[varId].type === Variable.BROADCAST_MESSAGE_TYPE) {
+                    messageIds.add(varId);
                 }
             }
-        }
-        // Anything left in messageIds is not referenced by a block, so delete it.
-        for (const id of messageIds) {
-            delete stageVariables[id];
+            for (let i = 0; i < this.runtime.targets.length; i++) {
+                const currBlocks = this.runtime.targets[i].blocks._blocks;
+                for (const blockId in currBlocks) {
+                    if (currBlocks[blockId].fields.BROADCAST_OPTION) {
+                        messageIds.delete(currBlocks[blockId].fields.BROADCAST_OPTION.id);
+                    }
+                }
+            }
+            for (const id of messageIds) {
+                delete stageVariables[id];
+            }
+            this._broadcastCleanupNeeded = false;
         }
         const globalVarMap = Object.assign({}, this.runtime.getTargetForStage().variables);
         const localVarMap = this.editingTarget.isStage ?
@@ -1809,8 +1820,8 @@ class VirtualMachine extends EventEmitter {
             .map(k => this.editingTarget.comments[k])
             .filter(c => c.blockId === null);
 
-        const frames = Object.keys(this.editingTarget.frames)
-            .map(k => this.editingTarget.frames[k]);
+        const targetFrames = this.editingTarget.frames || Object.create(null);
+        const frames = Object.keys(targetFrames).map(k => targetFrames[k]);
 
         const target = this.editingTarget;
         // Everything except the blocks. Serializing the blocks to a string so
@@ -1833,8 +1844,8 @@ class VirtualMachine extends EventEmitter {
             },
             headerXml: `<xml xmlns="http://www.w3.org/1999/xhtml">${headerXml}</xml>`,
             blocks: {
-                blocks: target.blocks._blocks,
-                scripts: target.blocks.getScripts(),
+                blocks: target.blocks._blocks || Object.create(null),
+                scripts: typeof target.blocks.getScripts === 'function' ? target.blocks.getScripts() : [],
                 comments: target.comments
             }
         });
