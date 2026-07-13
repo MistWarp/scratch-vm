@@ -112,6 +112,33 @@ const EXTENDABLE_OPERATORS = {
     operator_join: 'STRING'
 };
 
+// Blocks that vanilla Scratch has no opcode for, but which are constant enough to be saved as a
+// stage variable holding the value. Vanilla runs them as an ordinary variable reporter; MistWarp
+// turns them back into blocks on load. The id is the name so the same variable is reused forever.
+const VANILLA_CONSTANTS = {
+    operator_pi: {name: 'mistwarp.pi', value: Math.PI},
+    operator_newline: {name: 'mistwarp.newline', value: '\n'}
+};
+
+const CONSTANT_OPCODE_BY_NAME = {};
+for (const opcode in VANILLA_CONSTANTS) {
+    CONSTANT_OPCODE_BY_NAME[VANILLA_CONSTANTS[opcode].name] = opcode;
+}
+
+const collapseConstants = function (blocks) {
+    for (const id in blocks) {
+        if (!hasOwnProperty.call(blocks, id)) continue;
+        const block = blocks[id];
+        if (!block || Array.isArray(block) || block.opcode !== 'data_variable') continue;
+        const variable = block.fields && block.fields.VARIABLE;
+        const opcode = variable && CONSTANT_OPCODE_BY_NAME[variable.value];
+        if (!opcode) continue;
+        block.opcode = opcode;
+        block.fields = {};
+    }
+    return blocks;
+};
+
 const getOperatorItemCount = block => {
     const mutation = block.mutation;
     if (mutation && mutation.itemcount) {
@@ -199,7 +226,7 @@ const collapseOperators = function (blocks) {
     return blocks;
 };
 
-const expandOperators = function (blocks) {
+const expandOperators = function (blocks, usedConstants) {
     const result = {};
     for (const id in blocks) {
         if (hasOwnProperty.call(blocks, id)) result[id] = blocks[id];
@@ -225,7 +252,23 @@ const expandOperators = function (blocks) {
     const originalIds = Object.keys(result);
     for (const id of originalIds) {
         const orig = result[id];
-        if (!orig || Array.isArray(orig) || !orig.inputs) continue;
+        if (!orig || Array.isArray(orig)) continue;
+        const constant = VANILLA_CONSTANTS[orig.opcode];
+        if (constant) {
+            const block = cloneBlock(id);
+            block.opcode = 'data_variable';
+            block.fields = {
+                VARIABLE: {
+                    name: 'VARIABLE',
+                    value: constant.name,
+                    id: constant.name,
+                    variableType: Variable.SCALAR_TYPE
+                }
+            };
+            if (usedConstants) usedConstants.add(constant);
+            continue;
+        }
+        if (!orig.inputs) continue;
         const prefix = EXTENDABLE_OPERATORS[orig.opcode];
         if (!prefix) continue;
         const count = getOperatorItemCount(orig);
@@ -795,7 +838,7 @@ const serializeFrames = function (frames) {
  * @param {Set} extensions A set of extensions to add extension IDs to
  * @return {object} A serialized representation of the given target.
  */
-const serializeTarget = function (target, extensions) {
+const serializeTarget = function (target, extensions, usedConstants) {
     const obj = Object.create(null);
     let targetExtensions = [];
     obj.isStage = target.isStage;
@@ -804,7 +847,7 @@ const serializeTarget = function (target, extensions) {
     obj.variables = vars.variables;
     obj.lists = vars.lists;
     obj.broadcasts = vars.broadcasts;
-    [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(target.blocks));
+    [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(target.blocks, usedConstants));
     obj.comments = serializeComments(target.comments);
     if (target.frames && Object.keys(target.frames).length > 0) {
         obj.frames = serializeFrames(target.frames);
@@ -949,7 +992,9 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
         });
     }
 
-    const serializedTargets = flattenedOriginalTargets.map(t => serializeTarget(t, extensions))
+    const usedConstants = new Set();
+
+    const serializedTargets = flattenedOriginalTargets.map(t => serializeTarget(t, extensions, usedConstants))
         .map((serialized, index) => {
             // can't serialize extensionStorage until the list of used extensions is fully known
             const target = originalTargetsToSerialize[index];
@@ -959,6 +1004,18 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
             }
             return serialized;
         });
+
+    if (usedConstants.size) {
+        // Sprites are exported without a stage, so their copy of the variable has to be local.
+        const constantHost = targetId ?
+            serializedTargets[0] :
+            serializedTargets.find(t => t.isStage);
+        if (constantHost) {
+            for (const constant of usedConstants) {
+                constantHost.variables[constant.name] = [constant.name, constant.value];
+            }
+        }
+    }
 
     const fonts = runtime.fontManager.serializeJSON();
     const customAssets = runtime.assetManager.serializeJSON();
@@ -1398,6 +1455,7 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
     }
     if (Object.prototype.hasOwnProperty.call(object, 'blocks')) {
         deserializeBlocks(object.blocks);
+        collapseConstants(object.blocks);
         if (runtime.extendableOperators) {
             collapseOperators(object.blocks);
         }
@@ -1439,6 +1497,8 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
     if (Object.prototype.hasOwnProperty.call(object, 'variables')) {
         for (const varId in object.variables) {
             const variable = object.variables[varId];
+            // Every reference to it just became a block again, so don't recreate the variable.
+            if (CONSTANT_OPCODE_BY_NAME[variable[0]]) continue;
             // A variable is a cloud variable if:
             // - the project says it's a cloud variable, and
             // - it's a stage variable, and

@@ -437,3 +437,61 @@ test('extendable operators preserve obscured shadows across a load/save round tr
         t.end();
     })();
 });
+
+// pi/newline have no vanilla opcode, so they are saved as stage variables holding their value and
+// turned back into blocks on load.
+const buildConstantsProject = () => ({
+    targets: [
+        {isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {},
+            comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 0,
+            tempo: 60, videoTransparency: 50, videoState: 'off', textToSpeechLanguage: null},
+        {isStage: false, name: 'Sprite1', variables: {}, lists: {}, broadcasts: {}, blocks: {
+            hat: {opcode: 'event_whenflagclicked', next: 'say', parent: null, inputs: {},
+                fields: {}, shadow: false, topLevel: true, x: 0, y: 0},
+            say: {opcode: 'looks_say', next: null, parent: 'hat',
+                inputs: {MESSAGE: [3, 'join', [10, '']]}, fields: {}, shadow: false, topLevel: false},
+            join: {opcode: 'operator_join', next: null, parent: 'say',
+                inputs: {STRING1: [3, 'pi', [10, 'a']], STRING2: [3, 'newline', [10, 'b']]},
+                fields: {}, shadow: false, topLevel: false},
+            pi: {opcode: 'operator_pi', next: null, parent: 'join', inputs: {}, fields: {},
+                shadow: false, topLevel: false},
+            newline: {opcode: 'operator_newline', next: null, parent: 'join', inputs: {}, fields: {},
+                shadow: false, topLevel: false}
+        }, comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 1,
+        visible: true, x: 0, y: 0, size: 100, direction: 90, draggable: false,
+        rotationStyle: 'all around'}
+    ], monitors: [], extensions: [], meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+});
+
+test('pi and newline round trip through stage variables', t => {
+    const runtime = new Runtime();
+    (async () => {
+        const {targets} = await sb3.deserialize(buildConstantsProject(), runtime);
+        for (const target of targets) runtime.addTarget(target);
+
+        const saved = sb3.serialize(runtime);
+        const stage = saved.targets.find(target => target.isStage);
+        t.same(stage.variables['mistwarp.pi'], ['mistwarp.pi', Math.PI], 'pi saved as a stage variable');
+        t.same(stage.variables['mistwarp.newline'], ['mistwarp.newline', '\n'], 'newline saved as a stage variable');
+
+        const savedBlocks = saved.targets[1].blocks;
+        const opcodes = Object.values(savedBlocks).map(block => block.opcode);
+        t.notOk(opcodes.includes('operator_pi'), 'no operator_pi block saved');
+        t.notOk(opcodes.includes('operator_newline'), 'no operator_newline block saved');
+        const join = Object.values(savedBlocks).find(block => block.opcode === 'operator_join');
+        t.same(join.inputs.STRING1[1], [12, 'mistwarp.pi', 'mistwarp.pi'], 'pi is a variable reporter');
+        t.same(join.inputs.STRING2[1], [12, 'mistwarp.newline', 'mistwarp.newline'], 'newline is a variable reporter');
+
+        for (const target of targets) runtime.disposeTarget(target);
+
+        const reloadRuntime = new Runtime();
+        const reloaded = await sb3.deserialize(JSON.parse(JSON.stringify(saved)), reloadRuntime);
+        const reloadedStage = reloaded.targets.find(target => target.isStage);
+        t.same(Object.keys(reloadedStage.variables), [], 'constant variables are not recreated on load');
+        const reloadedOpcodes = Object.values(reloaded.targets[1].blocks._blocks).map(block => block.opcode);
+        t.ok(reloadedOpcodes.includes('operator_pi'), 'pi block restored');
+        t.ok(reloadedOpcodes.includes('operator_newline'), 'newline block restored');
+        t.notOk(reloadedOpcodes.includes('data_variable'), 'no leftover variable reporters');
+        t.end();
+    })();
+});
