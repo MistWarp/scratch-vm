@@ -19,11 +19,11 @@ const soup_ = '!#%()*+,-./:;=?@[]^_`{|}~' +
 const uid = function () {
     const length = 20;
     const soupLength = soup_.length;
-    const id = [];
+    let id = '';
     for (let i = 0; i < length; i++) {
-        id[i] = soup_.charAt(Math.random() * soupLength);
+        id += soup_[(Math.random() * soupLength) | 0];
     }
-    return id.join('');
+    return id;
 };
 
 module.exports = uid;
