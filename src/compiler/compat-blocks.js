@@ -44,6 +44,13 @@ const inputs = [
     'assets_infolder',
     'motion_xscroll',
     'motion_yscroll',
+    // ponytail: string helpers use the compatibility layer; add compiler IR only if profiling shows it matters.
+    'operator_change_case',
+    'operator_index_of',
+    'operator_letters_of',
+    'operator_repeat',
+    'operator_replace',
+    'operator_trim',
     'sensing_loud',
     'sensing_loudness',
     'sensing_userid',

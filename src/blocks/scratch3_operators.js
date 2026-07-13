@@ -40,6 +40,12 @@ class Scratch3OperatorsBlocks {
             operator_letter_of: this.letterOf,
             operator_length: this.length,
             operator_contains: this.contains,
+            operator_letters_of: this.lettersOf,
+            operator_index_of: this.indexOf,
+            operator_replace: this.replace,
+            operator_repeat: this.repeat,
+            operator_change_case: this.changeCase,
+            operator_trim: this.trim,
             operator_mod: this.mod,
             operator_pi: this.pi,
             operator_newline: this.newline,
@@ -163,6 +169,41 @@ class Scratch3OperatorsBlocks {
             return Cast.toString(string).toLowerCase();
         };
         return format(args.STRING1).includes(format(args.STRING2));
+    }
+
+    lettersOf (args) {
+        return Cast.toString(args.STRING).substring(
+            Cast.toNumber(args.LETTER1) - 1,
+            Cast.toNumber(args.LETTER2)
+        );
+    }
+
+    indexOf (args) {
+        return Cast.toString(args.STRING).toLowerCase().indexOf(
+            Cast.toString(args.SUBSTRING).toLowerCase()
+        ) + 1;
+    }
+
+    replace (args) {
+        const substring = Cast.toString(args.SUBSTRING).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return Cast.toString(args.STRING).replace(
+            new RegExp(substring, 'gi'),
+            Cast.toString(args.REPLACE)
+        );
+    }
+
+    repeat (args) {
+        const count = Math.floor(Cast.toNumber(args.REPEAT));
+        return count < 0 || !Number.isFinite(count) ? '' : Cast.toString(args.STRING).repeat(count);
+    }
+
+    changeCase (args) {
+        const string = Cast.toString(args.STRING);
+        return args.CASE === 'uppercase' ? string.toUpperCase() : string.toLowerCase();
+    }
+
+    trim (args) {
+        return Cast.toString(args.STRING).trim();
     }
 
     _mod (n, modulus) {

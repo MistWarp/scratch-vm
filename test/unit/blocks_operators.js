@@ -150,6 +150,22 @@ test('contains', t => {
     t.end();
 });
 
+test('string helpers', t => {
+    t.strictEqual(blocks.lettersOf({STRING: 'apple', LETTER1: 2, LETTER2: 4}), 'ppl');
+    t.strictEqual(blocks.indexOf({STRING: 'Apple', SUBSTRING: 'PL'}), 3);
+    t.strictEqual(blocks.indexOf({STRING: 'apple', SUBSTRING: 'z'}), 0);
+    t.strictEqual(
+        blocks.replace({STRING: 'Hello hello', SUBSTRING: 'hello', REPLACE: 'hi'}),
+        'hi hi'
+    );
+    t.strictEqual(blocks.repeat({STRING: 'ha', REPEAT: 3}), 'hahaha');
+    t.strictEqual(blocks.repeat({STRING: 'ha', REPEAT: -1}), '');
+    t.strictEqual(blocks.changeCase({STRING: 'Apple', CASE: 'uppercase'}), 'APPLE');
+    t.strictEqual(blocks.changeCase({STRING: 'Apple', CASE: 'lowercase'}), 'apple');
+    t.strictEqual(blocks.trim({STRING: '  apple  '}), 'apple');
+    t.end();
+});
+
 test('mod', t => {
     t.strictEqual(blocks.mod({NUM1: 1, NUM2: 1}), 0);
     t.strictEqual(blocks.mod({NUM1: 3, NUM2: 6}), 3);
