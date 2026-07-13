@@ -695,6 +695,37 @@ runtimeFunctions.yieldThenCallGenerator = `const yieldThenCallGenerator = functi
  */
 runtimeFunctions.toNotNaN = `const toNotNaN = value => Number.isNaN(value) ? 0 : value`;
 
+runtimeFunctions.parseJSON = `const parseJSON = value => {
+    if (value !== null && typeof value === "object") return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return undefined;
+    }
+}`;
+
+runtimeFunctions.toScratchString = `const toScratchString = value => {
+    if (value !== null && typeof value === "object") {
+        try {
+            return JSON.stringify(value);
+        } catch {
+            // Fall through to normal string conversion.
+        }
+    }
+    return "" + value;
+}`;
+
+runtimeFunctions.toScratchValue = `const toScratchValue = value => {
+    if (value !== null && typeof value === "object") {
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return "" + value;
+        }
+    }
+    return value ?? "";
+}`;
+
 /**
  * Step a compiled thread.
  * @param {*} thread The thread to step.

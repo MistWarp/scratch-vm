@@ -38,6 +38,7 @@ setCurrentGenerator(null);
  * @property {() => string} asStringOrEmpty gives the code to get the string version of the value ?? ""
  * @property {() => string} asLowerString gives the code to get the lower-case version of the string
  * @property {() => string} asBoolean gives the code to get the boolean version of the value
+ * @property {() => string} asJSON gives the code to get a native JSON value
  * @property {() => string} asColor gives the code to get the color version of the value
  * @property {() => string} asUnknown gives the code to get the value without any conversion
  * @property {() => boolean} isSafe means that the value is safe to use without conversion
@@ -76,32 +77,38 @@ class TypedInput {
     }
 
     asNumber () {
+        if (this.isSometimesType(TYPES.JSON)) return `toNotNaN(+toScratchString(${this.source}))`;
         if (this.isAlwaysType(TYPES.NUMBER)) return this.source;
         if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
+        if (this.isSometimesType(TYPES.JSON)) return `(+toScratchString(${this.source}) | 0)`;
         if (this.isAlwaysType(TYPES.NUMBER_INT)) return this.source;
         return `(${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
+        if (this.isSometimesType(TYPES.JSON)) return `(+toScratchString(${this.source}))`;
         if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return this.source;
         return `(+${this.source})`;
     }
 
     asStringOrEmpty () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source})`;
         if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asString () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source})`;
         if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source}).toLowerCase()`;
         if (this.isAlwaysType(TYPES.LOWER_STRING)) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
@@ -111,11 +118,19 @@ class TypedInput {
         return `toBoolean(${this.source})`;
     }
 
+    asJSON () {
+        if (this.isAlwaysType(TYPES.JSON)) return this.source;
+        return `parseJSON(${this.source})`;
+    }
+
     asColor () {
         return this.asUnknown();
     }
 
     asUnknown () {
+        if (this.isSometimesType(TYPES.JSON) && this.isAlwaysType(TYPES.JSON_VALUE)) {
+            return `toScratchValue(${this.source})`;
+        }
         return `${this.source}`;
     }
 
@@ -206,6 +221,10 @@ class ConstantInput {
             return '-0';
         }
         return '0';
+    }
+
+    asJSON () {
+        return `parseJSON(${this.asUnknown()})`;
     }
 
     asInt () {
@@ -400,33 +419,39 @@ class VariableInput {
     }
 
     asNumber () {
+        if (this.isSometimesType(TYPES.JSON)) return `toNotNaN(+toScratchString(${this.source}))`;
         if (this.isAlwaysType(TYPES.NUMBER)) return this.source;
         if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `toNotNaN(${this.source})`;
         return `toNotNaN(+${this.source})`;
     }
 
     asInt () {
+        if (this.isSometimesType(TYPES.JSON)) return `(+toScratchString(${this.source}) | 0)`;
         if (this.isAlwaysType(TYPES.NUMBER_INT)) return this.source;
         if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return `(${this.source} | 0)`;
         return `(+${this.source} | 0)`;
     }
 
     asNumberOrNaN () {
+        if (this.isSometimesType(TYPES.JSON)) return `(+toScratchString(${this.source}))`;
         if (this.isAlwaysType(TYPES.NUMBER_OR_NAN)) return this.source;
         return `(+${this.source})`;
     }
 
     asString () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source})`;
         if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asStringOrEmpty () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source})`;
         if (this.isAlwaysType(TYPES.STRING)) return this.source;
         return `("" + ${this.source})`;
     }
 
     asLowerString () {
+        if (this.isSometimesType(TYPES.JSON)) return `toScratchString(${this.source}).toLowerCase()`;
         if (this.isAlwaysType(TYPES.LOWER_STRING)) return this.source;
         return `("" + ${this.source}).toLowerCase()`;
     }
@@ -436,11 +461,19 @@ class VariableInput {
         return `toBoolean(${this.source})`;
     }
 
+    asJSON () {
+        if (this.isAlwaysType(TYPES.JSON)) return this.source;
+        return `parseJSON(${this.source})`;
+    }
+
     asColor () {
         return this.asUnknown();
     }
 
     asUnknown () {
+        if (this.isSometimesType(TYPES.JSON) && this.isAlwaysType(TYPES.JSON_VALUE)) {
+            return `toScratchValue(${this.source})`;
+        }
         return this.source;
     }
 

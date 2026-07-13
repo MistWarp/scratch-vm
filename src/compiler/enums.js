@@ -38,14 +38,18 @@ const TYPES = {
     OBJECT: 0x2000,
     ARRAY: 0x4000,
 
-    ANY: 0x7FFF,
+    ANY: 0x47FFF,
     COLOR: 0x8000,
 
     NUMBER_INT: 0x03A,
     NUMBER_NAN: 0x1FF,
-    UNKNOWN: 0x7FFF,
+    UNKNOWN: 0x47FFF,
     LOWER_STRING: 0x10000,
-    PROCEDURE_ARG: 0x20000
+    PROCEDURE_ARG: 0x20000,
+    // Native object or array used by compiled extension blocks.
+    JSON: 0x40000,
+    // A JSON item: native JSON or a Scratch-compatible primitive.
+    JSON_VALUE: 0x41FFF
 };
 
 let INPUT_I = 1;
@@ -181,16 +185,22 @@ const BLOCKS = {
         NOT: id(),
         OR: id(),
         AND: id(),
+        CHANGECASE: id(),
         EQUALS: id(),
         GREATER: id(),
+        INDEXOF: id(),
         LESS: id(),
         LETTEROF: id(),
+        LETTERSOF: id(),
         LENGTH: id(),
         CONTAINS: id(),
         MOD: id(),
         EXP: id(),
         JOIN: id(),
+        REPEAT: id(),
+        REPLACE: id(),
         TENEXP: id(),
+        TRIM: id(),
         PI: id(),
         NEWLINE: id()
     },
@@ -205,6 +215,8 @@ const BLOCKS = {
     NOOP: id(),
 
     COMPAT: id(),
+
+    EXTENSION: id(),
 
     ADDONS: {
         CALL: id()

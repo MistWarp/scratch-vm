@@ -7,6 +7,7 @@ const Variable = require('../engine/variable');
 const log = require('../util/log');
 const {IntermediateScript, IntermediateRepresentation} = require('./intermediate');
 const compatBlocks = require('./compat-blocks');
+const compiledExtensions = require('./extensions');
 
 const {BLOCKS} = require('./enums');
 
@@ -422,6 +423,12 @@ class ScriptTreeGenerator {
                 string: this.descendInputOfBlock(block, 'STRING1'),
                 contains: this.descendInputOfBlock(block, 'STRING2')
             };
+        case 'operator_change_case':
+            return {
+                kind: BLOCKS.OP.CHANGECASE,
+                string: this.descendInputOfBlock(block, 'STRING'),
+                case: block.fields.CASE.value
+            };
         case 'operator_divide':
             return this.descendVariadicOperator(block, 'NUM', BLOCKS.OP.DIVIDE);
         case 'operator_equals':
@@ -438,6 +445,19 @@ class ScriptTreeGenerator {
             };
         case 'operator_join':
             return this.descendVariadicOperator(block, 'STRING', BLOCKS.OP.JOIN);
+        case 'operator_index_of':
+            return {
+                kind: BLOCKS.OP.INDEXOF,
+                substring: this.descendInputOfBlock(block, 'SUBSTRING'),
+                string: this.descendInputOfBlock(block, 'STRING')
+            };
+        case 'operator_letters_of':
+            return {
+                kind: BLOCKS.OP.LETTERSOF,
+                start: this.descendInputOfBlock(block, 'LETTER1'),
+                end: this.descendInputOfBlock(block, 'LETTER2'),
+                string: this.descendInputOfBlock(block, 'STRING')
+            };
         case 'operator_length':
             return {
                 kind: BLOCKS.OP.LENGTH,
@@ -542,6 +562,24 @@ class ScriptTreeGenerator {
             };
         case 'operator_or':
             return this.descendVariadicOperator(block, 'OPERAND', BLOCKS.OP.OR);
+        case 'operator_repeat':
+            return {
+                kind: BLOCKS.OP.REPEAT,
+                string: this.descendInputOfBlock(block, 'STRING'),
+                count: this.descendInputOfBlock(block, 'REPEAT')
+            };
+        case 'operator_replace':
+            return {
+                kind: BLOCKS.OP.REPLACE,
+                substring: this.descendInputOfBlock(block, 'SUBSTRING'),
+                string: this.descendInputOfBlock(block, 'STRING'),
+                replacement: this.descendInputOfBlock(block, 'REPLACE')
+            };
+        case 'operator_trim':
+            return {
+                kind: BLOCKS.OP.TRIM,
+                string: this.descendInputOfBlock(block, 'STRING')
+            };
         case 'operator_random': {
             const from = this.descendInputOfBlock(block, 'FROM');
             const to = this.descendInputOfBlock(block, 'TO');
@@ -738,6 +776,9 @@ class ScriptTreeGenerator {
             };
 
         default: {
+            if (compiledExtensions.canCompile(block.opcode, this.runtime)) {
+                return this.descendCompiledExtension(block);
+            }
             const opcodeFunction = this.runtime.getOpcodeFunction(block.opcode);
             if (opcodeFunction) {
                 // It might be a non-compiled primitive from a standard category
@@ -1306,6 +1347,16 @@ class ScriptTreeGenerator {
             };
 
         default: {
+            if (compiledExtensions.canCompile(block.opcode, this.runtime)) {
+                const info = compiledExtensions.get(block.opcode);
+                if (info.type === null) {
+                    return this.descendCompiledExtension(block);
+                }
+                const visualReport = this.descendVisualReport(block);
+                if (visualReport) {
+                    return visualReport;
+                }
+            }
             const opcodeFunction = this.runtime.getOpcodeFunction(block.opcode);
             if (opcodeFunction) {
                 // It might be a non-compiled primitive from a standard category
@@ -1600,6 +1651,27 @@ class ScriptTreeGenerator {
             fields,
             substacks,
             code: block.code
+        };
+    }
+
+    descendCompiledExtension (block) {
+        const inputs = Object.create(null);
+        for (const name of Object.keys(block.inputs)) {
+            if (!name.startsWith('SUBSTACK')) {
+                inputs[name] = this.descendInputOfBlock(block, name);
+            }
+        }
+
+        const fields = Object.create(null);
+        for (const name of Object.keys(block.fields)) {
+            fields[name] = block.fields[name].value;
+        }
+
+        return {
+            kind: BLOCKS.EXTENSION,
+            opcode: block.opcode,
+            inputs,
+            fields
         };
     }
 

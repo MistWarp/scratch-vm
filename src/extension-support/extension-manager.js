@@ -199,7 +199,6 @@ class ExtensionManager {
         const extensionInstance = new extension(this.runtime);
         const serviceName = this._registerInternalExtension(extensionInstance);
         this._loadedExtensions.set(extensionId, serviceName);
-        this.runtime.compilerRegisterExtension(extensionId, extensionInstance);
     }
 
     addBuiltinExtension (extensionId, extensionClass) {
@@ -259,6 +258,7 @@ class ExtensionManager {
                 const serviceName = `unsandboxed.${fakeWorkerId}.${extensionInfo.id}`;
                 dispatch.setServiceSync(serviceName, extensionObject);
                 dispatch.callSync('extensions', 'registerExtensionServiceSync', serviceName);
+                this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject);
                 this._loadedExtensions.set(extensionInfo.id, serviceName);
             }
 
@@ -442,6 +442,7 @@ class ExtensionManager {
         const serviceName = `extension_${fakeWorkerId}_${extensionInfo.id}`;
         dispatch.setServiceSync(serviceName, extensionObject);
         dispatch.callSync('extensions', 'registerExtensionServiceSync', serviceName);
+        this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject);
         return serviceName;
     }
 

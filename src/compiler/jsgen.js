@@ -5,6 +5,7 @@ const VariablePool = require('./variable-pool');
 const jsexecute = require('./jsexecute');
 const environment = require('./environment');
 const log = require('../util/log');
+const compiledExtensions = require('./extensions');
 
 const {TypedInput, VariableInput, ConstantInput, setCurrentGenerator} = require('./inputs');
 const {
@@ -541,6 +542,9 @@ class JSGenerator {
             // Compatibility layer inputs never use flags.
             return new TypedInput(`(${this.generateCompatibilityLayerCall(node, false)})`, TYPES.UNKNOWN);
 
+        case BLOCKS.EXTENSION:
+            return this.generateCompiledExtensionCall(node);
+
         case BLOCKS.CONSTANT:
             return this.safeConstantInput(node.value);
 
@@ -746,6 +750,14 @@ class JSGenerator {
             this.usedMathFunctions.add('ceil');
             return new TypedInput(`ceil(${inp.asNumber()})`, TYPES.NUMBER_INT);
         }
+        case BLOCKS.OP.CHANGECASE: {
+            const string = this.descendInput(node.string);
+            const method = node.case === 'uppercase' ? 'toUpperCase' : 'toLowerCase';
+            if (string.isAlwaysConstant()) {
+                return new ConstantInput(`${string.constantValue}`[method](), false);
+            }
+            return new TypedInput(`${string.asString()}.${method}()`, TYPES.STRING);
+        }
         case BLOCKS.OP.CONTAINS: {
             const string = this.descendInput(node.string);
             const contains = this.descendInput(node.contains);
@@ -843,6 +855,17 @@ class JSGenerator {
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareGreaterThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
         }
+        case BLOCKS.OP.INDEXOF: {
+            const substring = this.descendInput(node.substring);
+            const string = this.descendInput(node.string);
+            if (substring.isAlwaysConstant() && string.isAlwaysConstant()) {
+                return new ConstantInput(
+                    `${string.constantValue}`.toLowerCase().indexOf(`${substring.constantValue}`.toLowerCase()) + 1,
+                    false
+                );
+            }
+            return new TypedInput(`(${string.asLowerString()}.indexOf(${substring.asLowerString()}) + 1)`, TYPES.NUMBER_WHOLE);
+        }
         case BLOCKS.OP.JOIN: {
             const left = this.descendInput(node.left);
             const right = this.descendInput(node.right);
@@ -880,6 +903,12 @@ class JSGenerator {
             }
             // No compile-time optimizations possible - use fallback method.
             return new TypedInput(`compareLessThan(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.BOOLEAN);
+        }
+        case BLOCKS.OP.LETTERSOF: {
+            const start = this.descendInput(node.start);
+            const end = this.descendInput(node.end);
+            const string = this.descendInput(node.string);
+            return new TypedInput(`${string.asString()}.substring(${start.asNumber()} - 1, ${end.asNumber()})`, TYPES.STRING);
         }
         case BLOCKS.OP.LETTEROF: {
             const string = this.descendInput(node.string);
@@ -982,6 +1011,29 @@ class JSGenerator {
             }
             return new TypedInput(`runtime.ext_scratch3_operators._random(${left.asUnknown()}, ${right.asUnknown()})`, TYPES.NUMBER_NAN);
         }
+        case BLOCKS.OP.REPEAT: {
+            const string = this.descendInput(node.string);
+            const count = this.descendInput(node.count);
+            this.prependFunctions.set('repeatString', `const repeatString = (string, count) => {
+                count = Math.floor(toNotNaN(+count));
+                return count < 0 || !Number.isFinite(count) ? "" : ("" + string).repeat(count);
+            }`);
+            return new TypedInput(`repeatString(${string.asUnknown()}, ${count.asUnknown()})`, TYPES.STRING);
+        }
+        case BLOCKS.OP.REPLACE: {
+            const substring = this.descendInput(node.substring);
+            const string = this.descendInput(node.string);
+            const replacement = this.descendInput(node.replacement);
+            this.prependFunctions.set('replaceString', `const replaceString = (substring, string, replacement) =>
+                ("" + string).replace(
+                    new RegExp(("" + substring).replace(/[.*+?^$()|[\\]{}\\\\]/g, "\\\\$&"), "gi"),
+                    "" + replacement
+                )`);
+            return new TypedInput(
+                `replaceString(${substring.asUnknown()}, ${string.asUnknown()}, ${replacement.asUnknown()})`,
+                TYPES.STRING
+            );
+        }
         case BLOCKS.OP.ROUND: {
             const inp = this.descendInput(node.value);
             if (inp.isAlwaysConstant()) {
@@ -1032,6 +1084,13 @@ class JSGenerator {
                 return new ConstantInput(Math.pow(10, val), false);
             }
             return new TypedInput(`(10 ** ${value.asNumber()})`, TYPES.NUMBER);
+        }
+        case BLOCKS.OP.TRIM: {
+            const string = this.descendInput(node.string);
+            if (string.isAlwaysConstant()) {
+                return new ConstantInput(`${string.constantValue}`.trim(), false);
+            }
+            return new TypedInput(`${string.asString()}.trim()`, TYPES.STRING);
         }
 
         case BLOCKS.PROCEDURES.CALL: {
@@ -1219,6 +1278,12 @@ class JSGenerator {
             if (isLastInLoop) {
                 this.source += 'if (hasResumedFromPromise) {hasResumedFromPromise = false;continue;}\n';
             }
+            break;
+        }
+
+        case BLOCKS.EXTENSION: {
+            const call = this.generateCompiledExtensionCall(node);
+            this.source += `${typeof call === 'string' ? call : call.source};\n`;
             break;
         }
 
@@ -1983,11 +2048,6 @@ class JSGenerator {
     generateCompatibilityLayerCall (node, setFlags, frameName = null) {
         const opcode = node.opcode;
 
-        if (opcode.startsWith('skyhigh173JSON_')) {
-            const result = this.generateSkyhigh173JSONCall(node, setFlags, frameName);
-            if (result) return result;
-        }
-
         let result = 'yield* executeInCompatibilityLayer({';
 
         for (const inputName of Object.keys(node.inputs)) {
@@ -2005,35 +2065,10 @@ class JSGenerator {
         return result;
     }
 
-    /**
-     * @returns {string?}
-     */
-    generateSkyhigh173JSONCall (node) {
-        switch (node.opcode) {
-        case 'skyhigh173JSON_json_get': {
-            this.prependFunctions.set('Skyhigh173JSON_json_get', `const Skyhigh173JSON_json_get = (json, item) => {
-                try {
-                    json = JSON.parse(json);
-                    if (Object.prototype.hasOwnProperty.call(json, item)) {
-                        const result = json[item] ?? "";
-                        if (typeof result === "object") {
-                            return JSON.stringify(result);
-                        } else {
-                            return result;
-                        }
-                    }
-                } catch {
-                    // ignore
-                }
-                return "";
-            }`);
-            const key = this.descendInput(node.inputs.item);
-            const json = this.descendInput(node.inputs.json);
-            return `Skyhigh173JSON_json_get(${json.asSafe()}, ${key.asString()})`;
-        }
-        }
-
-        return null;
+    generateCompiledExtensionCall (node) {
+        const info = compiledExtensions.get(node.opcode);
+        const source = info.generate(node, this, info);
+        return info.type === null ? source : new TypedInput(source, info.type);
     }
 
     getScriptFactoryName () {
@@ -2187,6 +2222,7 @@ JSGenerator.unstable_exports = {
     TYPE_BOOLEAN: TYPES.BOOLEAN,
     TYPE_NUMBER_NAN: TYPES.NUMBER_NAN,
     TYPE_UNKNOWN: TYPES.UNKNOWN,
+    TYPE_JSON: TYPES.JSON,
     BLOCKS,
     factoryNameVariablePool,
     functionNameVariablePool,
