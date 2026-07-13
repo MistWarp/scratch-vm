@@ -400,7 +400,7 @@ class Blocks {
         // Validate event
         if (typeof e !== 'object') return;
         if (typeof e.blockId !== 'string' && typeof e.varId !== 'string' &&
-            typeof e.commentId !== 'string') {
+            typeof e.commentId !== 'string' && typeof e.frameId !== 'string') {
             return;
         }
         const stage = this.runtime.getTargetForStage();
@@ -603,6 +603,68 @@ class Blocks {
                     delete block.comment;
                 }
 
+                this.emitProjectChanged();
+            }
+            break;
+        case 'frame_create':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                currTarget.createFrame(e.frameId, e.title, e.xy.x, e.xy.y,
+                    e.width, e.height, e.color, e.collapsed, e.blockIds);
+                this.emitProjectChanged();
+            }
+            break;
+        case 'frame_change':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                if (!Object.prototype.hasOwnProperty.call(currTarget.frames, e.frameId)) {
+                    log.warn(`Cannot change frame with id ${e.frameId} because it does not exist.`);
+                    return;
+                }
+                const frame = currTarget.frames[e.frameId];
+                const change = e.newContents_;
+                if (Object.prototype.hasOwnProperty.call(change, 'title')) {
+                    frame.title = change.title;
+                }
+                if (Object.prototype.hasOwnProperty.call(change, 'color')) {
+                    frame.color = change.color;
+                }
+                if (Object.prototype.hasOwnProperty.call(change, 'collapsed')) {
+                    frame.collapsed = change.collapsed;
+                }
+                if (Object.prototype.hasOwnProperty.call(change, 'blockIds')) {
+                    frame.blocks = change.blockIds;
+                }
+                if (Object.prototype.hasOwnProperty.call(change, 'width') &&
+                    Object.prototype.hasOwnProperty.call(change, 'height')) {
+                    frame.width = change.width;
+                    frame.height = change.height;
+                }
+                this.emitProjectChanged();
+            }
+            break;
+        case 'frame_move':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                if (!Object.prototype.hasOwnProperty.call(currTarget.frames, e.frameId)) {
+                    log.warn(`Cannot move frame with id ${e.frameId} because it does not exist.`);
+                    return;
+                }
+                const frame = currTarget.frames[e.frameId];
+                const newCoord = e.newCoordinate_;
+                frame.x = newCoord.x;
+                frame.y = newCoord.y;
+                this.emitProjectChanged();
+            }
+            break;
+        case 'frame_delete':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                if (!Object.prototype.hasOwnProperty.call(currTarget.frames, e.frameId)) {
+                    // Probably a delete event from a workspace we already switched away from.
+                    return;
+                }
+                delete currTarget.frames[e.frameId];
                 this.emitProjectChanged();
             }
             break;

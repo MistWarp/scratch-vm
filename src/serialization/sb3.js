@@ -9,6 +9,7 @@ const Blocks = require('../engine/blocks');
 const Sprite = require('../sprites/sprite');
 const Variable = require('../engine/variable');
 const Comment = require('../engine/comment');
+const Frame = require('../engine/frame');
 const MonitorRecord = require('../engine/monitor-record');
 const StageLayering = require('../engine/stage-layering');
 const log = require('../util/log');
@@ -763,6 +764,29 @@ const serializeComments = function (comments) {
     return obj;
 };
 
+const serializeFrames = function (frames) {
+    const obj = Object.create(null);
+    for (const frameId in frames) {
+        if (!Object.prototype.hasOwnProperty.call(frames, frameId)) continue;
+        const frame = frames[frameId];
+
+        const serializedFrame = Object.create(null);
+        serializedFrame.title = frame.title;
+        serializedFrame.x = frame.x;
+        serializedFrame.y = frame.y;
+        serializedFrame.width = frame.width;
+        serializedFrame.height = frame.height;
+        serializedFrame.color = frame.color;
+        serializedFrame.collapsed = frame.collapsed;
+        if (frame.collapsed && frame.blocks.length) {
+            serializedFrame.blocks = frame.blocks;
+        }
+
+        obj[frameId] = serializedFrame;
+    }
+    return obj;
+};
+
 /**
  * Serialize the given target. Only serialize properties that are necessary
  * for saving and loading this target.
@@ -781,6 +805,9 @@ const serializeTarget = function (target, extensions) {
     obj.broadcasts = vars.broadcasts;
     [obj.blocks, targetExtensions] = serializeBlocks(expandOperators(target.blocks));
     obj.comments = serializeComments(target.comments);
+    if (target.frames && Object.keys(target.frames).length > 0) {
+        obj.frames = serializeFrames(target.frames);
+    }
 
     // TODO remove this check/patch when (#1901) is fixed
     if (target.currentCostume < 0 || target.currentCostume >= target.costumes.length) {
@@ -1468,6 +1495,22 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
                 newComment.blockId = comment.blockId;
             }
             target.comments[newComment.id] = newComment;
+        }
+    }
+    if (Object.prototype.hasOwnProperty.call(object, 'frames')) {
+        for (const frameId in object.frames) {
+            const frame = object.frames[frameId];
+            target.frames[frameId] = new Frame(
+                frameId,
+                frame.title,
+                frame.x,
+                frame.y,
+                frame.width,
+                frame.height,
+                frame.color,
+                frame.collapsed,
+                frame.blocks
+            );
         }
     }
     if (Object.prototype.hasOwnProperty.call(object, 'x')) {

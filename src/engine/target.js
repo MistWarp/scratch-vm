@@ -3,6 +3,7 @@ const EventEmitter = require('events');
 const Blocks = require('./blocks');
 const Variable = require('../engine/variable');
 const Comment = require('../engine/comment');
+const Frame = require('../engine/frame');
 const uid = require('../util/uid');
 const {Map} = require('immutable');
 const log = require('../util/log');
@@ -56,6 +57,12 @@ class Target extends EventEmitter {
          * @type {Object.<string,*>}
          */
         this.comments = {};
+        /**
+         * Dictionary of frames for this target.
+         * Key is the frame id.
+         * @type {Object.<string,*>}
+         */
+        this.frames = {};
         /**
          * Dictionary of custom state for this target.
          * This can be used to store target-specific custom state for blocks which need it.
@@ -308,6 +315,24 @@ class Target extends EventEmitter {
                 }
             }
             this.comments[id] = newComment;
+        }
+    }
+
+    /**
+     * Create a frame with the given properties.
+     * @param {string} id Id of the frame.
+     * @param {string} title The text shown in the frame's title bar.
+     * @param {number} x The x coordinate of the frame on the workspace.
+     * @param {number} y The y coordinate of the frame on the workspace.
+     * @param {number} width The width of the frame when it is expanded.
+     * @param {number} height The height of the frame when it is expanded.
+     * @param {string} color The hex colour of the frame.
+     * @param {boolean} collapsed Whether the frame is collapsed.
+     * @param {Array.<string>} blocks Ids of the blocks the frame swallowed when collapsed.
+     */
+    createFrame (id, title, x, y, width, height, color, collapsed, blocks) {
+        if (!Object.prototype.hasOwnProperty.call(this.frames, id)) {
+            this.frames[id] = new Frame(id, title, x, y, width, height, color, collapsed, blocks);
         }
     }
 
