@@ -181,3 +181,80 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
     t.notMatch(source, /"globalThis\.__originPatch/, 'raw source is not emitted as a quoted statement');
     t.notMatch(source, /executeInCompatibilityLayer/, 'patching does not use the runtime compatibility bridge');
 });
+
+test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
+    const vm = new VirtualMachine();
+    vm.extensionManager.addBuiltinExtension('mistsutils', class {
+        getInfo () {
+            return {
+                id: 'mistsutils',
+                name: "Mist's Utils",
+                blocks: [{
+                    opcode: 'patchcommand',
+                    blockType: 'command',
+                    text: '[A]',
+                    arguments: {A: {type: 'string'}}
+                }]
+            };
+        }
+        patchcommand () {}
+    });
+    const command = vm.exports.compiler.types.COMMAND;
+    vm.exports.compiler.register('mistsutils', {
+        patchcommand: {
+            type: command,
+            compile: ({input}) => input.raw('A')
+        }
+    });
+    await vm.loadProject({
+        targets: [{
+            isStage: true,
+            name: 'Stage',
+            variables: {},
+            lists: {},
+            broadcasts: {},
+            blocks: {
+                hat: {opcode: 'event_whenflagclicked', next: 'if', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
+                if: {
+                    opcode: 'mistsutils_patchcommand',
+                    next: 'else',
+                    parent: 'hat',
+                    inputs: {A: [1, [10, 'if (true) globalThis.__originIcon = 1;']]},
+                    fields: {},
+                    topLevel: false
+                },
+                else: {
+                    opcode: 'mistsutils_patchcommand',
+                    next: null,
+                    parent: 'if',
+                    inputs: {A: [1, [10, 'else globalThis.__originIcon = 2;']]},
+                    fields: {},
+                    topLevel: false
+                }
+            },
+            comments: {},
+            currentCostume: 0,
+            costumes: [],
+            sounds: [],
+            volume: 100,
+            layerOrder: 0,
+            tempo: 60,
+            videoTransparency: 50,
+            videoState: 'on',
+            textToSpeechLanguage: null
+        }],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}
+    });
+
+    let source = '';
+    JSGenerator.testingApparatus = {report: (generator, generated) => {
+        source += generated;
+    }};
+    vm.runtime.precompile();
+    JSGenerator.testingApparatus = null;
+
+    t.match(source, /if \(true\) globalThis\.__originIcon = 1;\s*else globalThis\.__originIcon = 2;/);
+    t.notMatch(source, /;;\s*else/, 'raw commands are not terminated twice');
+});

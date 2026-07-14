@@ -249,14 +249,14 @@ class ScriptTreeGenerator {
      * @returns {IntermediateInput} Compiled input node for this input.
      */
     descendInput (block, preserveStrings = false) {
-        const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
-        if (compilerExtension && compilerExtension.type !== 'command') {
-            return this.descendCompilerExtensionInput(block, compilerExtension);
-        }
-
         const rawSourceType = RAW_SOURCE_REPORTERS.get(block.opcode);
         if (rawSourceType) {
             return this.descendRawSourceInput(block, rawSourceType);
+        }
+
+        const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
+        if (compilerExtension && compilerExtension.type !== 'command') {
+            return this.descendCompilerExtensionInput(block, compilerExtension);
         }
 
         if (this.oldCompilerStub) {
@@ -685,16 +685,6 @@ class ScriptTreeGenerator {
      * @returns {IntermediateStackBlock} Compiled node for this block.
      */
     descendStackedBlock (block) {
-        const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
-        if (compilerExtension) {
-            if (compilerExtension.type === 'command') {
-                return this.descendCompilerExtensionStack(block, compilerExtension);
-            }
-            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
-                input: this.descendCompilerExtensionInput(block, compilerExtension)
-            });
-        }
-
         if (RAW_SOURCE_COMMANDS.has(block.opcode)) {
             return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {
                 fragments: this.descendRawSourceFragments(block)
@@ -704,6 +694,16 @@ class ScriptTreeGenerator {
         if (rawSourceType) {
             return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
                 input: this.descendRawSourceInput(block, rawSourceType)
+            });
+        }
+
+        const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
+        if (compilerExtension) {
+            if (compilerExtension.type === 'command') {
+                return this.descendCompilerExtensionStack(block, compilerExtension);
+            }
+            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
+                input: this.descendCompilerExtensionInput(block, compilerExtension)
             });
         }
 
