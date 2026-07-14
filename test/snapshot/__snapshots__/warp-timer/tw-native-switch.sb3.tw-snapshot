@@ -2,14 +2,11 @@
 // Input SHA-256: cb45d7d2caeedd6bfe00857c96f32600d3d9b7d8a64de88ca67eb4b30319f67c
 
 // Sprite1 script
-(function factoryXYZ(thread) {
-const target = thread.target;
-const runtime = target.runtime;
-const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["sl-id"];
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
-switch (("" + (b0.value[0] ?? ""))) {
+switch (("" + (b0.value[1 - 1] ?? ""))) {
 case "hello": {
 runtime.ext_scratch3_looks._say("fail-wrong-case", target);
 break;
@@ -25,7 +22,7 @@ break; }
 default:
 runtime.ext_scratch3_looks._say("fail-default", target);
 }
-switch (("" + (b0.value[1] ?? ""))) {
+switch (("" + (b0.value[2 - 1] ?? ""))) {
 case "0": {
 runtime.ext_scratch3_looks._say("fail", target);
 break;
@@ -41,7 +38,7 @@ break; }
 default:
 runtime.ext_scratch3_looks._say("pass s1-default", target);
 }
-switch (("" + (b0.value[2] ?? ""))) {
+switch (("" + (b0.value[3 - 1] ?? ""))) {
 case "1": {
 runtime.ext_scratch3_looks._say("fail", target);
 break;

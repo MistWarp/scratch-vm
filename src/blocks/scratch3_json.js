@@ -399,10 +399,11 @@ class Scratch3JsonBlocks {
         const list = util.target.lookupVariableByNameAndType(args.LIST?.name || args.LIST, '', true);
         if (!list) return '';
         
-        const type = args.TYPE || 'array';
+        const type = String(args.TYPE || args.FORMAT || 'array').toLowerCase();
         if (type === 'json') {
             return JSON.stringify(list.value);
         }
+        if (type === 'string') return list.value.join(', ');
         return list.value;
     }
 
@@ -415,7 +416,7 @@ class Scratch3JsonBlocks {
         const list = util.target.lookupVariableByNameAndType(args.LIST?.name || args.LIST, '', true);
         if (!list) return;
         
-        const value = args.VALUE;
+        const value = typeof args.ARRAY === 'undefined' ? args.VALUE : args.ARRAY;
         
         if (typeof value === 'string') {
             try {

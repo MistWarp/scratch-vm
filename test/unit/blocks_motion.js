@@ -24,3 +24,16 @@ test('Coordinates have limited precision', t => {
     t.equals(motion.getY({}, util), 1);
     t.end();
 });
+
+test('point towards from uses both coordinate pairs', t => {
+    const rt = new Runtime();
+    const motion = new Motion(rt);
+    const sprite = new Sprite(null, rt);
+    const target = new RenderedTarget(sprite, rt);
+
+    target.setXY(0, -10);
+    motion.pointTowards_xyfrom({X: 10, Y: 10, FROMX: 0, FROMY: 0}, {target});
+
+    t.equal(target.direction, 45);
+    t.end();
+});

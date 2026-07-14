@@ -29,6 +29,14 @@ const {exportCostume} = require('./serialization/tw-costume-import-export');
 const Base64Util = require('./util/base64-util');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
+const COMPILER_TYPES = Object.freeze({
+    ANY: 'any',
+    NUMBER: 'number',
+    NUMBER_OR_NAN: 'numberOrNaN',
+    STRING: 'string',
+    BOOLEAN: 'boolean',
+    COMMAND: 'command'
+});
 
 if (typeof document === 'undefined') {
     global.document = {
@@ -154,7 +162,7 @@ class VirtualMachine extends EventEmitter {
             this.emitTargetsUpdate(emitProjectChanged);
         });
         this.runtime.on(Runtime.MONITORS_UPDATE, monitorList => {
-            this.emit(Runtime.MONITORS_UPDATE, monitorList);
+            this.emit(Runtime.MONITORS_UPDATE, monitorList.toImmutable());
         });
         this.runtime.on(Runtime.BLOCK_DRAG_UPDATE, areBlocksOverGui => {
             this.emit(Runtime.BLOCK_DRAG_UPDATE, areBlocksOverGui);
@@ -266,16 +274,61 @@ class VirtualMachine extends EventEmitter {
             Sprite,
             RenderedTarget,
             JSZip,
+            Variable,
 
-            i_will_not_ask_for_help_when_these_break: () => {
+            compiler: Object.freeze({
+                types: COMPILER_TYPES,
+                register: (extensionId, blocks) => {
+                    if (typeof extensionId !== 'string' || !extensionId || !blocks || typeof blocks !== 'object') {
+                        throw new TypeError('compiler.register expects an extension ID and block descriptor object');
+                    }
+                    for (const opcode of Object.keys(blocks)) {
+                        const descriptor = blocks[opcode];
+                        if (!descriptor || typeof descriptor.compile !== 'function' ||
+                            !Object.values(COMPILER_TYPES).includes(descriptor.type)) {
+                            throw new TypeError(`Invalid compiler descriptor for ${extensionId}_${opcode}`);
+                        }
+                        this.runtime.compilerExtensions.set(`${extensionId}_${opcode}`, Object.freeze({
+                            type: descriptor.type,
+                            compile: descriptor.compile
+                        }));
+                    }
+                    this.runtime.resetAllCaches();
+                }
+            }),
+
+            these_broke_before_and_will_break_again: () => {
                 console.warn('You are using unsupported APIs. WHEN your code breaks, do not expect help.');
-                return ({
+                return {
                     JSGenerator: require('./compiler/jsgen.js'),
                     IRGenerator: require('./compiler/irgen.js').IRGenerator,
                     ScriptTreeGenerator: require('./compiler/irgen.js').ScriptTreeGenerator,
+                    IntermediateStackBlock: require('./compiler/intermediate.js').IntermediateStackBlock,
+                    IntermediateInput: require('./compiler/intermediate.js').IntermediateInput,
+                    IntermediateStack: require('./compiler/intermediate.js').IntermediateStack,
+                    IntermediateScript: require('./compiler/intermediate.js').IntermediateScript,
+                    IntermediateRepresentation: require('./compiler/intermediate.js').IntermediateRepresentation,
+                    StackOpcode: require('./compiler/enums.js').StackOpcode,
+                    InputOpcode: require('./compiler/enums.js').InputOpcode,
+                    InputType: require('./compiler/enums.js').InputType,
                     Thread: require('./engine/thread.js'),
                     execute: require('./engine/execute.js')
-                });
+                };
+            },
+
+            i_will_not_ask_for_help_when_these_break: () => {
+                this.emit('LEGACY_EXTENSION_API', 'i_will_not_ask_for_help_when_these_break');
+
+                const oldCompilerCompatibility = require('./compiler/old-compiler-compatibility.js');
+                oldCompilerCompatibility.enabled = true;
+
+                return {
+                    IRGenerator: oldCompilerCompatibility.IRGeneratorStub,
+                    ScriptTreeGenerator: oldCompilerCompatibility.ScriptTreeGeneratorStub,
+                    JSGenerator: oldCompilerCompatibility.JSGeneratorStub,
+                    Thread: require('./engine/thread.js'),
+                    execute: require('./engine/execute.js')
+                };
             }
         };
     }
@@ -593,6 +646,22 @@ class VirtualMachine extends EventEmitter {
             file.date = date;
         }
 
+        // Tell JSZip to only compress file formats where there will be a significant gain.
+        const COMPRESSABLE_FORMATS = [
+            '.json',
+            '.svg',
+            '.wav',
+            '.ttf',
+            '.otf'
+        ];
+        for (const file of Object.values(zip.files)) {
+            if (COMPRESSABLE_FORMATS.some(ext => file.name.endsWith(ext))) {
+                file.options.compression = 'DEFLATE';
+            } else {
+                file.options.compression = 'STORE';
+            }
+        }
+
         return zip;
     }
 
@@ -604,9 +673,9 @@ class VirtualMachine extends EventEmitter {
      */
     saveProjectSb3 (type, options) {
         return this._saveProjectZip(options).generateAsync({
+            // Don't configure compression here. _saveProjectZip() will set it for each file.
             type: type || 'blob',
-            mimeType: 'application/x.scratch.sb3',
-            compression: 'DEFLATE'
+            mimeType: 'application/x.scratch.sb3'
         });
     }
 
@@ -822,7 +891,10 @@ class VirtualMachine extends EventEmitter {
                 this.extensionManager.loadExtensionIdSync(extensionID);
             } else {
                 // Custom extension
-                const url = extensionURLs.get(extensionID) || defaultExtensionURLs.get(extensionID);
+                let url = extensionURLs.get(extensionID);
+                if (!url && Object.prototype.hasOwnProperty.call(defaultExtensionURLs, extensionID)) {
+                    url = defaultExtensionURLs[extensionID];
+                }
                 if (!url) {
                     throw new Error(`Unknown extension: ${extensionID}`);
                 }

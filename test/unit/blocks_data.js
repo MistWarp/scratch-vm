@@ -47,3 +47,15 @@ test('getItemNumOfList uses Scratch comparison', t => {
 
     t.end();
 });
+
+test('case-sensitive list option uses exact matches', t => {
+    const exactBlocks = new Data({runtimeOptions: {caseSensitiveLists: true}});
+    lists.list = {value: ['jump', 'Jump']};
+    const args = {ITEM: 'Jump', LIST: {name: 'list'}};
+
+    t.equal(exactBlocks.getItemNumOfList(args, util), 2);
+    t.equal(exactBlocks.listContainsItem(args, util), true);
+    args.ITEM = 'JUMP';
+    t.equal(exactBlocks.listContainsItem(args, util), false);
+    t.end();
+});

@@ -1,326 +1,324 @@
 // @ts-check
 
-const TYPES = {
+/**
+ * @fileoverview Common enums shared amongst parts of the compiler.
+ */
+
+
+/**
+ * Enum for the type of the value that is returned by reporter blocks and stored in constants.
+ *
+ * At compile time, often we don't know exactly type a value will be but we can tell it must be one of a
+ * set of types. For this reason, the number value of each type represents a possibility space, where set
+ * bits indicate that their corropoding type *could* be encountered at runtime.
+ * For example, a type of InputType.NUMBER | InputType.STRING means the value will be either a number or
+ * a string at runtime, the compiler can't tell which, but we do know that it's not a boolean or NaN as
+ * those bits are not set.
+ *
+ * @readonly
+ * @enum {number}
+ */
+const InputType = {
+    /** The value Infinity */
     NUMBER_POS_INF: 0x001,
+    /** Any natural number */
     NUMBER_POS_INT: 0x002,
+    /** Any positive fractional number, excluding integers. */
     NUMBER_POS_FRACT: 0x004,
+    /** Any positive number excluding 0 and Infinity. Equal to NUMBER_POS_INT | NUMBER_POS_FRACT */
     NUMBER_POS_REAL: 0x006,
+    /** The value 0 */
     NUMBER_ZERO: 0x008,
+    /** The value -0 */
     NUMBER_NEG_ZERO: 0x010,
+    /** Any negitive integer excluding -0 */
     NUMBER_NEG_INT: 0x020,
+    /** Any negitive fractional number, excluding integers. */
     NUMBER_NEG_FRACT: 0x040,
+    /** Any negitive number excluding -0 and -Infinity. Equal to NUMBER_NEG_INT | NUMBER_NEG_FRACT */
     NUMBER_NEG_REAL: 0x060,
+    /** The value -Infinity */
     NUMBER_NEG_INF: 0x080,
 
-    NAN: 0x100,
+    /** The value NaN */
+    NUMBER_NAN: 0x100,
 
+    /** Either 0 or -0. Equal to NUMBER_ZERO | NUMBER_NEG_ZERO */
     NUMBER_ANY_ZERO: 0x018,
+    /** Either Infinity or -Infinity. Equal to NUMBER_POS_INF | NUMBER_NEG_INF */
     NUMBER_INF: 0x081,
+    /** Any positive number, excluding 0. Equal to NUMBER_POS_REAL | NUMBER_POS_INF */
     NUMBER_POS: 0x007,
+    /** Any negitive number, excluding -0. Equal to NUMBER_NEG_REAL | NUMBER_NEG_INF */
     NUMBER_NEG: 0x0E0,
+    /** Any whole number. Equal to NUMBER_POS_INT | NUMBER_ZERO */
     NUMBER_WHOLE: 0x00A,
-    NUMBER_FRACT: 0x044,
+    /** Any integer. Equal to NUMBER_POS_INT | NUMBER_ANY_ZERO | NUMBER_NEG_INT */
+    NUMBER_INT: 0x03A,
+    /** Any number that works as an array index. Equal to NUMBER_INT | NUMBER_INF | NUMBER_NAN */
+    NUMBER_INDEX: 0x1BB,
+    /** Any fractional non-integer numbers. Equal to NUMBER_POS_FRACT | NUMBER_NEG_FRACT */
+    NUMBER_FRACT: 0x44,
+    /** Any real number. Equal to NUMBER_POS_REAL | NUMBER_ANY_ZERO | NUMBER_NEG_REAL */
     NUMBER_REAL: 0x07E,
 
+    /** Any number, excluding NaN. Equal to NUMBER_REAL | NUMBER_INF */
     NUMBER: 0x0FF,
+    /** Any number, including NaN. Equal to NUMBER | NUMBER_NAN */
     NUMBER_OR_NAN: 0x1FF,
-    NUMBER_INDEX: 0x1BB,
+    /** Anything that can be interperated as a number. Equal to NUMBER | STRING_NUM | BOOLEAN */
     NUMBER_INTERPRETABLE: 0x12FF,
 
+    /** Any string which as a non-NaN neumeric interpretation, excluding ''.  */
     STRING_NUM: 0x200,
+    /** Any string which has no non-NaN neumeric interpretation, including ''. */
     STRING_NAN: 0x400,
+    /** Either of the strings 'true' or 'false'. */
     STRING_BOOLEAN: 0x800,
+
+    /** Any string. Equal to STRING_NUM | STRING_NAN | STRING_BOOLEAN */
     STRING: 0xE00,
 
+    /** Any boolean. */
     BOOLEAN: 0x1000,
+    /** Any input that can be interperated as a boolean. Equal to BOOLEAN | STRING_BOOLEAN */
     BOOLEAN_INTERPRETABLE: 0x1800,
 
-    OBJECT: 0x2000,
-    ARRAY: 0x4000,
+    /** Any value type (a type a scratch variable can hold). Equal to NUMBER_OR_NAN | STRING | BOOLEAN */
+    ANY: 0x1FFF,
 
-    ANY: 0x47FFF,
-    COLOR: 0x8000,
-
-    NUMBER_INT: 0x03A,
-    NUMBER_NAN: 0x1FF,
-    UNKNOWN: 0x47FFF,
-    LOWER_STRING: 0x10000,
-    PROCEDURE_ARG: 0x20000,
-    // Native object or array used by compiled extension blocks.
-    JSON: 0x40000,
-    // A JSON item: native JSON or a Scratch-compatible primitive.
-    JSON_VALUE: 0x41FFF
-};
-
-let INPUT_I = 1;
-const id = () => INPUT_I++;
-
-const BLOCKS = {
-    MOTION: {
-        X_POSITION: id(),
-        Y_POSITION: id(),
-        DIRECTION: id(),
-        CHANGE_X: id(),
-        CHANGE_Y: id(),
-        SET_ROTATION_STYLE: id(),
-        SET_XY: id(),
-        SET_X: id(),
-        SET_Y: id(),
-        SET_DIRECTION: id(),
-        POINT_TOWARDS_XY: id(),
-        POINT_TOWARDS_XY_FROM: id(),
-        STEP: id(),
-        IF_ON_EDGE_BOUNCE: id()
-    },
-
-    CONSTANT: id(),
-
-    COUNTER: {
-        GET: id(),
-        INCR: id(),
-        CLEAR: id()
-    },
-
-    KEYBOARD: {
-        PRESSED: id()
-    },
-
-    VAR: {
-        GET: id(),
-        SET: id(),
-        CHANGE: id(),
-        SHOW: id(),
-        HIDE: id()
-    },
-
-    LIST: {
-        CONTAINS: id(),
-        CONTENTS: id(),
-        GET: id(),
-        INDEXOF: id(),
-        LENGTH: id(),
-        AS: id(),
-        ADD: id(),
-        DELETE: id(),
-        DELETE_ALL: id(),
-        HIDE: id(),
-        INSERT: id(),
-        REPLACE: id(),
-        SHOW: id(),
-        SET_ARRAY: id()
-    },
-
-    LOOKS: {
-        BACKDROP_NUMBER: id(),
-        BACKDROP_NAME: id(),
-        COSTUME_NUMBER: id(),
-        COSTUME_NAME: id(),
-        SIZE: id(),
-        COSTUMES: id(),
-        FORWARD_LAYERS: id(),
-        BACKWARD_LAYERS: id(),
-        CLEAR_EFFECTS: id(),
-        CHANGE_EFFECT: id(),
-        CHANGE_SIZE: id(),
-        GOTO_BACK: id(),
-        GOTO_FRONT: id(),
-        HIDE: id(),
-        NEXT_BACKDROP: id(),
-        NEXT_COSTUME: id(),
-        SET_EFFECT: id(),
-        SET_SIZE: id(),
-        SHOW: id(),
-        SWITCH_BACKDROP: id(),
-        SWITCH_COSTUME: id(),
-        SAY: id(),
-        THINK: id()
-    },
-
-    SENSING: {
-        ANSWER: id(),
-        COLOR_TOUCHING_COLOR: id(),
-        YEAR: id(),
-        DATE: id(),
-        DAYOFWEEK: id(),
-        DAYS_SINCE_2000: id(),
-        DISTANCE: id(),
-        HOUR: id(),
-        MINUTE: id(),
-        MONTH: id(),
-        OF: id(),
-        REFRESH_TIME: id(),
-        SECOND: id(),
-        TODAY: id(),
-        TOUCHING_COLOR: id(),
-        TOUCHING: id(),
-        ONLINE: id(),
-        USERNAME: id()
-    },
-
-    MOUSE: {
-        DOWN: id(),
-        X: id(),
-        Y: id()
-    },
-
-    OP: {
-        ABS: id(),
-        ACOS: id(),
-        ASIN: id(),
-        ATAN: id(),
-        CEILING: id(),
-        COS: id(),
-        FLOOR: id(),
-        LN: id(),
-        LOG: id(),
-        ROUND: id(),
-        SIN: id(),
-        SQRT: id(),
-        TAN: id(),
-        ADD: id(),
-        SUBTRACT: id(),
-        MULTIPLY: id(),
-        DIVIDE: id(),
-        RANDOM: id(),
-        NOT: id(),
-        OR: id(),
-        AND: id(),
-        CHANGECASE: id(),
-        EQUALS: id(),
-        GREATER: id(),
-        INDEXOF: id(),
-        LESS: id(),
-        LETTEROF: id(),
-        LETTERSOF: id(),
-        LENGTH: id(),
-        CONTAINS: id(),
-        MOD: id(),
-        EXP: id(),
-        JOIN: id(),
-        REPEAT: id(),
-        REPLACE: id(),
-        TENEXP: id(),
-        TRIM: id(),
-        PI: id(),
-        NEWLINE: id()
-    },
-
-    PROCEDURES: {
-        ARGUMENT: id(),
-        CALL: id(),
-        RETURN: id(),
-        DEFINITION: id()
-    },
-
-    NOOP: id(),
-
-    COMPAT: id(),
-
-    EXTENSION: id(),
-
-    ADDONS: {
-        CALL: id()
-    },
-
-    CONTROL: {
-        IF: id(),
-        REPEAT: id(),
-        REPEAT_UNTIL: id(),
-        FOR: id(),
-        WHILE: id(),
-        SWITCH: id(),
-        CASE: id(),
-        DEFAULT: id(),
-        BREAK: id(),
-        CASE_FALLTHROUGH: id(),
-        DELETE_CLONE: id(),
-        CREATE_CLONE: id(),
-        STOP_ALL: id(),
-        STOP_OTHERS: id(),
-        STOP_SCRIPT: id(),
-        WAIT: id(),
-        WAIT_UNTIL: id()
-    },
-
-    HAT: {
-        EDGE: id(),
-        PREDICATE: id()
-    },
-
-    EVENT: {
-        BROADCAST: id(),
-        BROADCAST_AND_WAIT: id()
-    },
-
-    PEN: {
-        CLEAR: id(),
-        CHANGE_PARAM: id(),
-        CHANGE_HUE: id(),
-        CHANGE_SHADE: id(),
-        CHANGE_SIZE: id(),
-        LEGACY_CHANGE_HUE: id(),
-        LEGACY_CHANGE_SHADE: id(),
-        LEGACY_SET_HUE: id(),
-        LEGACY_SET_SHADE: id(),
-        DOWN: id(),
-        UP: id(),
-        SET_COLOR: id(),
-        SET_PARAM: id(),
-        SET_SIZE: id(),
-        STAMP: id(),
-        PRINT_TEXT: id(),
-        DRAW_TRIANGLE: id()
-    },
-
-    SOUND: {
-        CHANGE_VOLUME: id(),
-        SET_VOLUME: id(),
-        PLAY_SOUND: id(),
-        STOP_ALL_SOUNDS: id(),
-        STOP_OTHER_SOUNDS: id(),
-        STOP_THIS_SOUND: id()
-    },
-
-    TIMER: {
-        RESET: id(),
-        GET: id()
-    },
-
-    TW: {
-        DEBUGGER: id(),
-        LAST_KEY_PRESSED: id()
-    },
-
-    VISUAL_REPORT: id()
+    /** An array of values in the form [R, G, B] */
+    COLOR: 0x2000
 };
 
 /**
- * @param {number} typeId
- * @returns {string|undefined}
+ * Enum for the opcodes of the stackable blocks used in the IR AST.
+ * @readonly
+ * @enum {string}
  */
-const getNameForType = typeId => {
-    /**
-     * @param {object} obj
-     * @param {string} path
-     * @returns {string|undefined}
-     */
-    const search = (obj, path) => {
-        for (const [key, val] of Object.entries(obj)) {
-            const newPath = path ? `${path}.${key}` : key;
-            if (typeof val === 'number') {
-                if (val === typeId) return newPath;
-            } else if (val && typeof val === 'object') {
-                const found = search(val, newPath);
-                if (found) return found;
-            }
-        }
-    };
+const StackOpcode = {
+    NOP: 'noop',
 
-    return search(BLOCKS, 'BLOCKS');
+    ADDON_CALL: 'addons.call',
+    DEBUGGER: 'tw.debugger',
+    VISUAL_REPORT: 'visualReport',
+    COMPATIBILITY_LAYER: 'compat',
+    OLD_COMPILER_COMPATIBILITY_LAYER: 'oldCompiler',
+    EXTENSION: 'extension',
+    RAW_SOURCE: 'rawSource',
+
+    HAT_EDGE: 'hat.edge',
+    HAT_PREDICATE: 'hat.predicate',
+
+    CONTROL_IF_ELSE: 'control.if',
+    CONTROL_CLONE_CREATE: 'control.createClone',
+    CONTROL_CLONE_DELETE: 'control.deleteClone',
+    CONTROL_WHILE: 'control.while',
+    CONTROL_FOR: 'control.for',
+    CONTROL_REPEAT: 'control.repeat',
+    CONTROL_STOP_ALL: 'control.stopAll',
+    CONTROL_STOP_OTHERS: 'control.stopOthers',
+    CONTROL_STOP_SCRIPT: 'control.stopScript',
+    CONTROL_WAIT: 'control.wait',
+    CONTROL_WAIT_UNTIL: 'control.waitUntil',
+    CONTROL_CLEAR_COUNTER: 'control.counterClear',
+    CONTORL_INCR_COUNTER: 'control.counterIncr',
+    CONTROL_SWITCH: 'control.switch',
+    CONTROL_CASE: 'control.case',
+    CONTROL_DEFAULT: 'control.default',
+    CONTROL_BREAK: 'control.break',
+    CONTROL_CASE_FALLTHROUGH: 'control.caseFallthrough',
+
+    LIST_ADD: 'list.add',
+    LIST_INSERT: 'list.instert',
+    LIST_REPLACE: 'list.replace',
+    LIST_DELETE_ALL: 'list.deleteAll',
+    LIST_DELETE: 'list.delete',
+    LIST_SHOW: 'list.show',
+    LIST_HIDE: 'list.hide',
+    LIST_SET_ARRAY: 'list.setArray',
+
+    VAR_SET: 'var.set',
+    VAR_SHOW: 'var.show',
+    VAR_HIDE: 'var.hide',
+
+    EVENT_BROADCAST: 'event.broadcast',
+    EVENT_BROADCAST_AND_WAIT: 'event.broadcastAndWait',
+
+    LOOKS_EFFECT_SET: 'looks.setEffect',
+    LOOKS_EFFECT_CHANGE: 'looks.changeEffect',
+    LOOKS_EFFECT_CLEAR: 'looks.clearEffects',
+    LOOKS_SIZE_CHANGE: 'looks.changeSize',
+    LOOKS_SIZE_SET: 'looks.setSize',
+    LOOKS_LAYER_FORWARD: 'looks.forwardLayers',
+    LOOKS_LAYER_BACKWARD: 'looks.backwardLayers',
+    LOOKS_LAYER_FRONT: 'looks.goToFront',
+    LOOKS_LAYER_BACK: 'looks.goToBack',
+    LOOKS_HIDE: 'looks.hide',
+    LOOKS_SHOW: 'looks.show',
+    LOOKS_BACKDROP_NEXT: 'looks.nextBackdrop',
+    LOOKS_BACKDROP_SET: 'looks.switchBackdrop',
+    LOOKS_COSTUME_NEXT: 'looks.nextCostume',
+    LOOKS_COSTUME_SET: 'looks.switchCostume',
+    LOOKS_SAY: 'looks.say',
+    LOOKS_THINK: 'looks.think',
+
+    MOTION_X_SET: 'motion.setX',
+    MOTION_X_CHANGE: 'motion.changeX',
+    MOTION_Y_SET: 'motion.setY',
+    MOTION_Y_CHANGE: 'motion.changeY',
+    MOTION_XY_SET: 'motion.setXY',
+    MOTION_IF_ON_EDGE_BOUNCE: 'motion.ifOnEdgeBounce',
+    MOTION_STEP: 'motion.step',
+    MOTION_ROTATION_STYLE_SET: 'motion.setRotationStyle',
+    MOTION_DIRECTION_SET: 'motion.setDirection',
+    MOTION_POINT_TOWARDS_XY: 'motion.pointTowardsXY',
+    MOTION_POINT_TOWARDS_XY_FROM: 'motion.pointTowardsXYFrom',
+
+    PEN_UP: 'pen.up',
+    PEN_DOWN: 'pen.down',
+    PEN_CLEAR: 'pen.clear',
+    PEN_COLOR_PARAM_SET: 'pen.setParam',
+    PEN_COLOR_PARAM_CHANGE: 'pen.changeParam',
+    PEN_COLOR_HUE_CHANGE_LEGACY: 'pen.legacyChangeHue',
+    PEN_COLOR_HUE_SET_LEGACY: 'pen_setPenHueToNumber',
+    PEN_COLOR_SHADE_CHANGE_LEGACY: 'pen.legacyChangeShade',
+    PEN_COLOR_SHADE_SET_LEGACY: 'pen.legacySetShade',
+    PEN_COLOR_SET: 'pen.setColor',
+    PEN_SIZE_SET: 'pen.setSize',
+    PEN_SIZE_CHANGE: 'pen.changeSize',
+    PEN_STAMP: 'pen.stamp',
+    PEN_PRINT_TEXT: 'pen.printText',
+    PEN_DRAW_TRIANGLE: 'pen.drawTriangle',
+
+    SENSING_TIMER_RESET: 'timer.reset',
+
+    PROCEDURE_RETURN: 'procedures.return',
+    PROCEDURE_CALL: 'procedures.call'
 };
 
-export {
-    TYPES,
-    BLOCKS,
-    getNameForType
+/**
+ * Enum for the opcodes of the reporter blocks used in the IR AST.
+ * @readonly
+ * @enum {string}
+ */
+const InputOpcode = {
+    NOP: 'noop',
+
+    ADDON_CALL: 'addons.call',
+    CONSTANT: 'constant',
+
+    CAST_NUMBER: 'cast.toNumber',
+    CAST_NUMBER_INDEX: 'cast.toInteger',
+    CAST_NUMBER_OR_NAN: 'cast.toNumberOrNaN',
+    CAST_STRING: 'cast.toString',
+    CAST_BOOLEAN: 'cast.toBoolean',
+    CAST_COLOR: 'cast.toColor',
+
+    COMPATIBILITY_LAYER: 'compat',
+    OLD_COMPILER_COMPATIBILITY_LAYER: 'oldCompiler',
+    EXTENSION: 'extension',
+    RAW_SOURCE: 'rawSource',
+
+    LOOKS_BACKDROP_NUMBER: 'looks.backdropNumber',
+    LOOKS_BACKDROP_NAME: 'looks.backdropName',
+    LOOKS_COSTUME_NUMBER: 'looks.costumeNumber',
+    LOOKS_COSTUME_NAME: 'looks.costumeName',
+    LOOKS_SIZE_GET: 'looks.size',
+    LOOKS_COSTUMES: 'looks.costumes',
+
+    VAR_GET: 'var.get',
+
+    LIST_GET: 'list.get',
+    LIST_LENGTH: 'list.length',
+    LIST_CONTAINS: 'list.contains',
+    LIST_INDEX_OF: 'list.indexOf',
+    LIST_CONTENTS: 'list.contents',
+    LIST_AS: 'list.as',
+
+    MOTION_X_GET: 'motion.x',
+    MOTION_Y_GET: 'motion.y',
+    MOTION_DIRECTION_GET: 'motion.direction',
+
+    OP_ADD: 'op.add',
+    OP_AND: 'op.and',
+    OP_CONTAINS: 'op.contains',
+    OP_DIVIDE: 'op.divide',
+    OP_EQUALS: 'op.equals',
+    OP_GREATER: 'op.greater',
+    OP_LESS: 'op.less',
+    OP_JOIN: 'op.join',
+    OP_LENGTH: 'op.length',
+    OP_LETTER_OF: 'op.letterOf',
+    OP_LETTERS_OF: 'op.lettersOf',
+    OP_INDEX_OF: 'op.indexOf',
+    OP_CHANGE_CASE: 'op.changeCase',
+    OP_REPEAT: 'op.repeat',
+    OP_REPLACE: 'op.replace',
+    OP_TRIM: 'op.trim',
+    OP_ABS: 'op.abs',
+    OP_FLOOR: 'op.floor',
+    OP_CEILING: 'op.ceiling',
+    OP_SQRT: 'op.sqrt',
+    OP_SIN: 'op.sin',
+    OP_COS: 'op.cos',
+    OP_TAN: 'op.tan',
+    OP_ASIN: 'op.asin',
+    OP_ACOS: 'op.acos',
+    OP_ATAN: 'op.atan',
+    OP_LOG_E: 'op.ln',
+    OP_LOG_10: 'op.log',
+    OP_POW_E: 'op.e^',
+    OP_POW_10: 'op.10^',
+    OP_MOD: 'op.mod',
+    OP_MULTIPLY: 'op.multiply',
+    OP_NOT: 'op.not',
+    OP_OR: 'op.or',
+    OP_RANDOM: 'op.random',
+    OP_ROUND: 'op.round',
+    OP_SUBTRACT: 'op.subtract',
+
+    SENSING_ANSWER: 'sensing.answer',
+    SENSING_COLOR_TOUCHING_COLOR: 'sensing.colorTouchingColor',
+    SENSING_TIME_YEAR: 'sensing.year',
+    SENSING_TIME_MONTH: 'sensing.month',
+    SENSING_TIME_DATE: 'sensing.date',
+    SENSING_TIME_WEEKDAY: 'sensing.dayofweek',
+    SENSING_TIME_HOUR: 'sensing.hour',
+    SENSING_TIME_MINUTE: 'sensing.minute',
+    SENSING_TIME_SECOND: 'sensing.second',
+    SENSING_TIME_DAYS_SINCE_2000: 'sensing.daysSince2000',
+    SENSING_DISTANCE: 'sensing.distance',
+    SENSING_KEY_DOWN: 'keyboard.pressed',
+    SENSING_MOUSE_DOWN: 'mouse.down',
+    SENSING_MOUSE_X: 'mouse.x',
+    SENSING_MOUSE_Y: 'mouse.y',
+    SENSING_OF: 'sensing.of',
+    SENSING_OF_BACKDROP_NAME: 'sensing.of.backdropName',
+    SENSING_OF_BACKDROP_NUMBER: 'sensing.of.backdropNumber',
+    SENSING_OF_COSTUME_NAME: 'sensing.of.costumeName',
+    SENSING_OF_COSTUME_NUMBER: 'sensing.of.costumeNumber',
+    SENSING_OF_VOLUME: 'sensing.of.volume',
+    SENSING_OF_POS_X: 'sensing.of.x',
+    SENSING_OF_POS_Y: 'sensing.of.y',
+    SENSING_OF_DIRECTION: 'sensing.of.direction',
+    SENSING_OF_SIZE: 'sensing.of.size',
+    SENSING_OF_VAR: 'sensing.of.var',
+    SENSING_TIMER_GET: 'timer.get',
+    SENSING_TOUCHING_COLOR: 'sensing.touchingColor',
+    SENSING_TOUCHING_OBJECT: 'sensing.touching',
+    SENSING_USERNAME: 'sensing.username',
+
+    PROCEDURE_CALL: 'procedures.call',
+    PROCEDURE_ARGUMENT: 'procedures.argument',
+
+    CONTROL_COUNTER: 'control.counter',
+
+    TW_KEY_LAST_PRESSED: 'tw.lastKeyPressed'
+};
+
+module.exports = {
+    StackOpcode,
+    InputOpcode,
+    InputType
 };

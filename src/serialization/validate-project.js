@@ -232,12 +232,12 @@ const unzipProject = function (input, isSprite, callback, onProgress) {
  * @param {*} input Project data.
  * @param {boolean} isSprite Whether to treat the input as a sprite.
  * @param {Function} callback Called with (error, [project, zip]).
- * @param {Function=} opt_onProgress Called with (stage, loaded, total) as the
+ * @param {Function=} optOnProgress Called with (stage, loaded, total) as the
  *     project is unzipped, parsed and validated, for the loading screen.
  * @returns {void}
  */
-module.exports = function (input, isSprite, callback, opt_onProgress) {
-    const onProgress = opt_onProgress || function () {};
+module.exports = function (input, isSprite, callback, optOnProgress) {
+    const onProgress = optOnProgress || function () {};
     const unpackProject = (looksLikeZip(input) && typeof TextDecoder !== 'undefined') ?
         unzipProject : unpack;
     // unpack (scratch-parser) ignores the extra argument; unzipProject uses it.

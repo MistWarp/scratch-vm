@@ -125,6 +125,16 @@ for (const opcode in VANILLA_CONSTANTS) {
     CONSTANT_OPCODE_BY_NAME[VANILLA_CONSTANTS[opcode].name] = opcode;
 }
 
+const MIST_PATCHING_OPCODES = {
+    mistsutils_patchreporter: ['patching_jsreporter', 1],
+    mistsutils_patchreporter2: ['patching_jsreporter', 2],
+    mistsutils_patchreporter3: ['patching_jsreporter', 3],
+    mistsutils_patchboolean: ['patching_jsboolean', 1],
+    mistsutils_patchcommand: ['patching_jscommand', 1],
+    mistsutils_patchcommand2: ['patching_jscommand', 2],
+    mistsutils_patchcommand3: ['patching_jscommand', 3]
+};
+
 const collapseConstants = function (blocks) {
     for (const id in blocks) {
         if (!hasOwnProperty.call(blocks, id)) continue;
@@ -714,38 +724,6 @@ const serializeSound = function (sound) {
     return obj;
 };
 
-// Using some bugs, it can be possible to get values like undefined, null, or complex objects into
-// variables or lists. This will cause make the project unusable after exporting without JSON editing
-// as it will fail validation in scratch-parser.
-// To avoid this, we'll convert those objects to strings before saving them.
-const isVariableValueSafeForJSON = value => (
-    typeof value === 'number' ||
-    typeof value === 'string' ||
-    typeof value === 'boolean'
-);
-const makeSafeForJSON = value => {
-    if (Array.isArray(value)) {
-        let copy = null;
-        for (let i = 0; i < value.length; i++) {
-            if (!isVariableValueSafeForJSON(value[i])) {
-                if (!copy) {
-                    // Only copy the list when needed
-                    copy = value.slice();
-                }
-                copy[i] = `${copy[i]}`;
-            }
-        }
-        if (copy) {
-            return copy;
-        }
-        return value;
-    }
-    if (isVariableValueSafeForJSON(value)) {
-        return value;
-    }
-    return `${value}`;
-};
-
 /**
  * Serialize the given variables object.
  * @param {object} variables The variables to be serialized.
@@ -767,12 +745,12 @@ const serializeVariables = function (variables) {
             continue;
         }
         if (v.type === Variable.LIST_TYPE) {
-            obj.lists[varId] = [v.name, makeSafeForJSON(v.value)];
+            obj.lists[varId] = [v.name, v.value];
             continue;
         }
 
         // otherwise should be a scalar type
-        obj.variables[varId] = [v.name, makeSafeForJSON(v.value)];
+        obj.variables[varId] = [v.name, v.value];
         // only scalar vars have the potential to be cloud vars
         if (v.isCloud) obj.variables[varId].push(true);
     }
@@ -958,10 +936,7 @@ const serializeMonitors = function (monitors, runtime, extensions) {
                 serializedMonitor.isDiscrete = monitorData.isDiscrete;
             }
             return serializedMonitor;
-        })
-        // By default the sequence is lazily evaluated, but we want it to be evaluated right
-        // now to update the used extension list.
-        .toArray();
+        });
 };
 
 /**
@@ -1333,6 +1308,16 @@ const deserializeBlocks = function (blocks) {
             deserializeInputDesc(block, null, false, blocks);
             continue;
         }
+        const patching = MIST_PATCHING_OPCODES[block.opcode];
+        if (patching) {
+            block.opcode = patching[0];
+            block.inputs = Object.fromEntries(Object.entries(block.inputs).map(([name, input]) => {
+                const newName = /^[ABC]$/.test(name) ? `ARG${name.charCodeAt(0) - 64}` : name;
+                if (input && !Array.isArray(input)) input.name = newName;
+                return [newName, input];
+            }));
+            block.mutation = {tagName: 'mutation', children: [], itemcount: String(patching[1])};
+        }
         block.id = blockId; // add id back to block since it wasn't serialized
         block.inputs = deserializeInputs(block.inputs, blockId, blocks);
         block.fields = deserializeFields(block.fields);
@@ -1428,6 +1413,54 @@ const parseScratchAssets = function (object, runtime, zip) {
 };
 
 /**
+ * Fix various backwards-incompatible changes that Scratch made in the spork migration.
+ * @param {object} blocks Blocks, mutated in-place.
+ */
+const fixSporkCompatibility = function (blocks) {
+    for (const blockId in blocks) {
+        if (!Object.prototype.hasOwnProperty.call(blocks, blockId)) continue;
+
+        const block = blocks[blockId];
+        const opcode = block.opcode;
+
+        switch (opcode) {
+        // Custom block definition prototype blocks used to be marked as shadow: true, but spork marks as shadow: false.
+        // Our scratch-blocks relies on it being shadow: true to prevent moving, so we'll force it to be that way.
+        case 'procedures_prototype':
+            block.shadow = true;
+            break;
+
+        // For completeness with the above, set the argument reporter generators to be shadow: true as well.
+        case 'argument_reporter_string_number':
+        case 'argument_reporter_boolean': {
+            const parent = blocks[block.parent];
+            if (parent && parent.opcode === 'procedures_prototype') {
+                block.shadow = true;
+            }
+            break;
+        }
+
+        // control_stop used to define a mutation for whether it has a connection below, which is what old
+        // scratch-blocks relies on to determine if there is another conneciton below or not. Spork does not define
+        // this mutation and relies only on the STOP_OPTION field. We will generate the mutation if it's missing so
+        // that a "stop other scripts in sprite" block doesn't cause the workspace to fail to load.
+        case 'control_stop': {
+            if (!block.mutation) {
+                const stopOption = block.fields?.STOP_OPTION?.value;
+                const hasNext = stopOption === 'other scripts in sprite' || stopOption === 'other scripts in stage';
+                block.mutation = {
+                    tagName: 'mutation',
+                    hasnext: hasNext ? 'true' : 'false',
+                    children: []
+                };
+            }
+            break;
+        }
+        }
+    }
+};
+
+/**
  * Parse a single "Scratch object" and create all its in-memory VM objects.
  * @param {!object} object From-JSON "Scratch object:" sprite, stage, watcher.
  * @param {!Runtime} runtime Runtime object to load all structures into.
@@ -1471,6 +1504,8 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
                 extensions.extensionIDs.add(extensionID);
             }
         }
+        // Take a third pass to fix various things that spork broke.
+        fixSporkCompatibility(object.blocks);
     }
     // Costumes from JSON.
     const {costumePromises} = assets;
@@ -1742,7 +1777,7 @@ const deserializeMonitor = function (monitorData, runtime, targets, extensions) 
         }
     }
 
-    runtime.requestAddMonitor(MonitorRecord(monitorData));
+    runtime.requestAddMonitor(new MonitorRecord(monitorData));
 };
 
 // Replace variable IDs throughout the project with

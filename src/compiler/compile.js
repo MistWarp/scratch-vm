@@ -1,27 +1,20 @@
 // @ts-check
 
-// eslint-disable-next-line no-unused-vars
-const Thread = require('../engine/thread');
-// eslint-disable-next-line no-unused-vars
-const {IntermediateScript} = require('./intermediate');
 const {IRGenerator} = require('./irgen');
+const {IROptimizer} = require('./iroptimizer');
 const JSGenerator = require('./jsgen');
 
-/**
- * @param {Thread} thread
- * @returns {Object}
- */
-const compile = thread => {
+const compile = (/** @type {import("../engine/thread")} */ thread) => {
     const irGenerator = new IRGenerator(thread);
     const ir = irGenerator.generate();
 
-    const procedures = Object.create(null);
+    const irOptimizer = new IROptimizer(ir);
+    irOptimizer.optimize();
+
+    const procedures = {};
     const target = thread.target;
 
-    /**
-     * @param {IntermediateScript} script
-     */
-    const compileScript = script => {
+    const compileScript = (/** @type {import("./intermediate").IntermediateScript} */ script) => {
         if (script.cachedCompileResult) {
             return script.cachedCompileResult;
         }

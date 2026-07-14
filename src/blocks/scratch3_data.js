@@ -100,7 +100,7 @@ class Scratch3DataBlocks {
             // Return original list value if up-to-date, which doesn't trigger monitor update.
             if (list._monitorUpToDate) return list.value;
             // If value changed, reset the flag and return a copy to trigger monitor update.
-            // Because monitors use Immutable data structures, only new objects trigger updates.
+            // MonitorState only detects updates when the object changes.
             list._monitorUpToDate = true;
             return list.value.slice();
         }
@@ -191,6 +191,10 @@ class Scratch3DataBlocks {
         const list = util.target.lookupOrCreateList(
             args.LIST.id, args.LIST.name);
 
+        if (this.runtime && this.runtime.runtimeOptions.caseSensitiveLists) {
+            return list.value.indexOf(item) + 1;
+        }
+
         // Go through the list items one-by-one using Cast.compare. This is for
         // cases like checking if 123 is contained in a list [4, 7, '123'] --
         // Scratch considers 123 and '123' to be equal.
@@ -230,6 +234,9 @@ class Scratch3DataBlocks {
         const item = args.ITEM;
         const list = util.target.lookupOrCreateList(
             args.LIST.id, args.LIST.name);
+        if (this.runtime && this.runtime.runtimeOptions.caseSensitiveLists) {
+            return list.value.indexOf(item) !== -1;
+        }
         if (list.value.indexOf(item) >= 0) {
             return true;
         }
