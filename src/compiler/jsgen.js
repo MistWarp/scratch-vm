@@ -207,8 +207,12 @@ class JSGenerator {
         case InputOpcode.EXTENSION:
             return this.generateExtensionCompilerSource(node);
 
-        case InputOpcode.RAW_SOURCE:
-            return this.generateRawSource(node.fragments);
+        case InputOpcode.RAW_SOURCE: {
+            // Parenthesized so casts and operators cannot rebind the spliced expression.
+            // ("" + a + 1) would concatenate; ("" + (a + 1)) adds first, like the old compiler.
+            const source = this.generateRawSource(node.fragments);
+            return source === '' ? source : `(${source})`;
+        }
 
         case InputOpcode.CONSTANT:
             if (block.isAlwaysType(InputType.NUMBER)) {
@@ -1199,15 +1203,17 @@ class JSGenerator {
     /**
      * Join raw JavaScript source fragments without quoting literal text.
      * Non-literal inputs remain ordinary compiled JavaScript expressions.
+     * Nested patch blocks splice verbatim: their source may be a partial
+     * fragment such as `}${`, which parentheses would turn into a syntax error.
      * @param {IntermediateInput[]} fragments Source fragments.
      * @returns {string} JavaScript source.
      */
     generateRawSource (fragments) {
-        return fragments.map(fragment => (
-            fragment.opcode === InputOpcode.CONSTANT ?
-                `${fragment.inputs.value}` :
-                this.descendInput(fragment)
-        )).join('');
+        return fragments.map(fragment => {
+            if (fragment.opcode === InputOpcode.CONSTANT) return `${fragment.inputs.value}`;
+            if (fragment.opcode === InputOpcode.RAW_SOURCE) return this.generateRawSource(fragment.inputs.fragments);
+            return this.descendInput(fragment);
+        }).join('');
     }
 
     getScriptFactoryName () {

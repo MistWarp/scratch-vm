@@ -805,12 +805,12 @@ class ScriptTreeGenerator {
             }, this.analyzeLoop());
         case 'control_switch':
             return new IntermediateStackBlock(StackOpcode.CONTROL_SWITCH, {
-                value: this.descendInputOfBlock(block, 'VALUE').toType(InputType.STRING),
+                value: this.descendSwitchValue(block),
                 do: this.descendSubstack(block, 'SUBSTACK')
             });
         case 'control_case':
             return new IntermediateStackBlock(StackOpcode.CONTROL_CASE, {
-                value: this.descendInputOfBlock(block, 'VALUE').toType(InputType.STRING),
+                value: this.descendSwitchValue(block),
                 do: this.descendSubstack(block, 'SUBSTACK')
             });
         case 'control_default':
@@ -821,7 +821,7 @@ class ScriptTreeGenerator {
             return new IntermediateStackBlock(StackOpcode.CONTROL_BREAK);
         case 'control_case_fallthrough':
             return new IntermediateStackBlock(StackOpcode.CONTROL_CASE_FALLTHROUGH, {
-                value: this.descendInputOfBlock(block, 'VALUE').toType(InputType.STRING)
+                value: this.descendSwitchValue(block)
             });
         case 'control_clear_counter':
             return new IntermediateStackBlock(StackOpcode.CONTROL_CLEAR_COUNTER);
@@ -1432,6 +1432,20 @@ class ScriptTreeGenerator {
             fields,
             mutation: block.mutation
         }, true);
+    }
+
+    /**
+     * Raw-source switch and case values stay uncoerced so spliced `case x:`
+     * statements and the discriminant compare with === on the original values.
+     * @param {*} block Switch, case, or fallthrough block.
+     * @returns {IntermediateInput}
+     */
+    descendSwitchValue (block) {
+        const value = this.descendInputOfBlock(block, 'VALUE');
+        if (value.opcode === InputOpcode.RAW_SOURCE) {
+            return value;
+        }
+        return value.toType(InputType.STRING);
     }
 
     /**
