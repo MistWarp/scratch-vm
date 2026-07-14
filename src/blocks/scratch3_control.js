@@ -181,8 +181,8 @@ class Scratch3ControlBlocks {
 
     deleteClone (args, util) {
         if (util.target.isOriginal) return;
+        // disposeTarget -> target.dispose() already calls stopForTarget.
         this.runtime.disposeTarget(util.target);
-        this.runtime.stopForTarget(util.target);
     }
 
     getCounter () {

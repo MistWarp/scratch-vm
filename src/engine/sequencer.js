@@ -343,18 +343,7 @@ class Sequencer {
         } else {
             // Look for warp-mode flag on definition, and set the thread
             // to warp-mode if needed.
-            const definitionBlock = thread.target.blocks.getBlock(definition);
-            const innerBlock = thread.target.blocks.getBlock(
-                definitionBlock.inputs.custom_block.block);
-            let doWarp = false;
-            if (innerBlock && innerBlock.mutation) {
-                const warp = innerBlock.mutation.warp;
-                if (typeof warp === 'boolean') {
-                    doWarp = warp;
-                } else if (typeof warp === 'string') {
-                    doWarp = JSON.parse(warp);
-                }
-            }
+            const doWarp = thread.target.blocks.getProcedureWarp(definition);
             if (doWarp) {
                 thread.peekStackFrame().warpMode = true;
             } else if (isRecursive) {

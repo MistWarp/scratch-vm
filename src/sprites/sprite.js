@@ -50,6 +50,20 @@ class Sprite {
          */
         this.clones = [];
 
+        /**
+         * Drawable ids of every clone that can take part in a "touching sprite" query,
+         * cached because that block rebuilt this list on every evaluation.
+         * @type {?Array.<number>}
+         */
+        this._touchingCandidates = null;
+
+        /**
+         * Costume index by costume name. "switch costume to" scanned every costume on
+         * every call, which adds up on sprites with hundreds of animation frames.
+         * @type {?Map.<string, number>}
+         */
+        this._costumeIndexByName = null;
+
         this.soundBank = null;
         if (this.runtime && this.runtime.audioEngine) {
             this.soundBank = this.runtime.audioEngine.createBank();
@@ -89,6 +103,7 @@ class Sprite {
         const usedNames = this.costumes_.map(costume => costume.name);
         costumeObject.name = StringUtil.unusedName(costumeObject.name, usedNames);
         this.costumes_.splice(index, 0, costumeObject);
+        this.invalidateCostumeIndexByName();
     }
 
     /**
@@ -97,7 +112,32 @@ class Sprite {
      * @return {?object} The deleted costume
      */
     deleteCostumeAt (index) {
-        return this.costumes.splice(index, 1)[0];
+        const deleted = this.costumes.splice(index, 1)[0];
+        this.invalidateCostumeIndexByName();
+        return deleted;
+    }
+
+    /**
+     * Index of a costume by name.
+     * @param {?string} costumeName Name of a costume.
+     * @return {number} Index of the named costume, or -1 if not present.
+     */
+    getCostumeIndexByName (costumeName) {
+        if (this._costumeIndexByName === null) {
+            this._costumeIndexByName = new Map();
+            for (let i = 0; i < this.costumes_.length; i++) {
+                const name = this.costumes_[i].name;
+                if (!this._costumeIndexByName.has(name)) {
+                    this._costumeIndexByName.set(name, i);
+                }
+            }
+        }
+        const index = this._costumeIndexByName.get(costumeName);
+        return typeof index === 'undefined' ? -1 : index;
+    }
+
+    invalidateCostumeIndexByName () {
+        this._costumeIndexByName = null;
     }
 
     /**
@@ -106,10 +146,34 @@ class Sprite {
      * Defaults to the sprite layer group
      * @returns {!RenderedTarget} Newly created clone.
      */
+    /**
+     * Drawable ids of the clones a "touching sprite" query should test against.
+     * Dragged clones are excluded, matching Scratch 2.0: a sprite being dragged can
+     * detect others, but cannot itself be detected.
+     * @returns {Array.<number>} Drawable ids.
+     */
+    getTouchingCandidates () {
+        if (this._touchingCandidates === null) {
+            this._touchingCandidates = [];
+            for (let i = 0; i < this.clones.length; i++) {
+                const clone = this.clones[i];
+                if (!clone.dragging) {
+                    this._touchingCandidates.push(clone.drawableID);
+                }
+            }
+        }
+        return this._touchingCandidates;
+    }
+
+    invalidateTouchingCandidates () {
+        this._touchingCandidates = null;
+    }
+
     createClone (optLayerGroup) {
         const newClone = new RenderedTarget(this, this.runtime);
         newClone.isOriginal = this.clones.length === 0;
         this.clones.push(newClone);
+        this.invalidateTouchingCandidates();
         newClone.initAudio();
         if (newClone.isOriginal) {
             // Default to the sprite layer group if optLayerGroup is not provided
@@ -132,6 +196,7 @@ class Sprite {
         const cloneIndex = this.clones.indexOf(clone);
         if (cloneIndex >= 0) {
             this.clones.splice(cloneIndex, 1);
+            this.invalidateTouchingCandidates();
         }
     }
 

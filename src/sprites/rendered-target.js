@@ -177,6 +177,7 @@ class RenderedTarget extends Target {
     initDrawable (layerGroup) {
         if (this.renderer) {
             this.drawableID = this.renderer.createDrawable(layerGroup);
+            this.sprite.invalidateTouchingCandidates();
         }
         // If we're a clone, start the hats.
         if (!this.isOriginal) {
@@ -483,6 +484,7 @@ class RenderedTarget extends Target {
         const oldName = this.getCostumes()[costumeIndex].name;
         const newUnusedName = StringUtil.unusedName(newName, usedNames);
         this.getCostumes()[costumeIndex].name = newUnusedName;
+        this.sprite.invalidateCostumeIndexByName();
 
         if (this.isStage) {
             // Since this is a backdrop, go through all targets and
@@ -602,13 +604,7 @@ class RenderedTarget extends Target {
      * @return {number} Index of the named costume, or -1 if not present.
      */
     getCostumeIndexByName (costumeName) {
-        const costumes = this.getCostumes();
-        for (let i = 0; i < costumes.length; i++) {
-            if (costumes[i].name === costumeName) {
-                return i;
-            }
-        }
-        return -1;
+        return this.sprite.getCostumeIndexByName(costumeName);
     }
 
     /**
@@ -804,13 +800,8 @@ class RenderedTarget extends Target {
         if (!firstClone || !this.renderer) {
             return false;
         }
-        // Filter out dragging targets. This means a sprite that is being dragged
-        // can detect other sprites using touching <sprite>, but cannot be detected
-        // by other sprites while it is being dragged. This matches Scratch 2.0 behavior.
-        const drawableCandidates = firstClone.sprite.clones.filter(clone => !clone.dragging)
-            .map(clone => clone.drawableID);
         return this.renderer.isTouchingDrawables(
-            this.drawableID, drawableCandidates);
+            this.drawableID, firstClone.sprite.getTouchingCandidates());
     }
 
     /**
@@ -1057,6 +1048,7 @@ class RenderedTarget extends Target {
      */
     startDrag () {
         this.dragging = true;
+        this.sprite.invalidateTouchingCandidates();
     }
 
     /**
@@ -1064,6 +1056,7 @@ class RenderedTarget extends Target {
      */
     stopDrag () {
         this.dragging = false;
+        this.sprite.invalidateTouchingCandidates();
     }
 
 

@@ -63,6 +63,12 @@ class Blocks {
             procedureDefinitions: {},
 
             /**
+             * Cache whether a procedure runs without screen refresh, by definition block id
+             * @type {object.<string, boolean>}
+             */
+            procedureWarp: {},
+
+            /**
              * A cache for execute to use and store on. Only available to
              * execute.
              * @type {object.<string, object>}
@@ -297,6 +303,37 @@ class Blocks {
 
         this._cache.procedureDefinitions[name] = null;
         return null;
+    }
+
+    /**
+     * Whether the procedure defined by the given block runs without screen refresh.
+     * sb3 mutations store this as the string "true"/"false", so the interpreter used to
+     * JSON.parse it on every single call of every custom block.
+     * @param {!string} definitionId ID of a procedures_definition block.
+     * @return {boolean} True if the procedure should run in warp mode.
+     */
+    getProcedureWarp (definitionId) {
+        const cached = this._cache.procedureWarp[definitionId];
+        if (typeof cached !== 'undefined') {
+            return cached;
+        }
+
+        let doWarp = false;
+        const definitionBlock = this._blocks[definitionId];
+        if (definitionBlock) {
+            const innerBlock = this._getCustomBlockInternal(definitionBlock);
+            if (innerBlock && innerBlock.mutation) {
+                const warp = innerBlock.mutation.warp;
+                if (typeof warp === 'boolean') {
+                    doWarp = warp;
+                } else if (typeof warp === 'string') {
+                    doWarp = JSON.parse(warp);
+                }
+            }
+        }
+
+        this._cache.procedureWarp[definitionId] = doWarp;
+        return doWarp;
     }
 
     /**
@@ -679,6 +716,7 @@ class Blocks {
         this._cache.inputs = {};
         this._cache.procedureParamNames = {};
         this._cache.procedureDefinitions = {};
+        this._cache.procedureWarp = {};
         this._cache._executeCached = {};
         this._cache._monitored = null;
         this._cache.scripts = {};

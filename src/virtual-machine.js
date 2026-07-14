@@ -1488,6 +1488,7 @@ class VirtualMachine extends EventEmitter {
                 const oldName = sprite.name;
                 const newUnusedName = StringUtil.unusedName(newName, names);
                 sprite.name = newUnusedName;
+                this.runtime.invalidateTargetCaches();
                 if (oldName === newUnusedName) {
                     return;
                 }
@@ -1528,10 +1529,11 @@ class VirtualMachine extends EventEmitter {
             target.deleteMonitors();
             this._broadcastCleanupNeeded = true;
             const currentEditingTarget = this.editingTarget;
-            for (let i = 0; i < sprite.clones.length; i++) {
-                const clone = sprite.clones[i];
-                this.runtime.stopForTarget(sprite.clones[i]);
-                this.runtime.disposeTarget(sprite.clones[i]);
+            const clones = sprite.clones.slice();
+            for (let i = 0; i < clones.length; i++) {
+                const clone = clones[i];
+                this.runtime.stopForTarget(clone);
+                this.runtime.disposeTarget(clone);
                 // Ensure editing target is switched if we are deleting it.
                 if (clone === currentEditingTarget) {
                     const nextTargetIndex = Math.min(this.runtime.targets.length - 1, targetIndexBeforeDelete);

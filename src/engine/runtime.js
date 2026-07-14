@@ -210,7 +210,16 @@ class Runtime extends EventEmitter {
          * Target management and storage.
          * @type {Array.<!Target>}
          */
-        this.targets = [];
+        this._targets = [];
+
+        /**
+         * Lookup tables for `getTargetById` and `getSpriteTargetByName`, which are
+         * hot enough that a linear scan of every clone shows up on profiles.
+         * @type {Map.<string, !Target>}
+         */
+        this._targetsById = new Map();
+        this._spriteTargetsByName = new Map();
+        this._targetCachesDirty = true;
 
         /**
          * Targets in reverse order of execution. Shares its order with drawables.
@@ -226,6 +235,13 @@ class Runtime extends EventEmitter {
         this.threads = [];
 
         this.threadMap = new Map();
+
+        /**
+         * Live monitor threads by the block that started them. Saves a scan of every
+         * thread for every monitored block, on every frame.
+         * @type {Map.<string, Thread>}
+         */
+        this._monitorThreads = new Map();
 
         /** @type {!Sequencer} */
         this.sequencer = new Sequencer(this);
@@ -2251,15 +2267,13 @@ class Runtime extends EventEmitter {
      */
     addMonitorScript (topBlockId, optTarget) {
         if (!optTarget) optTarget = this._editingTarget;
-        for (let i = 0; i < this.threads.length; i++) {
-            // Don't re-add the script if it's already running
-            if (this.threads[i].topBlock === topBlockId && this.threads[i].status !== Thread.STATUS_DONE &&
-                    this.threads[i].updateMonitor) {
-                return;
-            }
+        // Don't re-add the script if it's already running.
+        const existingThread = this._monitorThreads.get(topBlockId);
+        if (existingThread && existingThread.status !== Thread.STATUS_DONE && !existingThread.isKilled) {
+            return;
         }
         // Otherwise add it.
-        this._pushThread(topBlockId, optTarget, {updateMonitor: true});
+        this._monitorThreads.set(topBlockId, this._pushThread(topBlockId, optTarget, {updateMonitor: true}));
     }
 
     /**
@@ -2400,7 +2414,7 @@ class Runtime extends EventEmitter {
             if (target.isOriginal) target.deleteMonitors();
         });
 
-        this.targets.map(this.disposeTarget, this);
+        this.targets.slice().forEach(this.disposeTarget, this);
         this.extensionStorage = {};
         // tw: explicitly emit a MONITORS_UPDATE instead of relying on implicit behavior of _step()
         if (!this._monitorState.empty()) {
@@ -2446,6 +2460,15 @@ class Runtime extends EventEmitter {
         this.executableTargets.push(target);
         if (target.isStage && !this._stageTarget) {
             this._stageTarget = target;
+        }
+        if (!this._targetCachesDirty) {
+            // Appended last, so an existing entry always came earlier and still wins.
+            if (!this._targetsById.has(target.id)) {
+                this._targetsById.set(target.id, target);
+            }
+            if (!target.isStage && target.sprite && !this._spriteTargetsByName.has(target.sprite.name)) {
+                this._spriteTargetsByName.set(target.sprite.name, target);
+            }
         }
     }
 
@@ -2508,13 +2531,24 @@ class Runtime extends EventEmitter {
      * @param {!Target} disposingTarget Target to dispose of.
      */
     disposeTarget (disposingTarget) {
-        this.targets = this.targets.filter(target => {
-            if (disposingTarget !== target) return true;
-            // Allow target to do dispose actions.
-            target.dispose();
-            // Remove from list of targets.
-            return false;
-        });
+        const index = this.targets.indexOf(disposingTarget);
+        if (index === -1) {
+            return;
+        }
+        this.targets.splice(index, 1);
+        // Allow target to do dispose actions.
+        disposingTarget.dispose();
+        if (!this._targetCachesDirty) {
+            if (this._targetsById.get(disposingTarget.id) === disposingTarget) {
+                this._targetsById.delete(disposingTarget.id);
+            }
+            // Deleting a clone leaves the original mapped, so only a mapped target
+            // forces a rescan to find whichever target is now first.
+            const sprite = disposingTarget.sprite;
+            if (sprite && this._spriteTargetsByName.get(sprite.name) === disposingTarget) {
+                this._targetCachesDirty = true;
+            }
+        }
         if (this._stageTarget === disposingTarget) {
             this._stageTarget = null;
         }
@@ -2595,6 +2629,7 @@ class Runtime extends EventEmitter {
         // Remove all remaining threads from executing in the next tick.
         this.threads = [];
         this.threadMap.clear();
+        this._monitorThreads.clear();
 
         this.resetRunId();
     }
@@ -2637,9 +2672,14 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepProfilerId);
         }
 
-        // Clean up threads that were told to stop during or since the last step
+        // Clean up threads that were told to stop during or since the last step.
+        // The thread map is maintained incrementally everywhere else, so it only goes
+        // stale when a killed thread is dropped here before the sequencer can retire it.
+        const threadCountBeforeCleanup = this.threads.length;
         this.threads = this.threads.filter(thread => !thread.isKilled);
-        this.updateThreadMap();
+        if (this.threads.length !== threadCountBeforeCleanup) {
+            this.updateThreadMap();
+        }
 
         // Find all edge-activated hats, and add them to threads to be evaluated.
         for (const hatType in this._hats) {
@@ -2668,7 +2708,8 @@ class Runtime extends EventEmitter {
         // flag will still indicate that a script ran.
         this._emitProjectRunStatus(
             this.threads.length + doneThreads.length -
-                this._getMonitorThreadCount([...this.threads, ...doneThreads]));
+                this._getMonitorThreadCount(this.threads) -
+                this._getMonitorThreadCount(doneThreads));
         // Store threads that completed this iteration for testing and other
         // internal purposes.
         this._lastStepDoneThreads = doneThreads;
@@ -2697,9 +2738,9 @@ class Runtime extends EventEmitter {
      */
     _getMonitorThreadCount (threads) {
         let count = 0;
-        threads.forEach(thread => {
-            if (thread.updateMonitor) count++;
-        });
+        for (let i = 0; i < threads.length; i++) {
+            if (threads[i].updateMonitor) count++;
+        }
         return count;
     }
 
@@ -3073,19 +3114,9 @@ class Runtime extends EventEmitter {
      * Looks at `this.threads` and notices which have turned on/off new glows.
      * @param {Array.<Thread>=} optExtraThreads Optional list of inactive threads.
      */
-    _updateGlows (optExtraThreads) {
-        const searchThreads = [];
-        searchThreads.push(...this.threads);
-        if (optExtraThreads) {
-            searchThreads.push(...optExtraThreads);
-        }
-        // Set of scripts that request a glow this frame.
-        const requestedGlowsThisFrame = [];
-        // Final set of scripts glowing during this frame.
-        const finalScriptGlows = [];
-        // Find all scripts that should be glowing.
-        for (let i = 0; i < searchThreads.length; i++) {
-            const thread = searchThreads[i];
+    _collectRequestedGlows (threads, requestedGlowsThisFrame) {
+        for (let i = 0; i < threads.length; i++) {
+            const thread = threads[i];
             const target = thread.target;
             if (target === this._editingTarget) {
                 const blockForThread = thread.blockGlowInFrame;
@@ -3102,6 +3133,28 @@ class Runtime extends EventEmitter {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Emit glows/glow clears for scripts after a single tick.
+     * Looks at `this.threads` and notices which have turned on/off new glows.
+     * @param {Array.<Thread>=} optExtraThreads Optional list of inactive threads.
+     */
+    _updateGlows (optExtraThreads) {
+        // Without an editing target no thread can request a glow, so there is only
+        // work to do if glows from a previous frame still need clearing.
+        if (!this._editingTarget && this._scriptGlowsPreviousFrame.length === 0) {
+            return;
+        }
+        // Set of scripts that request a glow this frame.
+        const requestedGlowsThisFrame = [];
+        // Final set of scripts glowing during this frame.
+        const finalScriptGlows = [];
+        // Find all scripts that should be glowing.
+        this._collectRequestedGlows(this.threads, requestedGlowsThisFrame);
+        if (optExtraThreads) {
+            this._collectRequestedGlows(optExtraThreads, requestedGlowsThisFrame);
         }
         // Compare to previous frame.
         for (let j = 0; j < this._scriptGlowsPreviousFrame.length; j++) {
@@ -3291,17 +3344,58 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Target management and storage.
+     * @type {Array.<!Target>}
+     */
+    get targets () {
+        return this._targets;
+    }
+
+    /**
+     * Replacing the target list wholesale invalidates the lookup tables. Mutations
+     * through addTarget and disposeTarget keep them up to date incrementally.
+     * @param {Array.<!Target>} targets New target list.
+     */
+    set targets (targets) {
+        this._targets = targets;
+        this.invalidateTargetCaches();
+    }
+
+    /**
+     * Rebuild the target lookup tables. Both map to the first matching target in
+     * `this.targets` order, which is what the linear scans these replace returned.
+     */
+    _rebuildTargetCaches () {
+        this._targetsById.clear();
+        this._spriteTargetsByName.clear();
+        for (let i = 0; i < this.targets.length; i++) {
+            const target = this.targets[i];
+            if (!this._targetsById.has(target.id)) {
+                this._targetsById.set(target.id, target);
+            }
+            if (!target.isStage && target.sprite && !this._spriteTargetsByName.has(target.sprite.name)) {
+                this._spriteTargetsByName.set(target.sprite.name, target);
+            }
+        }
+        this._targetCachesDirty = false;
+    }
+
+    /**
+     * Mark the target lookup tables as needing a rebuild. Call after any change to
+     * `this.targets` or to a sprite's name that isn't handled incrementally.
+     */
+    invalidateTargetCaches () {
+        this._targetCachesDirty = true;
+    }
+
+    /**
      * Get a target by its id.
      * @param {string} targetId Id of target to find.
      * @return {?Target} The target, if found.
      */
     getTargetById (targetId) {
-        for (let i = 0; i < this.targets.length; i++) {
-            const target = this.targets[i];
-            if (target.id === targetId) {
-                return target;
-            }
-        }
+        if (this._targetCachesDirty) this._rebuildTargetCaches();
+        return this._targetsById.get(targetId);
     }
 
     /**
@@ -3310,15 +3404,8 @@ class Runtime extends EventEmitter {
      * @return {?Target} Target representing a sprite of the given name.
      */
     getSpriteTargetByName (spriteName) {
-        for (let i = 0; i < this.targets.length; i++) {
-            const target = this.targets[i];
-            if (target.isStage) {
-                continue;
-            }
-            if (target.sprite && target.sprite.name === spriteName) {
-                return target;
-            }
-        }
+        if (this._targetCachesDirty) this._rebuildTargetCaches();
+        return this._spriteTargetsByName.get(spriteName);
     }
 
     /**
