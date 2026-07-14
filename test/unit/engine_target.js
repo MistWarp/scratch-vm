@@ -811,3 +811,59 @@ test('fixUpVariableReferences does not change variable name if there is no varia
 
     t.end();
 });
+
+test('fixUpVariableReferences creates missing broadcasts on the stage', t => {
+    const runtime = new Runtime();
+
+    const stage = new Target(runtime);
+    stage.isStage = true;
+
+    const target = new Target(runtime);
+    target.isStage = false;
+    target.getName = () => 'Target';
+
+    runtime.targets = [stage, target];
+
+    stage.createVariable('existing broadcast id', 'message1', Variable.BROADCAST_MESSAGE_TYPE);
+
+    target.blocks.createBlock({
+        id: 'a broadcast menu block',
+        opcode: 'event_broadcast_menu',
+        fields: {
+            BROADCAST_OPTION: {
+                name: 'BROADCAST_OPTION',
+                id: 'imported broadcast id 1',
+                value: 'message1',
+                variableType: Variable.BROADCAST_MESSAGE_TYPE
+            }
+        },
+        inputs: {},
+        topLevel: true
+    });
+    target.blocks.createBlock({
+        id: 'a broadcast hat block',
+        opcode: 'event_whenbroadcastreceived',
+        fields: {
+            BROADCAST_OPTION: {
+                name: 'BROADCAST_OPTION',
+                id: 'imported broadcast id 2',
+                value: 'message2',
+                variableType: Variable.BROADCAST_MESSAGE_TYPE
+            }
+        },
+        inputs: {},
+        topLevel: true
+    });
+
+    target.fixUpVariableReferences();
+
+    t.equal(target.blocks.getBlock('a broadcast menu block').fields.BROADCAST_OPTION.id,
+        'existing broadcast id');
+    const newBroadcast = stage.variables['imported broadcast id 2'];
+    t.type(newBroadcast, 'object');
+    t.equal(newBroadcast.type, Variable.BROADCAST_MESSAGE_TYPE);
+    t.equal(newBroadcast.name, 'message2');
+    t.equal(Object.keys(target.variables).length, 0);
+
+    t.end();
+});
