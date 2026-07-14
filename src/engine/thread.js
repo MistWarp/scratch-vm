@@ -165,6 +165,8 @@ class Thread {
          */
         this.isKilled = false;
 
+        this.inThreadList = false;
+
         /**
          * Target of this thread.
          * @type {?Target}

@@ -236,6 +236,8 @@ class Runtime extends EventEmitter {
 
         this.threadMap = new Map();
 
+        this._threadsKilled = false;
+
         /**
          * Live monitor threads by the block that started them. Saves a scan of every
          * thread for every monitored block, on every frame.
@@ -2140,6 +2142,7 @@ class Runtime extends EventEmitter {
 
         thread.pushStack(id);
         this.threads.push(thread);
+        thread.inThreadList = true;
         if (!thread.stackClick && !thread.updateMonitor) {
             this.threadMap.set(thread.getId(), thread);
         }
@@ -2159,6 +2162,7 @@ class Runtime extends EventEmitter {
     _stopThread (thread) {
         // Mark the thread for later removal
         thread.isKilled = true;
+        this._threadsKilled = true;
         // Inform sequencer to stop executing that thread.
         this.sequencer.retireThread(thread);
     }
@@ -2187,9 +2191,12 @@ class Runtime extends EventEmitter {
         const i = this.threads.indexOf(thread);
         if (i > -1) {
             this.threads[i] = newThread;
+            thread.inThreadList = false;
+            newThread.inThreadList = true;
             return newThread;
         }
         this.threads.push(thread);
+        thread.inThreadList = true;
         return thread;
     }
 
@@ -2207,7 +2214,7 @@ class Runtime extends EventEmitter {
             (
                 thread.stack.length > 0 &&
                 thread.status !== Thread.STATUS_DONE) &&
-            this.threads.indexOf(thread) > -1);
+            thread.inThreadList);
     }
 
     /**
@@ -2336,10 +2343,6 @@ class Runtime extends EventEmitter {
             optMatchFields[opts] = optMatchFields[opts].toUpperCase();
         }
 
-        // tw: By assuming that all new threads will not interfere with eachother, we can optimize the loops
-        // inside the allScriptsByOpcodeDo callback below.
-        const startingThreadListLength = this.threads.length;
-
         // Consider all scripts, looking for hats with opcode `requestedHatOpcode`.
         this.allScriptsByOpcodeDo(requestedHatOpcode, (script, target) => {
             const {
@@ -2370,15 +2373,14 @@ class Runtime extends EventEmitter {
             } else {
                 // If `restartExistingThreads` is false, we should
                 // give up if any threads with the top block are running.
-                for (let j = 0; j < startingThreadListLength; j++) {
-                    if (this.threads[j].target === target &&
-                        this.threads[j].topBlock === topBlockId &&
-                        // stack click threads and hat threads can coexist
-                        !this.threads[j].stackClick &&
-                        this.threads[j].status !== Thread.STATUS_DONE) {
-                        // Some thread is already running.
-                        return;
-                    }
+                // stack click threads and hat threads can coexist; the thread map
+                // never contains stack click threads.
+                const existingThread = this.threadMap.get(Thread.getIdFromTargetAndBlock(target, topBlockId));
+                if (existingThread &&
+                    existingThread.inThreadList &&
+                    existingThread.status !== Thread.STATUS_DONE) {
+                    // Some thread is already running.
+                    return;
                 }
             }
             // Start the thread with this top block.
@@ -2627,6 +2629,9 @@ class Runtime extends EventEmitter {
             this._stopThread(this.sequencer.activeThread);
         }
         // Remove all remaining threads from executing in the next tick.
+        for (let i = 0; i < this.threads.length; i++) {
+            this.threads[i].inThreadList = false;
+        }
         this.threads = [];
         this.threadMap.clear();
         this._monitorThreads.clear();
@@ -2675,10 +2680,22 @@ class Runtime extends EventEmitter {
         // Clean up threads that were told to stop during or since the last step.
         // The thread map is maintained incrementally everywhere else, so it only goes
         // stale when a killed thread is dropped here before the sequencer can retire it.
-        const threadCountBeforeCleanup = this.threads.length;
-        this.threads = this.threads.filter(thread => !thread.isKilled);
-        if (this.threads.length !== threadCountBeforeCleanup) {
-            this.updateThreadMap();
+        if (this._threadsKilled) {
+            this._threadsKilled = false;
+            let nextThreadIndex = 0;
+            for (let i = 0; i < this.threads.length; i++) {
+                const thread = this.threads[i];
+                if (thread.isKilled) {
+                    thread.inThreadList = false;
+                } else {
+                    this.threads[nextThreadIndex] = thread;
+                    nextThreadIndex++;
+                }
+            }
+            if (nextThreadIndex !== this.threads.length) {
+                this.threads.length = nextThreadIndex;
+                this.updateThreadMap();
+            }
         }
 
         // Find all edge-activated hats, and add them to threads to be evaluated.

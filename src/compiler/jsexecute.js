@@ -60,7 +60,7 @@ runtimeFunctions.waitThreads = `const waitThreads = function*(threads) {
         // determine whether any threads are running
         let anyRunning = false;
         for (let i = 0; i < threads.length; i++) {
-            if (runtime.threads.indexOf(threads[i]) !== -1) {
+            if (threads[i].inThreadList) {
                 anyRunning = true;
                 break;
             }

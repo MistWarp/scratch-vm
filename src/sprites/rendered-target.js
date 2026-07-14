@@ -264,6 +264,7 @@ class RenderedTarget extends Target {
     setXY (x, y, force) { // used by compiler
         if (this.isStage) return;
         if (this.dragging && !force) return;
+        if (x === this.x && y === this.y && !force) return;
         const oldX = this.x;
         const oldY = this.y;
         if (this.renderer) {
@@ -320,7 +321,9 @@ class RenderedTarget extends Target {
             return;
         }
         // Keep direction between -179 and +180.
-        this.direction = MathUtil.wrapClamp(direction, -179, 180);
+        const wrappedDirection = MathUtil.wrapClamp(direction, -179, 180);
+        if (wrappedDirection === this.direction) return;
+        this.direction = wrappedDirection;
         if (this.renderer) {
             const {direction: renderedDirection, scale} = this._getRenderedDirectionAndScale();
             this.renderer.updateDrawableDirectionScale(this.drawableID, renderedDirection, scale);
@@ -338,6 +341,7 @@ class RenderedTarget extends Target {
      */
     setDraggable (draggable) {
         if (this.isStage) return;
+        if (this.draggable === !!draggable) return;
         this.draggable = !!draggable;
         this.runtime.requestTargetsUpdate(this);
     }
@@ -350,6 +354,7 @@ class RenderedTarget extends Target {
         if (this.isStage) {
             return;
         }
+        if (this.visible === !!visible) return;
         this.visible = !!visible;
         if (this.renderer) {
             this.renderer.updateDrawableVisible(this.drawableID, this.visible);
@@ -381,7 +386,9 @@ class RenderedTarget extends Target {
                 (1.5 * this.runtime.stageWidth) / origW,
                 (1.5 * this.runtime.stageHeight) / origH
             ) : Infinity;
-            this.size = MathUtil.clamp(size / 100, minScale, maxScale) * 100;
+            const clampedSize = MathUtil.clamp(size / 100, minScale, maxScale) * 100;
+            if (clampedSize === this.size) return;
+            this.size = clampedSize;
             const {direction, scale} = this._getRenderedDirectionAndScale();
             this.renderer.updateDrawableDirectionScale(this.drawableID, direction, scale);
             if (this.visible) {
@@ -391,6 +398,7 @@ class RenderedTarget extends Target {
         } else {
             // tw: setSize should update size even without a renderer
             // needed by tw-change-size-does-not-use-rounded-size.sb3 test
+            if (size === this.size) return;
             this.size = size;
         }
         this.runtime.requestTargetsUpdate(this);
@@ -403,6 +411,7 @@ class RenderedTarget extends Target {
      */
     setEffect (effectName, value) { // used by compiler
         if (!Object.prototype.hasOwnProperty.call(this.effects, effectName)) return;
+        if (this.effects[effectName] === value) return;
         this.effects[effectName] = value;
         if (this.renderer) {
             this.renderer.updateDrawableEffect(this.drawableID, effectName, value);

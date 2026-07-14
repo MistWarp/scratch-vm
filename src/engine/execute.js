@@ -288,6 +288,8 @@ class BlockCached {
          */
         this._ops = [];
 
+        this._opsIndexMap = null;
+
         const {runtime} = blockUtility.sequencer;
 
         const {opcode, fields, inputs} = this;
@@ -442,13 +444,21 @@ const execute = function (sequencer, thread) {
 
     if (currentStackFrame.reported !== null) {
         const reported = currentStackFrame.reported;
+        let opsIndexMap = blockCached._opsIndexMap;
+        if (opsIndexMap === null) {
+            opsIndexMap = blockCached._opsIndexMap = new Map();
+            for (let j = 0; j < length; j++) {
+                opsIndexMap.set(ops[j].id, j);
+            }
+        }
         // Reinstate all the previous values.
         for (; i < reported.length; i++) {
             const {opCached: oldOpCached, inputValue} = reported[i];
 
-            const opCached = ops.find(op => op.id === oldOpCached);
+            const opIndex = opsIndexMap.get(oldOpCached);
 
-            if (opCached) {
+            if (typeof opIndex !== 'undefined') {
+                const opCached = ops[opIndex];
                 const inputName = opCached._parentKey;
                 const argValues = opCached._parentValues;
 
@@ -468,11 +478,13 @@ const execute = function (sequencer, thread) {
         // candidate. If an earlier block that was performed was removed then
         // we'll find the index where the last operation is now.
         if (reported.length > 0) {
-            const lastExisting = reported.reverse().find(report => ops.find(op => op.id === report.opCached));
-            if (lastExisting) {
-                i = ops.findIndex(opCached => opCached.id === lastExisting.opCached) + 1;
-            } else {
-                i = 0;
+            i = 0;
+            for (let j = reported.length - 1; j >= 0; j--) {
+                const opIndex = opsIndexMap.get(reported[j].opCached);
+                if (typeof opIndex !== 'undefined') {
+                    i = opIndex + 1;
+                    break;
+                }
             }
         }
 
