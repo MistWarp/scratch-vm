@@ -125,6 +125,16 @@ for (const opcode in VANILLA_CONSTANTS) {
     CONSTANT_OPCODE_BY_NAME[VANILLA_CONSTANTS[opcode].name] = opcode;
 }
 
+const MIST_PATCHING_OPCODES = {
+    mistsutils_patchreporter: ['patching_jsreporter', 1],
+    mistsutils_patchreporter2: ['patching_jsreporter', 2],
+    mistsutils_patchreporter3: ['patching_jsreporter', 3],
+    mistsutils_patchboolean: ['patching_jsboolean', 1],
+    mistsutils_patchcommand: ['patching_jscommand', 1],
+    mistsutils_patchcommand2: ['patching_jscommand', 2],
+    mistsutils_patchcommand3: ['patching_jscommand', 3]
+};
+
 const collapseConstants = function (blocks) {
     for (const id in blocks) {
         if (!hasOwnProperty.call(blocks, id)) continue;
@@ -1297,6 +1307,16 @@ const deserializeBlocks = function (blocks) {
             delete blocks[blockId];
             deserializeInputDesc(block, null, false, blocks);
             continue;
+        }
+        const patching = MIST_PATCHING_OPCODES[block.opcode];
+        if (patching) {
+            block.opcode = patching[0];
+            block.inputs = Object.fromEntries(Object.entries(block.inputs).map(([name, input]) => {
+                const newName = /^[ABC]$/.test(name) ? `ARG${name.charCodeAt(0) - 64}` : name;
+                if (input && !Array.isArray(input)) input.name = newName;
+                return [newName, input];
+            }));
+            block.mutation = {tagName: 'mutation', children: [], itemcount: String(patching[1])};
         }
         block.id = blockId; // add id back to block since it wasn't serialized
         block.inputs = deserializeInputs(block.inputs, blockId, blocks);

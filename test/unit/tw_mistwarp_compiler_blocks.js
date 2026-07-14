@@ -133,21 +133,6 @@ test('compiled list helpers preserve case-sensitive mode', t => {
 
 test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
     const vm = new VirtualMachine();
-    vm.extensionManager.addBuiltinExtension('mistsutils', class {
-        getInfo () {
-            return {
-                id: 'mistsutils',
-                name: "Mist's Utils",
-                blocks: [{
-                    opcode: 'patchcommand3',
-                    blockType: 'command',
-                    text: '[A] [B] [C]',
-                    arguments: {A: {type: 'string'}, B: {type: 'string'}, C: {type: 'string'}}
-                }]
-            };
-        }
-        patchcommand3 () {}
-    });
     await vm.loadProject({
         targets: [{
             isStage: true,
@@ -224,6 +209,11 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
+    t.ok(vm.extensionManager.isExtensionLoaded('patching'), 'legacy blocks load built-in Patching');
+    t.notOk(vm.extensionManager.isExtensionLoaded('mistsutils'), "Mist's Utils is not loaded");
+    const migrated = vm.runtime.getTargetForStage().blocks.getBlock('patch');
+    t.equal(migrated.opcode, 'patching_jscommand', 'legacy opcode is migrated');
+    t.equal(migrated.mutation.itemcount, '3', 'legacy arity is preserved');
     t.match(
         source,
         /globalThis\.__originPatch = \(toNotNaN\(\(1 \+ 2\)\) \+ 3\);/,
