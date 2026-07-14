@@ -1,7 +1,10 @@
 const tap = require('tap');
+const {OrderedMap} = require('immutable');
 const Runtime = require('../../src/engine/runtime');
-const {Map} = require('immutable');
+const VirtualMachine = require('../../src/virtual-machine');
+const MonitorRecord = require('../../src/engine/monitor-record');
 const makeTestStorage = require('../fixtures/make-test-storage');
+const Target = require('../../src/engine/target');
 
 const test = tap.test;
 
@@ -157,17 +160,27 @@ test('debug', t => {
 
 test('setStageSize preserves monitor position relative to center of stage', t => {
     const rt = new Runtime();
-    rt.requestAddMonitor(new Map([
-        ['id', 'abc'],
+    rt.requestAddMonitor(new MonitorRecord({
+        id: 'abc',
         // top right corner
-        ['x', 0],
-        ['y', 0]
-    ]));
+        x: 0,
+        y: 0
+    }));
     rt.setStageSize(640, 362);
     const finalState = rt.getMonitorState().get('abc');
     t.equal(finalState.get('x'), 80);
     t.equal(finalState.get('y'), 1);
     t.end();
+});
+
+test('VM monitor updates remain compatible with the GUI', t => {
+    const vm = new VirtualMachine();
+    vm.once(Runtime.MONITORS_UPDATE, monitors => {
+        t.equal(OrderedMap.isOrderedMap(monitors), true);
+        t.end();
+    });
+    vm.runtime.requestAddMonitor(new MonitorRecord({id: 'abc'}));
+    vm.runtime._step();
 });
 
 test('setStageSize argument range', t => {
@@ -251,5 +264,168 @@ test('convertToPackagedRuntime and attachStorage call order', t => {
     const rt2 = new Runtime();
     rt2.convertToPackagedRuntime();
     rt2.attachStorage(makeTestStorage());
+    t.end();
+});
+
+test('visual report -0', t => {
+    t.plan(1);
+
+    const rt = new Runtime();
+    const target = new Target();
+    rt.setEditingTarget(target);
+
+    rt.on(Runtime.VISUAL_REPORT, report => {
+        t.same(report, {
+            id: 'blockid',
+            value: '-0'
+        });
+    });
+    rt.visualReport(target, 'blockid', -0);
+
+    t.end();
+});
+
+test('visual report supports legacy compiler calls', t => {
+    t.plan(1);
+
+    const rt = new Runtime();
+    rt.setEditingTarget(new Target());
+    rt.on(Runtime.VISUAL_REPORT, report => {
+        t.same(report, {id: 'blockid', value: '{"ok":true}'});
+    });
+    rt.visualReport('blockid', {ok: true});
+
+    t.end();
+});
+
+const makeMonitorBlock = () => ({
+    id: 'fakeMonitor',
+    opcode: 'data_variable',
+    fields: {
+        VARIABLE: {
+            name: 'VARIABLE',
+            value: 'x',
+            id: 'fakeMonitor'
+        }
+    },
+    inputs: {},
+    topLevel: true,
+    next: null,
+    parent: null,
+    shadow: false,
+    x: 0,
+    y: 0,
+    isMonitored: true,
+    targetId: null
+});
+
+test('_pushMonitors does nothing when no targets are installed', t => {
+    const rt = new Runtime();
+    rt.monitorBlocks.createBlock(makeMonitorBlock());
+
+    t.equal(rt.targets.length, 0);
+    rt._pushMonitors();
+    t.equal(rt.threads.length, 0);
+
+    t.end();
+});
+
+test('_pushMonitors queues threads once targets are installed', t => {
+    const rt = new Runtime();
+    rt.monitorBlocks.createBlock(makeMonitorBlock());
+
+    const stage = new Target(rt);
+    rt.targets.push(stage);
+    rt.setEditingTarget(stage);
+
+    rt._pushMonitors();
+    t.equal(rt.threads.length, 1);
+    t.equal(rt.threads[0].target, stage);
+    t.equal(rt.threads[0].updateMonitor, true);
+
+    t.end();
+});
+
+const makeCommandBlock = id => ({
+    id,
+    opcode: 'motion_movesteps',
+    fields: {},
+    inputs: {},
+    topLevel: true,
+    next: null,
+    parent: null,
+    shadow: false,
+    x: 0,
+    y: 0
+});
+
+test('toggleScript is scoped to its target when block IDs collide', t => {
+    const rt = new Runtime();
+    // Avoid compiling the fake single-block scripts.
+    rt.setCompilerOptions({enabled: false});
+
+    // Two sprites whose scripts share a top block ID. This happens when a block
+    // is copied between sprites without its ID being regenerated.
+    const spriteA = new Target(rt);
+    const spriteB = new Target(rt);
+    spriteA.blocks.createBlock(makeCommandBlock('dup'));
+    spriteB.blocks.createBlock(makeCommandBlock('dup'));
+
+    // Start the script on sprite A.
+    rt.toggleScript('dup', {target: spriteA, stackClick: true});
+    t.equal(rt.threads.length, 1, 'sprite A script started');
+    t.equal(rt.threads[0].target, spriteA);
+
+    // Clicking the same-ID script on sprite B must start B, not stop A.
+    rt.toggleScript('dup', {target: spriteB, stackClick: true});
+    t.equal(rt.threads.length, 2, 'sprite B script started as a second thread');
+    t.notOk(rt.threads[0].isKilled, 'sprite A thread was not stopped');
+    t.equal(rt.threads[1].target, spriteB);
+
+    // Toggling B again stops only B, leaving A running.
+    rt.toggleScript('dup', {target: spriteB, stackClick: true});
+    t.notOk(rt.threads[0].isKilled, 'sprite A thread still running');
+    t.ok(rt.threads[1].isKilled, 'sprite B thread stopped');
+
+    t.end();
+});
+
+test('toggleScript scopes colliding block IDs using the editing target', t => {
+    const rt = new Runtime();
+    rt.setCompilerOptions({enabled: false});
+
+    const spriteA = new Target(rt);
+    const spriteB = new Target(rt);
+    spriteA.blocks.createBlock(makeCommandBlock('dup'));
+    spriteB.blocks.createBlock(makeCommandBlock('dup'));
+
+    rt.setEditingTarget(spriteA);
+    rt.toggleScript('dup', {stackClick: true});
+    t.equal(rt.threads.length, 1, 'sprite A script started');
+    t.equal(rt.threads[0].target, spriteA);
+
+    rt.setEditingTarget(spriteB);
+    rt.toggleScript('dup', {stackClick: true});
+    t.equal(rt.threads.length, 2, 'sprite B script started as a second thread');
+    t.notOk(rt.threads[0].isKilled, 'sprite A thread was not stopped');
+    t.equal(rt.threads[1].target, spriteB);
+
+    t.end();
+});
+
+test('toggleScript still toggles a running script off on the same target', t => {
+    const rt = new Runtime();
+    rt.setCompilerOptions({enabled: false});
+
+    const sprite = new Target(rt);
+    sprite.blocks.createBlock(makeCommandBlock('top'));
+
+    rt.toggleScript('top', {target: sprite, stackClick: true});
+    t.equal(rt.threads.length, 1, 'script started');
+    t.notOk(rt.threads[0].isKilled);
+
+    rt.toggleScript('top', {target: sprite, stackClick: true});
+    t.ok(rt.threads[0].isKilled, 'clicking again stopped the script');
+
     t.end();
 });

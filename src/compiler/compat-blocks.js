@@ -1,9 +1,4 @@
-/**
- * @fileoverview List of blocks to be supported in the compiler compatibility layer.
- * This is only for native blocks. Extensions should not be listed here.
- */
-
-// Please keep these lists alphabetical.
+// Native primitives without dedicated compiler implementations.
 
 const stacked = [
     'assets_delete',
@@ -36,21 +31,4 @@ const stacked = [
     'sound_stopallsounds'
 ];
 
-const inputs = [
-    'assets_allnames',
-    'assets_byte',
-    'assets_check',
-    'assets_get',
-    'assets_infolder',
-    'motion_xscroll',
-    'motion_yscroll',
-    'sensing_loud',
-    'sensing_loudness',
-    'sensing_userid',
-    'sound_volume'
-];
-
-module.exports = {
-    stacked,
-    inputs
-};
+module.exports = {stacked};

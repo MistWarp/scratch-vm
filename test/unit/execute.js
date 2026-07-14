@@ -71,7 +71,7 @@ test('execute visualReport and requestUpdateMonitor on top-level reporter', t =>
     // Override monitorBlocks.getBlock to a simple stub for this test
     runtime.monitorBlocks.getBlock = () => ({ targetId: null });
     runtime.requestUpdateMonitor = (m) => { monitorRequested = m; };
-    runtime.visualReport = (id, val) => { reported = {id, val}; };
+    runtime.visualReport = (target, id, val) => { reported = {target, id, val}; };
 
     const thread = new Thread('b1');
     thread.target = { id: 't1', blocks: { getNextBlock: () => null }, getName: () => 'T' };
@@ -91,8 +91,8 @@ test('execute visualReport and requestUpdateMonitor on top-level reporter', t =>
 
     execute(sequencer, thread);
 
-    t.same(reported, { id: 'b1', val: 123 }, 'visualReport called for stackClick');
-    t.ok(monitorRequested && monitorRequested.get('value') === 123, 'monitor update requested');
+    t.same(reported, {target: thread.target, id: 'b1', val: 123}, 'visualReport called for stackClick');
+    t.ok(monitorRequested && monitorRequested.value === 123, 'monitor update requested');
     t.end();
 });
 

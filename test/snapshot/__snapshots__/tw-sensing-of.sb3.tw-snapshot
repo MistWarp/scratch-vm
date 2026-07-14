@@ -2,10 +2,7 @@
 // Input SHA-256: 2086fa5dfdd5f98dcafc01064231a018edb5698b3b4cc403a9cfaeabb5125c06
 
 // Sprite2 script
-(function factoryXYZ(thread) {
-const target = thread.target;
-const runtime = target.runtime;
-const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage && stage.lookupVariableByNameAndType("Stage variable", "", true);
 const b1 = runtime.getSpriteTargetByName("Test sprite");
 const b2 = b1 && b1.lookupVariableByNameAndType("Private variable", "", true);
@@ -17,13 +14,13 @@ runtime.ext_scratch3_looks._say("plan 32", target);
 if (((stage.currentCostume + 1) === 2)) {
 runtime.ext_scratch3_looks._say("pass backdrop #", target);
 }
-if ((("" + stage.getCostumes()[stage.currentCostume].name).toLowerCase() === "backdrop name test")) {
+if ((stage.getCostumes()[stage.currentCostume].name.toLowerCase() === "Backdrop name test".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass backdrop name", target);
 }
 if (((stage ? stage.volume : 0) === 45)) {
 runtime.ext_scratch3_looks._say("pass stage volume", target);
 }
-if ((("" + (b0 ? b0.value : 0)).toLowerCase() === "variable in stage")) {
+if ((("" + (b0 ? b0.value : 0)).toLowerCase() === "Variable in stage".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass stage variable", target);
 }
 if (((b1 ? b1.x : 0) === 19)) {
@@ -38,7 +35,7 @@ runtime.ext_scratch3_looks._say("pass direction", target);
 if (((b1 ? b1.currentCostume + 1 : 0) === 3)) {
 runtime.ext_scratch3_looks._say("pass costume #", target);
 }
-if ((("" + (b1 ? b1.getCostumes()[b1.currentCostume].name : 0)).toLowerCase() === "costume name test")) {
+if ((("" + (b1 ? b1.getCostumes()[b1.currentCostume].name : 0)).toLowerCase() === "Costume name test".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass costume name", target);
 }
 if (((b1 ? b1.size : 0) === 76.01)) {
@@ -47,7 +44,7 @@ runtime.ext_scratch3_looks._say("pass size", target);
 if (((b1 ? b1.volume : 0) === 14.3)) {
 runtime.ext_scratch3_looks._say("pass volume", target);
 }
-if ((("" + (b2 ? b2.value : 0)).toLowerCase() === "private variable value")) {
+if ((("" + (b2 ? b2.value : 0)).toLowerCase() === "Private variable value".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass private variable", target);
 }
 if (compareEqual((b3 ? b3.value : 0), 0)) {
@@ -90,25 +87,25 @@ runtime.ext_scratch3_looks._say("pass NE volume", target);
 if (compareEqual(runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: b4.value, PROPERTY: "Private variable" }), 0)) {
 runtime.ext_scratch3_looks._say("pass NE private variable", target);
 }
-if (compareEqual((b5 ? b5.x : 0), 0)) {
+if (((b5 ? b5.x : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop #", target);
 }
-if (compareEqual((b5 ? b5.y : 0), 0)) {
+if (((b5 ? b5.y : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE backdrop name", target);
 }
-if (compareEqual((b5 ? b5.direction : 0), 0)) {
+if (((b5 ? b5.direction : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE volume", target);
 }
-if (compareEqual((b5 ? b5.currentCostume + 1 : 0), 0)) {
+if (((b5 ? b5.currentCostume + 1 : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE stage variable", target);
 }
 if (compareEqual((b5 ? b5.getCostumes()[b5.currentCostume].name : 0), 0)) {
 runtime.ext_scratch3_looks._say("pass NE x", target);
 }
-if (compareEqual((b5 ? b5.size : 0), 0)) {
+if (((b5 ? b5.size : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE y", target);
 }
-if (compareEqual((b5 ? b5.volume : 0), 0)) {
+if (((b5 ? b5.volume : 0) === 0)) {
 runtime.ext_scratch3_looks._say("pass NE direction", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

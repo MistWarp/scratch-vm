@@ -69,7 +69,6 @@ module.exports = [
             'decode-html': true,
             'format-message': true,
             'htmlparser2': true,
-            'immutable': true,
             'scratch-parser': true,
             'socket.io-client': true,
             'text-encoding': true
@@ -101,7 +100,7 @@ module.exports = [
                     loader: 'script-loader'
                 },
                 {
-                    test: require.resolve('scratch-blocks/dist/vertical.js'),
+                    test: require.resolve('scratch-blocks/shim/vertical.js'),
                     loader: 'expose-loader?Blockly'
                 },
                 {

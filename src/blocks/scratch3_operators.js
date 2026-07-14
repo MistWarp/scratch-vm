@@ -179,9 +179,11 @@ class Scratch3OperatorsBlocks {
     }
 
     indexOf (args) {
-        return Cast.toString(args.STRING).toLowerCase().indexOf(
-            Cast.toString(args.SUBSTRING).toLowerCase()
-        ) + 1;
+        return Cast.toString(args.STRING)
+            .toLowerCase()
+            .indexOf(
+                Cast.toString(args.SUBSTRING).toLowerCase()
+            ) + 1;
     }
 
     replace (args) {

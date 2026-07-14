@@ -2,10 +2,7 @@
 // Input SHA-256: 58dd6f369897907ea46fffbb8210d8bc15db59f26ce117ff4211035afff17f23
 
 // Sprite1 script
-(function factoryXYZ(thread) {
-const target = thread.target;
-const runtime = target.runtime;
-const stage = runtime.getTargetForStage();
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
 const b1 = runtime.getOpcodeFunction("sensing_userid");
 const b2 = runtime.getOpcodeFunction("motion_xscroll");
