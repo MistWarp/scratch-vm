@@ -34,13 +34,20 @@ const COMPILER_INPUT_TYPES = {
 const RAW_SOURCE_COMMANDS = new Set([
     'mistsutils_patchcommand',
     'mistsutils_patchcommand2',
-    'mistsutils_patchcommand3'
+    'mistsutils_patchcommand3',
+    'patching_jscommand',
+    'patching_jscommand2',
+    'patching_jscommand3'
 ]);
 const RAW_SOURCE_REPORTERS = new Map([
     ['mistsutils_patchreporter', InputType.ANY],
     ['mistsutils_patchreporter2', InputType.ANY],
     ['mistsutils_patchreporter3', InputType.ANY],
-    ['mistsutils_patchboolean', InputType.BOOLEAN]
+    ['mistsutils_patchboolean', InputType.BOOLEAN],
+    ['patching_jsreporter', InputType.ANY],
+    ['patching_jsreporter2', InputType.ANY],
+    ['patching_jsreporter3', InputType.ANY],
+    ['patching_jsboolean', InputType.BOOLEAN]
 ]);
 
 /**
@@ -1434,7 +1441,10 @@ class ScriptTreeGenerator {
      * @returns {IntermediateInput[]}
      */
     descendRawSourceFragments (block) {
-        return ['A', 'B', 'C']
+        const variadic = Object.keys(block.inputs)
+            .filter(name => /^ARG\d+$/.test(name))
+            .sort((a, b) => Number(a.substring(3)) - Number(b.substring(3)));
+        return (variadic.length ? variadic : ['A', 'B', 'C'])
             .filter(name => block.inputs[name])
             .map(name => this.descendInputOfBlock(block, name, true));
     }
@@ -1462,7 +1472,8 @@ class ScriptTreeGenerator {
         return new IntermediateInput(InputOpcode.EXTENSION, COMPILER_INPUT_TYPES[compiler.type], {
             compiler,
             inputs,
-            fields
+            fields,
+            mutation: block.mutation || {}
         });
     }
 

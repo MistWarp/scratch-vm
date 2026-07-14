@@ -26,3 +26,11 @@ test('isOnline', t => {
 
     t.end();
 });
+
+test('stage dimensions', t => {
+    const rt = new Runtime();
+    const primitives = new Scratch3SensingBlocks(rt).getPrimitives();
+    t.equal(primitives.sensing_stagewidth(), rt.stageWidth);
+    t.equal(primitives.sensing_stageheight(), rt.stageHeight);
+    t.end();
+});

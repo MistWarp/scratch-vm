@@ -13,12 +13,23 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
             lists: {list: ['items', []]},
             broadcasts: {},
             blocks: {
-                hat: {opcode: 'event_whenflagclicked', next: 'point', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
+                hat: {
+                    opcode: 'event_whenflagclicked',
+                    next: 'point',
+                    parent: null,
+                    inputs: {},
+                    fields: {},
+                    topLevel: true,
+                    x: 0,
+                    y: 0
+                },
                 point: {
                     opcode: 'motion_pointtowards_xyfrom',
                     next: 'print',
                     parent: 'hat',
-                    inputs: {X: [1, [4, '10']], Y: [1, [4, '10']], FROMX: [1, [4, '0']], FROMY: [1, [4, '0']]},
+                    inputs: {
+                        X: [1, [4, '10']], Y: [1, [4, '10']], FROMX: [1, [4, '0']], FROMY: [1, [4, '0']]
+                    },
                     fields: {},
                     topLevel: false
                 },
@@ -38,8 +49,17 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
                     fields: {},
                     topLevel: false
                 },
-                say: {opcode: 'looks_say', next: 'setList', parent: 'print', inputs: {MESSAGE: [2, 'costumes']}, fields: {}, topLevel: false},
-                costumes: {opcode: 'looks_costumes', next: null, parent: 'say', inputs: {}, fields: {}, topLevel: false},
+                say: {
+                    opcode: 'looks_say',
+                    next: 'setList',
+                    parent: 'print',
+                    inputs: {MESSAGE: [2, 'costumes']},
+                    fields: {},
+                    topLevel: false
+                },
+                costumes: {
+                    opcode: 'looks_costumes', next: null, parent: 'say', inputs: {}, fields: {}, topLevel: false
+                },
                 setList: {
                     opcode: 'data_set_list_to_array',
                     next: 'sayList',
@@ -48,7 +68,14 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
                     fields: {LIST: ['items', 'list']},
                     topLevel: false
                 },
-                sayList: {opcode: 'looks_say', next: null, parent: 'setList', inputs: {MESSAGE: [2, 'listAs']}, fields: {}, topLevel: false},
+                sayList: {
+                    opcode: 'looks_say',
+                    next: null,
+                    parent: 'setList',
+                    inputs: {MESSAGE: [2, 'listAs']},
+                    fields: {},
+                    topLevel: false
+                },
                 listAs: {
                     opcode: 'data_get_list_as',
                     next: null,
@@ -75,7 +102,7 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
     });
 
     let source = '';
-    JSGenerator.testingApparatus = {report: (generator, generated) => {
+    JSGenerator.testingApparatus = {report: (_generator, generated) => {
         source += generated;
     }};
     vm.runtime.precompile();
@@ -92,7 +119,9 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
 
 test('compiled list helpers preserve case-sensitive mode', t => {
     const globalState = {thread: {target: {runtime: {runtimeOptions: {caseSensitiveLists: true}}}}};
-    const makeHelper = source => new Function('globalState', `${source}; return ${source.match(/const (\w+)/)[1]};`)(globalState);
+    const makeHelper = source => new Function(
+        'globalState', `${source}; return ${source.match(/const (\w+)/)[1]};`
+    )(globalState);
     const contains = makeHelper(runtimeFunctions.listContains);
     const indexOf = makeHelper(runtimeFunctions.listIndexOf);
     const list = {value: ['jump', 'Jump']};
@@ -127,10 +156,19 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
             lists: {},
             broadcasts: {},
             blocks: {
-                hat: {opcode: 'event_whenflagclicked', next: 'patch', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
+                hat: {
+                    opcode: 'event_whenflagclicked',
+                    next: 'patch',
+                    parent: null,
+                    inputs: {},
+                    fields: {},
+                    topLevel: true,
+                    x: 0,
+                    y: 0
+                },
                 patch: {
                     opcode: 'mistsutils_patchcommand3',
-                    next: null,
+                    next: 'nativePatch',
                     parent: 'hat',
                     inputs: {
                         A: [1, [10, 'globalThis.__originPatch = ']],
@@ -138,6 +176,19 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
                         C: [1, [10, ';']]
                     },
                     fields: {},
+                    topLevel: false
+                },
+                nativePatch: {
+                    opcode: 'patching_jscommand',
+                    next: null,
+                    parent: 'patch',
+                    inputs: {
+                        ARG1: [1, [10, 'globalThis.__nativePatch = ']],
+                        ARG2: [1, [10, '4']],
+                        ARG3: [1, [10, ';']]
+                    },
+                    fields: {},
+                    mutation: {tagName: 'mutation', children: [], itemcount: '3'},
                     topLevel: false
                 },
                 sum: {
@@ -162,12 +213,12 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
             textToSpeechLanguage: null
         }],
         monitors: [],
-        extensions: [],
+        extensions: ['patching'],
         meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}
     });
 
     let source = '';
-    JSGenerator.testingApparatus = {report: (generator, generated) => {
+    JSGenerator.testingApparatus = {report: (_generator, generated) => {
         source += generated;
     }};
     vm.runtime.precompile();
@@ -178,6 +229,7 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
         /globalThis\.__originPatch = \(toNotNaN\(\(1 \+ 2\)\) \+ 3\);/,
         'literal source and variadic reporters are joined'
     );
+    t.match(source, /globalThis\.__nativePatch = 4;/, 'native Patching blocks splice JavaScript');
     t.notMatch(source, /"globalThis\.__originPatch/, 'raw source is not emitted as a quoted statement');
     t.notMatch(source, /executeInCompatibilityLayer/, 'patching does not use the runtime compatibility bridge');
 });
@@ -214,7 +266,16 @@ test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
             lists: {},
             broadcasts: {},
             blocks: {
-                hat: {opcode: 'event_whenflagclicked', next: 'if', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
+                hat: {
+                    opcode: 'event_whenflagclicked',
+                    next: 'if',
+                    parent: null,
+                    inputs: {},
+                    fields: {},
+                    topLevel: true,
+                    x: 0,
+                    y: 0
+                },
                 if: {
                     opcode: 'mistsutils_patchcommand',
                     next: 'else',
@@ -249,7 +310,7 @@ test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
     });
 
     let source = '';
-    JSGenerator.testingApparatus = {report: (generator, generated) => {
+    JSGenerator.testingApparatus = {report: (_generator, generated) => {
         source += generated;
     }};
     vm.runtime.precompile();
@@ -257,4 +318,83 @@ test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
 
     t.match(source, /if \(true\) globalThis\.__originIcon = 1;\s*else globalThis\.__originIcon = 2;/);
     t.notMatch(source, /;;\s*else/, 'raw commands are not terminated twice');
+});
+
+test("Mist's Utils 5.9 blocks use native compiler cases", async t => {
+    const vm = new VirtualMachine();
+    vm.extensionManager.addBuiltinExtension('mistsutils', class {
+        getInfo () {
+            return {
+                id: 'mistsutils',
+                name: "Mist's Utils",
+                blocks: [{
+                    opcode: 'starts',
+                    blockType: 'Boolean',
+                    text: '[A] starts with [B]',
+                    arguments: {A: {type: 'string'}, B: {type: 'string'}}
+                }]
+            };
+        }
+        starts () {}
+    });
+    await vm.loadProject({
+        targets: [{
+            isStage: true,
+            name: 'Stage',
+            variables: {},
+            lists: {},
+            broadcasts: {},
+            blocks: {
+                hat: {
+                    opcode: 'event_whenflagclicked',
+                    next: 'if',
+                    parent: null,
+                    inputs: {},
+                    fields: {},
+                    topLevel: true,
+                    x: 0,
+                    y: 0
+                },
+                if: {
+                    opcode: 'control_if',
+                    next: null,
+                    parent: 'hat',
+                    inputs: {CONDITION: [2, 'report'], SUBSTACK: [2, null]},
+                    fields: {},
+                    topLevel: false
+                },
+                report: {
+                    opcode: 'mistsutils_starts',
+                    next: null,
+                    parent: 'if',
+                    inputs: {A: [1, [10, 'origin']], B: [1, [10, 'ori']]},
+                    fields: {},
+                    topLevel: false
+                }
+            },
+            comments: {},
+            currentCostume: 0,
+            costumes: [],
+            sounds: [],
+            volume: 100,
+            layerOrder: 0,
+            tempo: 60,
+            videoTransparency: 50,
+            videoState: 'on',
+            textToSpeechLanguage: null
+        }],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}
+    });
+
+    let source = '';
+    JSGenerator.testingApparatus = {report: (_generator, generated) => {
+        source += generated;
+    }};
+    vm.runtime.precompile();
+    JSGenerator.testingApparatus = null;
+
+    t.match(source, /"origin"\.startsWith\("ori"\)/);
+    t.notMatch(source, /oldCompiler|executeInCompatibilityLayer/);
 });

@@ -8,7 +8,7 @@ test('compiler extension API emits native code', async t => {
     compiler.register('compilerTest', {
         double: {
             type: compiler.types.NUMBER,
-            compile: ({input}) => `(${input.number('VALUE')} * 2)`
+            compile: ({input, mutation}) => `(${input.number('VALUE')} * ${mutation.factor})`
         }
     });
     vm.extensionManager.addBuiltinExtension('compilerTest', class {
@@ -37,9 +37,33 @@ test('compiler extension API emits native code', async t => {
             lists: {},
             broadcasts: {},
             blocks: {
-                hat: {opcode: 'event_whenflagclicked', next: 'say', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
-                say: {opcode: 'looks_say', next: null, parent: 'hat', inputs: {MESSAGE: [2, 'double']}, fields: {}, topLevel: false},
-                double: {opcode: 'compilerTest_double', next: null, parent: 'say', inputs: {VALUE: [1, [4, '3']]}, fields: {}, topLevel: false}
+                hat: {
+                    opcode: 'event_whenflagclicked',
+                    next: 'say',
+                    parent: null,
+                    inputs: {},
+                    fields: {},
+                    topLevel: true,
+                    x: 0,
+                    y: 0
+                },
+                say: {
+                    opcode: 'looks_say',
+                    next: null,
+                    parent: 'hat',
+                    inputs: {MESSAGE: [2, 'double']},
+                    fields: {},
+                    topLevel: false
+                },
+                double: {
+                    opcode: 'compilerTest_double',
+                    next: null,
+                    parent: 'say',
+                    inputs: {VALUE: [1, [4, '3']]},
+                    fields: {},
+                    mutation: {factor: '2'},
+                    topLevel: false
+                }
             },
             comments: {},
             currentCostume: 0,
@@ -66,4 +90,12 @@ test('compiler extension API emits native code', async t => {
 
     t.match(source, /3 \* 2/, 'custom reporter was compiled directly');
     t.notMatch(source, /compilerTest_double/, 'compatibility bridge was not used');
+
+    const input = name => name;
+    input.number = name => name;
+    t.equal(
+        vm.runtime.compilerExtensions.get('operator_min').compile({input, mutation: {itemcount: '3'}}),
+        'Math.min(NUM1,NUM2,NUM3)',
+        'extendable compiler inputs follow their mutation'
+    );
 });

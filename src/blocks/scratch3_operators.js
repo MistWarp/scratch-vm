@@ -46,6 +46,9 @@ class Scratch3OperatorsBlocks {
             operator_repeat: this.repeat,
             operator_change_case: this.changeCase,
             operator_trim: this.trim,
+            operator_clamp: this.clamp,
+            operator_min: this.min,
+            operator_max: this.max,
             operator_mod: this.mod,
             operator_pi: this.pi,
             operator_newline: this.newline,
@@ -87,6 +90,24 @@ class Scratch3OperatorsBlocks {
         for (let i = 3; i <= count; i++) {
             result = Cast.toNumber(result) / Cast.toNumber(args[`NUM${i}`]);
         }
+        return result;
+    }
+
+    clamp (args) {
+        return Math.min(Math.max(Cast.toNumber(args.NUM), Cast.toNumber(args.MIN)), Cast.toNumber(args.MAX));
+    }
+
+    min (args) {
+        const count = operandCount(args);
+        let result = Infinity;
+        for (let i = 1; i <= count; i++) result = Math.min(result, Cast.toNumber(args[`NUM${i}`]));
+        return result;
+    }
+
+    max (args) {
+        const count = operandCount(args);
+        let result = -Infinity;
+        for (let i = 1; i <= count; i++) result = Math.max(result, Cast.toNumber(args[`NUM${i}`]));
         return result;
     }
 

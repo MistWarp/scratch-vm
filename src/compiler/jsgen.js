@@ -1187,6 +1187,7 @@ class JSGenerator {
         const source = node.compiler.compile({
             input,
             field: name => JSON.stringify(node.fields[name] ?? ''),
+            mutation: node.mutation,
             runtime: 'runtime',
             target: 'target',
             stage: 'stage'

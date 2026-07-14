@@ -10,6 +10,7 @@ const Profiler = require('./profiler');
 const Sequencer = require('./sequencer');
 const execute = require('./execute.js');
 const compilerExecute = require('../compiler/jsexecute');
+const {mistsUtils: mistsUtilsCompiler, core: mistWarpCompiler} = require('../compiler/mists-utils');
 const ScratchBlocksConstants = require('./scratch-blocks-constants');
 const TargetType = require('../extension-support/target-type');
 const Thread = require('./thread');
@@ -472,6 +473,12 @@ class Runtime extends EventEmitter {
 
         // Compiler implementations registered by unsandboxed extensions.
         this.compilerExtensions = new Map();
+        for (const [opcode, compiler] of Object.entries(mistsUtilsCompiler)) {
+            this.compilerExtensions.set(`mistsutils_${opcode}`, compiler);
+        }
+        for (const [opcode, compiler] of Object.entries(mistWarpCompiler)) {
+            this.compilerExtensions.set(opcode, compiler);
+        }
 
         this.debug = false;
 

@@ -32,6 +32,13 @@ test('divide', t => {
     t.end();
 });
 
+test('MistWarp numeric helpers', t => {
+    t.strictEqual(blocks.clamp({NUM: 12, MIN: 0, MAX: 10}), 10);
+    t.strictEqual(blocks.min({NUM1: 8, NUM2: 3, NUM3: 5, mutation: {itemcount: 3}}), 3);
+    t.strictEqual(blocks.max({NUM1: 8, NUM2: 3, NUM3: 12, mutation: {itemcount: 3}}), 12);
+    t.end();
+});
+
 test('lt', t => {
     t.strictEqual(blocks.lt({OPERAND1: '1', OPERAND2: '2'}), true);
     t.strictEqual(blocks.lt({OPERAND1: '2', OPERAND2: '1'}), false);
