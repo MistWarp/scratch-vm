@@ -82,6 +82,24 @@ test('addSound error handling when sprite does not exist', async t => {
     t.end();
 });
 
+test('projects must get permission before enabling JavaScript patching', async t => {
+    const vm = new VirtualMachine();
+    let loaded = false;
+    vm.securityManager.canLoadExtensionFromProject = async source => {
+        t.equal(source, 'builtin:patching');
+        return false;
+    };
+    vm.extensionManager.isExtensionLoaded = () => false;
+    vm.extensionManager.isBuiltinExtension = () => true;
+    vm.extensionManager.loadExtensionIdSync = () => {
+        loaded = true;
+    };
+
+    await t.rejects(vm._loadExtensions(['patching']), /Permission to load extension denied/);
+    t.equal(loaded, false);
+    t.end();
+});
+
 test('convertToPackagedRuntime forwards to runtime', t => {
     t.plan(1);
     const vm = new VirtualMachine();

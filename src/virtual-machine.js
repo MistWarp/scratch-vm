@@ -884,6 +884,12 @@ class VirtualMachine extends EventEmitter {
         const defaultExtensionURLs = require('./extension-support/tw-default-extension-urls');
         const extensionPromises = [];
         for (const extensionID of extensionIDs) {
+            if (
+                extensionID === 'patching' &&
+                !await this.securityManager.canLoadExtensionFromProject('builtin:patching')
+            ) {
+                throw new Error(`Permission to load extension denied: ${extensionID}`);
+            }
             if (this.extensionManager.isExtensionLoaded(extensionID)) {
                 // Already loaded
             } else if (this.extensionManager.isBuiltinExtension(extensionID)) {
