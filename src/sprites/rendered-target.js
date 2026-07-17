@@ -321,9 +321,7 @@ class RenderedTarget extends Target {
             return;
         }
         // Keep direction between -179 and +180.
-        const wrappedDirection = MathUtil.wrapClamp(direction, -179, 180);
-        if (wrappedDirection === this.direction) return;
-        this.direction = wrappedDirection;
+        this.direction = MathUtil.wrapClamp(direction, -179, 180);
         if (this.renderer) {
             const {direction: renderedDirection, scale} = this._getRenderedDirectionAndScale();
             this.renderer.updateDrawableDirectionScale(this.drawableID, renderedDirection, scale);
@@ -386,9 +384,7 @@ class RenderedTarget extends Target {
                 (1.5 * this.runtime.stageWidth) / origW,
                 (1.5 * this.runtime.stageHeight) / origH
             ) : Infinity;
-            const clampedSize = MathUtil.clamp(size / 100, minScale, maxScale) * 100;
-            if (clampedSize === this.size) return;
-            this.size = clampedSize;
+            this.size = MathUtil.clamp(size / 100, minScale, maxScale) * 100;
             const {direction, scale} = this._getRenderedDirectionAndScale();
             this.renderer.updateDrawableDirectionScale(this.drawableID, direction, scale);
             if (this.visible) {
@@ -398,7 +394,6 @@ class RenderedTarget extends Target {
         } else {
             // tw: setSize should update size even without a renderer
             // needed by tw-change-size-does-not-use-rounded-size.sb3 test
-            if (size === this.size) return;
             this.size = size;
         }
         this.runtime.requestTargetsUpdate(this);

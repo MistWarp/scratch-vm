@@ -1291,6 +1291,7 @@ class Blocks {
                 id="${xmlEscape(block.id)}"
                 type="${xmlEscape(block.opcode)}"
                 ${block.topLevel ? `x="${block.x}" y="${block.y}"` : ''}
+                ${block.booleanToggle ? 'boolean-toggle="true"' : ''}
             >`;
         const commentId = block.comment;
         if (commentId) {
@@ -1415,6 +1416,11 @@ class Blocks {
      * @param {?string} topBlockId ID of block that starts the script.
      */
     _addScript (topBlockId) {
+        const block = this._blocks[topBlockId];
+        if (block && block.shadow) {
+            block.topLevel = false;
+            return;
+        }
         const i = this._scripts.indexOf(topBlockId);
         if (i > -1) return; // Already in scripts.
         this._scripts.push(topBlockId);

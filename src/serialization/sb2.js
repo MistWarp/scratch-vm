@@ -229,7 +229,12 @@ const parseScripts = function (scripts, blocks, addBroadcastMsg, getVariableId, 
         // Flatten children and create add the blocks.
         const convertedBlocks = flatten(parsedBlockList);
         for (let j = 0; j < convertedBlocks.length; j++) {
-            blocks.createBlock(convertedBlocks[j]);
+            const block = convertedBlocks[j];
+            if (block.opcode === 'operator_not' && block.parent &&
+                Object.values(block.inputs).every(input => !input.block && !input.shadow)) {
+                block.booleanToggle = true;
+            }
+            blocks.createBlock(block);
         }
     }
 };

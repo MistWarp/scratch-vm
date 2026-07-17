@@ -27,7 +27,8 @@ const domToBlock = function (blockDOM, blocks, isTopBlock, parent) {
         parent: parent, // Parent block ID, if available.
         shadow: blockDOM.name === 'shadow', // If this represents a shadow/slot.
         x: blockDOM.attribs.x, // X position of script, if top-level.
-        y: blockDOM.attribs.y // Y position of script, if top-level.
+        y: blockDOM.attribs.y, // Y position of script, if top-level.
+        booleanToggle: blockDOM.attribs['boolean-toggle'] === 'true'
     };
 
     // Add the block to the representation tree.

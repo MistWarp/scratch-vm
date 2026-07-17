@@ -267,6 +267,40 @@ test('deserializeBlocks', t => {
         });
 });
 
+test('empty not blocks become Boolean toggles only while loading', t => {
+    const serialized = {
+        parent: {
+            opcode: 'control_if',
+            next: null,
+            parent: null,
+            inputs: {CONDITION: [2, 'not']},
+            fields: {},
+            shadow: false,
+            topLevel: true,
+            x: 0,
+            y: 0
+        },
+        not: {
+            opcode: 'operator_not',
+            next: null,
+            parent: 'parent',
+            inputs: {},
+            fields: {},
+            shadow: false,
+            topLevel: false
+        }
+    };
+    const blocks = sb3.deserializeBlocks(serialized);
+
+    t.equal(blocks.not.booleanToggle, true);
+    t.match(blocks.parent.inputs.CONDITION, {block: 'not', shadow: null});
+
+    const saved = sb3.serializeBlocks(blocks)[0];
+    t.equal(saved.not.opcode, 'operator_not');
+    t.notOk(Object.prototype.hasOwnProperty.call(saved.not, 'booleanToggle'));
+    t.end();
+});
+
 test('deserializeBlocks on already deserialized input', t => {
     const vm = new VirtualMachine();
     vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))

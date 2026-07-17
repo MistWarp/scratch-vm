@@ -240,6 +240,27 @@ test('getOpcode', t => {
     t.end();
 });
 
+test('Boolean toggle marker crosses the Blockly XML boundary', t => {
+    const parsed = adapter({
+        xml: {outerHTML: '<block id="toggle" type="operator_not" boolean-toggle="true"></block>'}
+    });
+    t.equal(parsed[0].booleanToggle, true);
+
+    const b = new Blocks(new Runtime());
+    b.createBlock({
+        id: 'toggle',
+        opcode: 'operator_not',
+        next: null,
+        parent: 'parent',
+        fields: {},
+        inputs: {},
+        topLevel: false,
+        booleanToggle: true
+    });
+    t.match(b.blockToXML('toggle'), /boolean-toggle="true"/);
+    t.end();
+});
+
 test('mutationToXML', t => {
     const b = new Blocks(new Runtime());
     const testStringRaw = '"arbitrary" & \'complicated\' test string';
@@ -313,6 +334,58 @@ test('move', t => {
     t.equal(b._scripts.length, 2);
     t.equal(Object.keys(b._blocks).length, 2);
     t.equal(b._blocks.foo.next, null);
+
+    t.end();
+});
+
+test('obscuring a shadow never leaves it as a top-level script', t => {
+    const b = new Blocks(new Runtime());
+    b.createBlock({
+        id: 'parent',
+        opcode: 'motion_movesteps',
+        next: null,
+        fields: {},
+        inputs: {STEPS: {name: 'STEPS', block: 'shad', shadow: 'shad'}},
+        topLevel: true
+    });
+    b.createBlock({
+        id: 'shad',
+        opcode: 'math_number',
+        next: null,
+        fields: {NUM: {name: 'NUM', value: '10'}},
+        inputs: {},
+        shadow: true,
+        parent: 'parent',
+        topLevel: false
+    });
+    b.createBlock({
+        id: 'rep',
+        opcode: 'operator_add',
+        next: null,
+        fields: {},
+        inputs: {},
+        topLevel: true
+    });
+
+    b.blocklyListen({
+        type: 'move',
+        blockId: 'shad',
+        oldParentId: 'parent',
+        oldInputName: 'STEPS',
+        newCoordinate: {x: 20, y: 20}
+    });
+    b.blocklyListen({type: 'delete', blockId: 'shad'});
+    b.blocklyListen({
+        type: 'move',
+        blockId: 'rep',
+        newParentId: 'parent',
+        newInputName: 'STEPS'
+    });
+
+    t.equal(b._scripts.includes('shad'), false);
+    t.equal(b._blocks.shad.topLevel, false);
+    t.equal(b._blocks.shad.shadow, true);
+    t.same(b._blocks.parent.inputs.STEPS, {name: 'STEPS', block: 'rep', shadow: 'shad'});
 
     t.end();
 });

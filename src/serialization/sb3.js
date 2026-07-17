@@ -1322,6 +1322,14 @@ const deserializeBlocks = function (blocks) {
         block.inputs = deserializeInputs(block.inputs, blockId, blocks);
         block.fields = deserializeFields(block.fields);
     }
+    for (const blockId in blocks) {
+        if (!Object.prototype.hasOwnProperty.call(blocks, blockId)) continue;
+        const block = blocks[blockId];
+        if (block.opcode === 'operator_not' && block.parent &&
+            Object.values(block.inputs).every(input => !input.block && !input.shadow)) {
+            block.booleanToggle = true;
+        }
+    }
     return blocks;
 };
 
