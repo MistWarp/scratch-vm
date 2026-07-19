@@ -225,6 +225,15 @@ class ExtensionManager {
      * @param {string} extensionURL - the URL for the extension to load OR the ID of an internal extension
      * @returns {Promise} resolved once the extension is loaded and initialized or rejected on failure
      */
+    _isLocalExtensionURL (extensionURL) {
+        try {
+            const parsedURL = new URL(extensionURL);
+            return parsedURL.protocol === 'data:' || parsedURL.protocol === 'file:';
+        } catch (e) {
+            return false;
+        }
+    }
+
     async loadExtensionURL (extensionURL) {
         if (this.isBuiltinExtension(extensionURL)) {
             this.loadExtensionIdSync(extensionURL);
@@ -244,12 +253,14 @@ class ExtensionManager {
 
         this.loadingAsyncExtensions++;
 
-        const sandboxMode = await this.securityManager.getSandboxMode(extensionURL);
-        const rewritten = await this.securityManager.rewriteExtensionURL(extensionURL);
+        // data: and file: URLs are local (inline text or local file) — no sandbox, no security checks
+        const isLocal = this._isLocalExtensionURL(extensionURL);
+        const sandboxMode = isLocal ? 'unsandboxed' : await this.securityManager.getSandboxMode(extensionURL);
+        const rewritten = isLocal ? extensionURL : await this.securityManager.rewriteExtensionURL(extensionURL);
 
         if (sandboxMode === 'unsandboxed') {
             const {load} = require('./tw-unsandboxed-extension-runner');
-            const extensionObjects = await load(rewritten, this.vm)
+            const extensionObjects = await load(rewritten, this.vm, {bypassSecurity: isLocal})
                 .catch(error => this._failedLoadingExtensionScript(error));
             const fakeWorkerId = this.nextExtensionWorker++;
             this.workerURLs[fakeWorkerId] = extensionURL;
