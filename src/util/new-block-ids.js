@@ -29,5 +29,8 @@ module.exports = blocks => {
         if (blocks[i].next) {
             blocks[i].next = oldToNew[blocks[i].next];
         }
+        if (blocks[i].obscuredHeadShadows) {
+            blocks[i].obscuredHeadShadows = blocks[i].obscuredHeadShadows.map(id => (id ? oldToNew[id] : id));
+        }
     }
 };

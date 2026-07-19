@@ -61,3 +61,20 @@ test('next reference is maintained for previous block', t => {
     t.equal(newBlocks[0].next, newBlocks[3].id);
     t.end();
 });
+
+// Collapsed variadic operators (extendable +, join, and/or) carry an obscuredHeadShadows array of
+// shadow block ids that expandOperators restores on save. It must be remapped like any other id
+// reference, or duplicating/sharing the sprite leaves it pointing at ids that no longer exist and
+// the typed values hidden under dropped reporters are lost on the next save.
+test('obscuredHeadShadows ids are remapped', t => {
+    const blocks = [
+        {id: 'op', opcode: 'operator_join', parent: null, next: null,
+            inputs: {STRING1: {name: 'STRING1', block: 'shadow', shadow: 'shadow'}},
+            obscuredHeadShadows: ['shadow', null]},
+        {id: 'shadow', opcode: 'text', parent: 'op', next: null, inputs: {}}
+    ];
+    newBlockIds(blocks);
+    t.equal(blocks[0].obscuredHeadShadows[0], blocks[1].id, 'shadow id remapped to new id');
+    t.equal(blocks[0].obscuredHeadShadows[1], null, 'null entries preserved');
+    t.end();
+});
