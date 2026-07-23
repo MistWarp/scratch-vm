@@ -131,7 +131,7 @@ const setupUnsandboxedExtensionAPI = (vm, options = {}) => new Promise(resolve =
         return vm.securityManager.canDownload(url, name);
     };
 
-    Scratch.fetch = async (url, options) => {
+    Scratch.fetch = async (url, fetchOptions) => {
         const actualURL = url instanceof Request ? url.url : url;
 
         const staticFetchResult = staticFetch(url);
@@ -142,7 +142,7 @@ const setupUnsandboxedExtensionAPI = (vm, options = {}) => new Promise(resolve =
         if (!await Scratch.canFetch(actualURL)) {
             throw new Error(`Permission to fetch ${actualURL} rejected.`);
         }
-        return fetch(url, options);
+        return fetch(url, fetchOptions);
     };
 
     Scratch.download = async (url, file) => {

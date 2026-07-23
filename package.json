@@ -30,6 +30,7 @@
     "fix-js": "eslint-auto-fix"
   },
   "tap": {
+    "timeout": 120,
     "branches": 60,
     "functions": 70,
     "lines": 70,
@@ -49,6 +50,7 @@
     "eslint-auto-fix": "^1.0.4",
     "format-message": "6.2.1",
     "htmlparser2": "3.10.0",
+    "rotur-sdk": "^2.0.0",
     "immutable": "3.8.2",
     "scratch-parser": "github:TurboWarp/scratch-parser#master",
     "scratch-sb1-converter": "0.2.7",

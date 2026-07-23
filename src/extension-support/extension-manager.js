@@ -26,6 +26,14 @@ const defaultBuiltinExtensions = {
     boost: () => require('../extensions/scratch3_boost'),
     gdxfor: () => require('../extensions/scratch3_gdx_for'),
     patching: () => require('../extensions/mistwarp_patching'),
+    rotur: () => require('../extensions/rotur').RoturAccount,
+    roturEconomy: () => require('../extensions/rotur').RoturEconomy,
+    roturKeys: () => require('../extensions/rotur').RoturKeys,
+    roturStatus: () => require('../extensions/rotur').RoturStatus,
+    roturSocial: () => require('../extensions/rotur').RoturSocial,
+    roturShop: () => require('../extensions/rotur').RoturShop,
+    roturGroups: () => require('../extensions/rotur').RoturGroups,
+    roturFiles: () => require('../extensions/rotur').RoturFiles,
     // tw: core extension
     tw: () => require('../extensions/tw')
 };

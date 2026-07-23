@@ -122,6 +122,7 @@ class JSGenerator {
         this._setupVariables = {};
 
         this.descendedIntoModulo = false;
+        this.expressionTempVariables = [];
         this.isInHat = false;
 
         this.debug = this.target.runtime.debug;
@@ -390,9 +391,23 @@ class JSGenerator {
             return `Math.log(${this.descendInput(node.value)})`;
         case InputOpcode.OP_LOG_10:
             return `(Math.log(${this.descendInput(node.value)}) / Math.LN10)`;
-        case InputOpcode.OP_MOD:
+        case InputOpcode.OP_MOD: {
             this.descendedIntoModulo = true;
+            if (node.right.opcode === InputOpcode.CONSTANT) {
+                const modulus = +node.right.inputs.value;
+                const exponent = Math.round(Math.log2(modulus));
+                if (exponent >= 0 && exponent <= 52 && 2 ** exponent === modulus) {
+                    return `modP2(${this.descendInput(node.left)}, ${modulus})`;
+                }
+                if (Number.isFinite(modulus) && modulus !== 0) {
+                    const temp = this.localVariables.next();
+                    this.expressionTempVariables.push(temp);
+                    const modulusSource = modulus < 0 ? `(${modulus})` : `${modulus}`;
+                    return `((${temp} = ${this.descendInput(node.left)} % ${modulusSource}) / ${modulusSource} < 0 ? ${temp} + ${modulusSource} : ${temp})`;
+                }
+            }
             return `mod(${this.descendInput(node.left)}, ${this.descendInput(node.right)})`;
+        }
         case InputOpcode.OP_MULTIPLY:
             return `(${this.descendInput(node.left)} * ${this.descendInput(node.right)})`;
         case InputOpcode.OP_NOT:
@@ -1039,12 +1054,83 @@ class JSGenerator {
 
         for (let i = 0; i < stack.blocks.length; i++) {
             frame.isLastBlock = i === stack.blocks.length - 1;
+            const consumed = this.descendEqualsChainAsSwitch(stack.blocks, i);
+            if (consumed > 0) {
+                i += consumed - 1;
+                continue;
+            }
             this.descendStackedBlock(stack.blocks[i]);
         }
 
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
         this.popFrame();
+    }
+
+    matchEqualsCaseCondition (condition) {
+        if (condition.opcode === InputOpcode.OP_OR) {
+            const left = this.matchEqualsCaseCondition(condition.inputs.left);
+            if (!left) return null;
+            const right = this.matchEqualsCaseCondition(condition.inputs.right);
+            if (!right || right.subject !== left.subject) return null;
+            return {subject: left.subject, labels: [...left.labels, ...right.labels]};
+        }
+        if (condition.opcode !== InputOpcode.OP_EQUALS) return null;
+        let constant = condition.inputs.left;
+        let subject = condition.inputs.right;
+        if (constant.opcode !== InputOpcode.CONSTANT) {
+            constant = condition.inputs.right;
+            subject = condition.inputs.left;
+        }
+        if (constant.opcode !== InputOpcode.CONSTANT) return null;
+        if (subject.opcode !== InputOpcode.VAR_GET && subject.opcode !== InputOpcode.PROCEDURE_ARGUMENT) return null;
+        if (!subject.isSometimesType(InputType.NUMBER_INTERPRETABLE) ||
+            !constant.isSometimesType(InputType.NUMBER_INTERPRETABLE)) return null;
+        const bothNumbers = subject.isAlwaysType(InputType.NUMBER_INTERPRETABLE) &&
+            constant.isAlwaysType(InputType.NUMBER_INTERPRETABLE);
+        if (!bothNumbers && !isSafeInputForEqualsOptimization(constant, subject)) return null;
+        return {
+            subject: this.descendInput(subject.toType(InputType.NUMBER)),
+            labels: [this.descendInput(constant.toType(InputType.NUMBER))]
+        };
+    }
+
+    descendEqualsChainAsSwitch (blocks, start) {
+        const cases = [];
+        let subject = null;
+        let i = start;
+        while (i < blocks.length) {
+            const block = blocks[i];
+            if (block.opcode !== StackOpcode.CONTROL_IF_ELSE) break;
+            const node = block.inputs;
+            if (node.whenFalse.blocks.length !== 0) break;
+            const body = node.whenTrue;
+            const lastInBody = body.blocks[body.blocks.length - 1];
+            if (!lastInBody) break;
+            if (lastInBody.opcode !== StackOpcode.CONTROL_STOP_SCRIPT &&
+                lastInBody.opcode !== StackOpcode.PROCEDURE_RETURN) break;
+            const match = this.matchEqualsCaseCondition(node.condition);
+            if (!match) break;
+            if (subject === null) {
+                subject = match.subject;
+            } else if (subject !== match.subject) {
+                break;
+            }
+            cases.push({labels: match.labels, body});
+            i++;
+        }
+        if (cases.length < 3) return 0;
+        this.source += `switch (${subject}) {\n`;
+        for (const switchCase of cases) {
+            for (const label of switchCase.labels) {
+                this.source += `case ${label}:\n`;
+            }
+            this.source += '{\n';
+            this.descendStack(switchCase.body, new Frame(false));
+            this.source += 'break;\n}\n';
+        }
+        this.source += '}\n';
+        return cases.length;
     }
 
     /**
@@ -1285,6 +1371,10 @@ class JSGenerator {
             script += args.join(',');
         }
         script += ') {\n';
+
+        if (this.expressionTempVariables.length) {
+            script += `var ${this.expressionTempVariables.join(', ')};\n`;
+        }
 
         script += this.source;
 

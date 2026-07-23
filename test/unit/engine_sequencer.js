@@ -188,6 +188,25 @@ test('stepThreads', t => {
     t.strictEquals(r.threads.length, 1);
     // Threads should be marked DONE and removed in the same step they finish.
     t.strictEquals(s.stepThreads().length, 1);
-    
+
+    t.end();
+});
+
+test('finished stack click thread keeps running thread in threadMap', t => {
+    const r = new Runtime();
+    r.currentStepTime = Infinity;
+    const s = new Sequencer(r);
+    const hat = generateThread(r);
+    hat.status = Thread.STATUS_PROMISE_WAIT;
+    r.threadMap.set(hat.getId(), hat);
+    const click = generateThread(r);
+    click.stackClick = true;
+    click.target = hat.target;
+    click.topBlock = hat.topBlock;
+    t.strictEquals(click.getId(), hat.getId());
+    s.stepThreads();
+    t.strictEquals(r.threads.includes(hat), true);
+    t.strictEquals(r.threadMap.get(hat.getId()), hat);
+
     t.end();
 });

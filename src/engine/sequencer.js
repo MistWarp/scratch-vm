@@ -64,6 +64,10 @@ class Sequencer {
         return 500;
     }
 
+    static get MAX_ITERATIONS_PER_TIME_CHECK () {
+        return 512;
+    }
+
     /**
      * Step through all threads in `this.runtime.threads`, running them in order.
      * @return {Array.<!Thread>} List of inactive threads after stepping.
@@ -82,6 +86,9 @@ class Sequencer {
         // Whether `stepThreads` has run through a full single tick.
         let ranFirstTick = false;
         const doneThreads = [];
+        let iterationsUntilTimeCheck = 1;
+        let iterationsSinceTimeCheck = 0;
+        let elapsedAtLastTimeCheck = 0;
 
         // tw: If this happens, the runtime is in initialization, do not execute any thread.
         if (this.runtime.currentStepTime === 0) return [];
@@ -161,7 +168,9 @@ class Sequencer {
                         nextActiveThread++;
                     } else {
                         thread.inThreadList = false;
-                        this.runtime.threadMap.delete(thread.getId());
+                        if (this.runtime.threadMap.get(thread.getId()) === thread) {
+                            this.runtime.threadMap.delete(thread.getId());
+                        }
                         doneThreads.push(thread);
                     }
                 }
@@ -170,7 +179,23 @@ class Sequencer {
 
             // tw: Detect timer here so the sequencer won't break when FPS is greater than 1000
             // and performance.now() is not available.
-            if (this.timer.timeElapsed() >= WORK_TIME) break;
+            iterationsSinceTimeCheck++;
+            if (--iterationsUntilTimeCheck > 0) continue;
+            const elapsed = this.timer.timeElapsed();
+            if (elapsed >= WORK_TIME) break;
+            const elapsedSinceLastTimeCheck = elapsed - elapsedAtLastTimeCheck;
+            if (elapsedSinceLastTimeCheck > 0) {
+                const perIteration = elapsedSinceLastTimeCheck / iterationsSinceTimeCheck;
+                const affordable = Math.floor((WORK_TIME - elapsed) / (perIteration * 4));
+                iterationsUntilTimeCheck = Math.min(Sequencer.MAX_ITERATIONS_PER_TIME_CHECK, Math.max(1, affordable));
+            } else {
+                iterationsUntilTimeCheck = Math.min(
+                    Sequencer.MAX_ITERATIONS_PER_TIME_CHECK,
+                    iterationsSinceTimeCheck * 2
+                );
+            }
+            elapsedAtLastTimeCheck = elapsed;
+            iterationsSinceTimeCheck = 0;
         }
 
         this.activeThread = null;

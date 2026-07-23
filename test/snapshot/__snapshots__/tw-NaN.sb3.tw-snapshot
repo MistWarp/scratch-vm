@@ -3,7 +3,6 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = runtime.getOpcodeFunction("operator_multiply");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 21", target);
 if (!(("" + (0 / 0)).toLowerCase() === "0".toLowerCase())) {
@@ -12,7 +11,7 @@ runtime.ext_scratch3_looks._say("pass", target);
 if ((("" + (0 * Infinity)).toLowerCase() === "NaN".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (compareEqual((yield* executeInCompatibilityLayer({"NUM1":0,"NUM2":Infinity,"NUM3":1,"mutation":{"tagName":"mutation","children":[],"itemcount":"3"},}, b0, false, false, "E", null)), 0)) {
+if (((toNotNaN((0 * Infinity)) * 1) === 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if ((("" + ((Math.acos(1.01) * 180) / Math.PI)).toLowerCase() === "NaN".toLowerCase())) {

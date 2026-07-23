@@ -10,7 +10,11 @@ const Profiler = require('./profiler');
 const Sequencer = require('./sequencer');
 const execute = require('./execute.js');
 const compilerExecute = require('../compiler/jsexecute');
-const {mistsUtils: mistsUtilsCompiler, core: mistWarpCompiler} = require('../compiler/mists-utils');
+const {
+    mistsUtils: mistsUtilsCompiler,
+    core: mistWarpCompiler,
+    gallery: galleryCompiler
+} = require('../compiler/mists-utils');
 const ScratchBlocksConstants = require('./scratch-blocks-constants');
 const TargetType = require('../extension-support/target-type');
 const Thread = require('./thread');
@@ -495,6 +499,9 @@ class Runtime extends EventEmitter {
             this.compilerExtensions.set(`mistsutils_${opcode}`, compiler);
         }
         for (const [opcode, compiler] of Object.entries(mistWarpCompiler)) {
+            this.compilerExtensions.set(opcode, compiler);
+        }
+        for (const [opcode, compiler] of Object.entries(galleryCompiler)) {
             this.compilerExtensions.set(opcode, compiler);
         }
 
@@ -2195,9 +2202,9 @@ class Runtime extends EventEmitter {
             newThread.inThreadList = true;
             return newThread;
         }
-        this.threads.push(thread);
-        thread.inThreadList = true;
-        return thread;
+        this.threads.push(newThread);
+        newThread.inThreadList = true;
+        return newThread;
     }
 
     emitCompileError (target, error) {
@@ -2485,20 +2492,36 @@ class Runtime extends EventEmitter {
      * @returns {number} new position in execution order
      */
     moveExecutable (executableTarget, delta) {
-        const oldIndex = this.executableTargets.indexOf(executableTarget);
-        this.executableTargets.splice(oldIndex, 1);
+        return this.repositionExecutable(executableTarget, this.executableTargets.indexOf(executableTarget), delta);
+    }
+
+    /**
+     * Move a target that is known to be at oldIndex by a relative amount.
+     * @param {Target} executableTarget target to move
+     * @param {number} oldIndex current position of the target in the execution order
+     * @param {number} delta number of positions to move target by
+     * @returns {number} new position in execution order
+     */
+    repositionExecutable (executableTarget, oldIndex, delta) {
+        const executableTargets = this.executableTargets;
+        const lengthAfterRemoval = executableTargets.length - 1;
         let newIndex = oldIndex + delta;
-        if (newIndex > this.executableTargets.length) {
-            newIndex = this.executableTargets.length;
+        if (newIndex > lengthAfterRemoval) {
+            newIndex = lengthAfterRemoval;
         }
         if (newIndex <= 0) {
-            if (this.executableTargets.length > 0 && this.executableTargets[0].isStage) {
+            const firstAfterRemoval = oldIndex === 0 ? executableTargets[1] : executableTargets[0];
+            if (lengthAfterRemoval > 0 && firstAfterRemoval.isStage) {
                 newIndex = 1;
             } else {
                 newIndex = 0;
             }
         }
-        this.executableTargets.splice(newIndex, 0, executableTarget);
+        if (newIndex === oldIndex) {
+            return newIndex;
+        }
+        executableTargets.splice(oldIndex, 1);
+        executableTargets.splice(newIndex, 0, executableTarget);
         return newIndex;
     }
 
@@ -2514,7 +2537,7 @@ class Runtime extends EventEmitter {
      */
     setExecutablePosition (executableTarget, newIndex) {
         const oldIndex = this.executableTargets.indexOf(executableTarget);
-        return this.moveExecutable(executableTarget, newIndex - oldIndex);
+        return this.repositionExecutable(executableTarget, oldIndex, newIndex - oldIndex);
     }
 
     /**
