@@ -485,7 +485,13 @@ class Blocks {
             // Drag blocks onto another sprite
             if (e.isOutside) {
                 const newBlocks = adapter(e);
-                this.runtime.emitBlockEndDrag(newBlocks, e.blockId);
+                if (e.frame) {
+                    // A frame brings the scripts inside it along.
+                    this.runtime.emitBlockEndDrag(
+                        {blocks: newBlocks, frames: [e.frame]}, e.frameId);
+                } else {
+                    this.runtime.emitBlockEndDrag(newBlocks, e.blockId);
+                }
             }
             break;
         case 'delete':
@@ -646,7 +652,7 @@ class Blocks {
             if (this.runtime.getEditingTarget()) {
                 const currTarget = this.runtime.getEditingTarget();
                 currTarget.createFrame(e.frameId, e.title, e.xy.x, e.xy.y,
-                    e.width, e.height, e.color, e.collapsed, e.blockIds);
+                    e.width, e.height, e.collapsed, e.blockIds);
                 this.emitProjectChanged();
             }
             break;
@@ -661,9 +667,6 @@ class Blocks {
                 const change = e.newContents_;
                 if (Object.prototype.hasOwnProperty.call(change, 'title')) {
                     frame.title = change.title;
-                }
-                if (Object.prototype.hasOwnProperty.call(change, 'color')) {
-                    frame.color = change.color;
                 }
                 if (Object.prototype.hasOwnProperty.call(change, 'collapsed')) {
                     frame.collapsed = change.collapsed;

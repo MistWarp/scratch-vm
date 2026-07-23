@@ -102,15 +102,21 @@ const createSdkHost = runtime => {
     let extraScopes = [];
     let cachedUser = {loggedIn: false};
     const wantedScopes = () => [...new Set([...scopesUsedByProject(runtime), ...extraScopes])];
+    const projectLabel = () => String(
+        (runtime && runtime.projectName) ||
+        (typeof document !== 'undefined' && document.title) || ''
+    ).trim();
+    const systemName = () => (projectLabel() ? `MistWarp: ${projectLabel().slice(0, 64)}` : 'MistWarp');
     const getClient = () => {
         if (!clientPromise) {
             clientPromise = (async () => {
                 // eslint-disable-next-line global-require
                 const {Rotur} = require('rotur-sdk');
                 const scopes = wantedScopes();
+                const system = systemName();
                 const stored = readStoredToken();
                 let rotur = null;
-                if (stored && sameScopes(stored.scopes, scopes)) {
+                if (stored && stored.system === system && sameScopes(stored.scopes, scopes)) {
                     rotur = new Rotur({token: stored.token});
                     const auth = await rotur.me.checkAuth().catch(() => null);
                     if (!auth || !auth.auth) {
@@ -121,11 +127,11 @@ const createSdkHost = runtime => {
                 if (!rotur) {
                     rotur = new Rotur();
                     await rotur.login({
-                        system: 'mistwarp-project',
+                        system,
                         timeout: 120000,
                         requires: scopes
                     });
-                    writeStoredToken({token: rotur.token, scopes});
+                    writeStoredToken({token: rotur.token, scopes, system});
                 }
                 const me = await rotur.me.get().catch(() => null);
                 cachedUser = {
@@ -168,7 +174,7 @@ const createSdkHost = runtime => {
             return resolveProjectId();
         },
         projectName () {
-            return (runtime && runtime.projectName) || '';
+            return projectLabel();
         },
         projectImage () {
             return '';

@@ -619,37 +619,41 @@ const serializeBlocks = function (blocks) {
 };
 
 /**
- * @param {unknown} blocks Output of serializeStandaloneBlocks
- * @returns {{blocks: Block[], extensionURLs: Map<string, string>}}
+ * @param {unknown} payload Output of serializeStandaloneBlocks
+ * @returns {{blocks: Block[], frames: object[], extensionURLs: Map<string, string>}}
  */
-const deserializeStandaloneBlocks = blocks => {
+const deserializeStandaloneBlocks = payload => {
     // deep clone to ensure it's safe to modify later
-    blocks = JSON.parse(JSON.stringify(blocks));
+    payload = JSON.parse(JSON.stringify(payload));
 
-    if (blocks.extensionURLs) {
-        const extensionURLs = new Map();
-        for (const [id, url] of Object.entries(blocks.extensionURLs)) {
-            extensionURLs.set(id, url);
-        }
+    // Vanilla Scratch format is just a list of block objects
+    if (Array.isArray(payload)) {
         return {
-            blocks: blocks.blocks,
-            extensionURLs
+            blocks: payload,
+            frames: [],
+            extensionURLs: new Map()
         };
     }
 
-    // Vanilla Scratch format is just a list of block objects
+    const extensionURLs = new Map();
+    for (const [id, url] of Object.entries(payload.extensionURLs || {})) {
+        extensionURLs.set(id, url);
+    }
     return {
-        blocks,
-        extensionURLs: new Map()
+        blocks: payload.blocks,
+        frames: payload.frames || [],
+        extensionURLs
     };
 };
 
 /**
- * @param {Block[]} blocks List of block objects.
+ * @param {Block[]|object} payload List of block objects, or an object with blocks and frames.
  * @param {Runtime} runtime Runtime
  * @returns {object} Something that can be understood by deserializeStandaloneBlocks
  */
-const serializeStandaloneBlocks = (blocks, runtime) => {
+const serializeStandaloneBlocks = (payload, runtime) => {
+    const blocks = Array.isArray(payload) ? payload : payload.blocks;
+    const frames = Array.isArray(payload) ? null : payload.frames;
     const extensionIDs = new Set();
     for (const block of blocks) {
         const extensionID = getExtensionIdForOpcode(block.opcode);
@@ -658,12 +662,16 @@ const serializeStandaloneBlocks = (blocks, runtime) => {
         }
     }
     const extensionURLs = getExtensionURLsToSave(extensionIDs, runtime);
-    if (extensionURLs) {
-        return {
-            blocks,
+    if (extensionURLs || (frames && frames.length)) {
+        const serialized = {blocks};
+        if (extensionURLs) {
             // same format as project.json
-            extensionURLs: extensionURLs
-        };
+            serialized.extensionURLs = extensionURLs;
+        }
+        if (frames && frames.length) {
+            serialized.frames = frames;
+        }
+        return serialized;
     }
     // Vanilla Scratch always just uses the block array as-is. To reduce compatibility concerns
     // we too will use that when possible.
@@ -798,7 +806,6 @@ const serializeFrames = function (frames) {
         serializedFrame.y = frame.y;
         serializedFrame.width = frame.width;
         serializedFrame.height = frame.height;
-        serializedFrame.color = frame.color;
         serializedFrame.collapsed = frame.collapsed;
         if (frame.collapsed && frame.blocks.length) {
             serializedFrame.blocks = frame.blocks;
@@ -1615,7 +1622,6 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
                 frame.y,
                 frame.width,
                 frame.height,
-                frame.color,
                 frame.collapsed,
                 frame.blocks
             );

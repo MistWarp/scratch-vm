@@ -171,7 +171,12 @@ const adapter = function (e) {
     if (typeof e !== 'object') return;
     if (typeof e.xml !== 'object') return;
 
-    return domToBlocks(html.parseDOM(e.xml.outerHTML, {decodeEntities: true}));
+    const dom = html.parseDOM(e.xml.outerHTML, {decodeEntities: true});
+    // A frame drag carries every script inside the frame, wrapped in one <xml>.
+    if (dom.length === 1 && dom[0].name && dom[0].name.toLowerCase() === 'xml') {
+        return domToBlocks(dom[0].children);
+    }
+    return domToBlocks(dom);
 };
 
 module.exports = adapter;

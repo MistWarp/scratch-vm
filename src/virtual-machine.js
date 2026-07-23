@@ -1748,7 +1748,7 @@ class VirtualMachine extends EventEmitter {
     shareBlocksToTarget (blocks, targetId, optFromTargetId) {
         const sb3 = require('./serialization/sb3');
 
-        const {blocks: copiedBlocks, extensionURLs} = sb3.deserializeStandaloneBlocks(blocks);
+        const {blocks: copiedBlocks, frames, extensionURLs} = sb3.deserializeStandaloneBlocks(blocks);
         newBlockIds(copiedBlocks);
         const target = this.runtime.getTargetById(targetId);
 
@@ -1769,6 +1769,12 @@ class VirtualMachine extends EventEmitter {
         return this._loadExtensions(extensionIDs, extensionURLs).then(() => {
             copiedBlocks.forEach(block => {
                 target.blocks.createBlock(block);
+            });
+            // Frames arrive expanded, so they pick their scripts back up from
+            // the positions the copied blocks landed at.
+            frames.forEach(frame => {
+                target.createFrame(null, frame.title, frame.x, frame.y,
+                    frame.width, frame.height, false, []);
             });
             target.blocks.updateTargetSpecificBlocks(target.isStage);
             this._broadcastCleanupNeeded = true;

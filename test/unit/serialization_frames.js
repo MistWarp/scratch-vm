@@ -3,6 +3,7 @@ const path = require('path');
 const VirtualMachine = require('../../src/index');
 const Runtime = require('../../src/engine/runtime');
 const sb3 = require('../../src/serialization/sb3');
+const adapter = require('../../src/engine/adapter');
 const readFileToBuffer = require('../fixtures/readProjectFile').readFileToBuffer;
 const projectPath = path.resolve(__dirname, '../fixtures/comments.sb3');
 
@@ -12,8 +13,8 @@ test('frames round-trip through sb3 and the workspace xml', t => {
         const stage = vm.runtime.getTargetForStage();
         const sprite = vm.runtime.targets.find(target => !target.isStage);
 
-        sprite.createFrame('f1', 'Movement', 40, 60, 400, 300, '#CF63CF', false, []);
-        sprite.createFrame('f2', 'Collapsed', 40, 400, 400, 300, '#FFBF00', true, ['blockA']);
+        sprite.createFrame('f1', 'Movement', 40, 60, 400, 300, false, []);
+        sprite.createFrame('f2', 'Collapsed', 40, 400, 400, 300, true, ['blockA']);
 
         const json = JSON.parse(JSON.stringify(sb3.serialize(vm.runtime)));
         const spriteJson = json.targets.find(target => !target.isStage);
@@ -21,7 +22,6 @@ test('frames round-trip through sb3 and the workspace xml', t => {
 
         t.ok(spriteJson.frames, 'the sprite serializes its frames');
         t.equal(spriteJson.frames.f1.title, 'Movement');
-        t.equal(spriteJson.frames.f1.color, '#CF63CF');
         t.equal(spriteJson.frames.f1.collapsed, false);
         t.notOk('blocks' in spriteJson.frames.f1,
             'an expanded frame stores no member list: membership is geometric');
@@ -70,7 +70,6 @@ test('frame events from the editor reach the target', t => {
             xy: {x: 5, y: 7},
             width: 200,
             height: 100,
-            color: '#59C059',
             collapsed: false,
             blockIds: []
         });
@@ -95,10 +94,9 @@ test('frame events from the editor reach the target', t => {
         vm.blockListener({
             type: 'frame_change',
             frameId: 'newFrame',
-            newContents_: {title: 'Renamed', color: '#FF6680'}
+            newContents_: {title: 'Renamed'}
         });
         t.equal(sprite.frames.newFrame.title, 'Renamed');
-        t.equal(sprite.frames.newFrame.color, '#FF6680');
 
         vm.blockListener({
             type: 'frame_delete',
@@ -106,5 +104,44 @@ test('frame events from the editor reach the target', t => {
         });
         t.notOk(sprite.frames.newFrame, 'frame_delete removes the frame');
         t.end();
+    });
+});
+
+test('a frame drag carries its scripts to another sprite', t => {
+    // What Blockly.Events.EndFrameDrag sends: every script in the frame,
+    // wrapped in one <xml> element, plus the frame itself.
+    const dragged = adapter({
+        xml: {
+            outerHTML: '<xml>' +
+                '<block type="event_whenflagclicked" id="b1" x="60" y="90"></block>' +
+                '<block type="event_whenflagclicked" id="b2" x="60" y="200"></block>' +
+                '</xml>'
+        }
+    });
+    t.equal(dragged.length, 2, 'the <xml> wrapper does not hide the scripts');
+
+    const payload = {
+        blocks: dragged,
+        frames: [{title: 'Movement', x: 40, y: 60, width: 400, height: 300}]
+    };
+
+    const vm = new VirtualMachine();
+    vm.loadProject(readFileToBuffer(projectPath)).then(() => {
+        const from = vm.runtime.targets.find(target => !target.isStage);
+        const to = vm.runtime.getTargetForStage();
+        const roundTripped = JSON.parse(JSON.stringify(
+            sb3.serializeStandaloneBlocks(payload, vm.runtime)));
+        t.same(roundTripped.frames, payload.frames, 'frames survive the backpack format');
+
+        return vm.shareBlocksToTarget(roundTripped, to.id, from.id).then(() => {
+            const frames = Object.values(to.frames);
+            t.equal(frames.length, 1, 'the frame arrives on the other target');
+            t.equal(frames[0].title, 'Movement');
+            t.ok(frames[0].id, 'the copy gets its own id');
+            t.equal(frames[0].collapsed, false, 'a shared frame always arrives expanded');
+            t.same(frames[0].blocks, [], 'so it needs no member list');
+            t.equal(Object.keys(to.blocks._blocks).length, 2, 'the scripts come with it');
+            t.end();
+        });
     });
 });

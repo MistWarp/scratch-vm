@@ -319,19 +319,19 @@ class Target extends EventEmitter {
 
     /**
      * Create a frame with the given properties.
-     * @param {string} id Id of the frame.
+     * @param {?string} id Id of the frame, or null to generate one.
      * @param {string} title The text shown in the frame's title bar.
      * @param {number} x The x coordinate of the frame on the workspace.
      * @param {number} y The y coordinate of the frame on the workspace.
      * @param {number} width The width of the frame when it is expanded.
      * @param {number} height The height of the frame when it is expanded.
-     * @param {string} color The hex colour of the frame.
      * @param {boolean} collapsed Whether the frame is collapsed.
      * @param {Array.<string>} blocks Ids of the blocks the frame swallowed when collapsed.
      */
-    createFrame (id, title, x, y, width, height, color, collapsed, blocks) {
-        if (!Object.prototype.hasOwnProperty.call(this.frames, id)) {
-            this.frames[id] = new Frame(id, title, x, y, width, height, color, collapsed, blocks);
+    createFrame (id, title, x, y, width, height, collapsed, blocks) {
+        const frame = new Frame(id, title, x, y, width, height, collapsed, blocks);
+        if (!Object.prototype.hasOwnProperty.call(this.frames, frame.id)) {
+            this.frames[frame.id] = frame;
         }
     }
 
