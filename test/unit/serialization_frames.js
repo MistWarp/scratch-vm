@@ -141,6 +141,15 @@ test('a frame drag carries its scripts to another sprite', t => {
             t.equal(frames[0].collapsed, false, 'a shared frame always arrives expanded');
             t.same(frames[0].blocks, [], 'so it needs no member list');
             t.equal(Object.keys(to.blocks._blocks).length, 2, 'the scripts come with it');
+
+            const frame = frames[0];
+            const inside = Object.values(to.blocks._blocks)
+                .filter(block => block.topLevel)
+                .filter(block =>
+                    block.x >= frame.x && block.x <= frame.x + frame.width &&
+                    block.y >= frame.y && block.y <= frame.y + frame.height);
+            t.equal(inside.length, 2, 'both scripts land inside the copied frame');
+            t.equal(inside[1].y - inside[0].y, 110, 'and keep their spacing');
             t.end();
         });
     });
