@@ -126,6 +126,13 @@ const looksLikeZip = function (input) {
     return !!bytes && bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
 };
 
+const unpackJson = function (input, isSprite, callback) {
+    const bytes = input instanceof ArrayBuffer ?
+        new Uint8Array(input) :
+        new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+    callback(null, [new TextDecoder().decode(bytes), null]);
+};
+
 /**
  * JSZip's compression id for a deflated entry.
  * @const {string}
@@ -238,8 +245,9 @@ const unzipProject = function (input, isSprite, callback, onProgress) {
  */
 module.exports = function (input, isSprite, callback, optOnProgress) {
     const onProgress = optOnProgress || function () {};
-    const unpackProject = (looksLikeZip(input) && typeof TextDecoder !== 'undefined') ?
-        unzipProject : unpack;
+    const canDecode = typeof TextDecoder !== 'undefined' &&
+        (input instanceof ArrayBuffer || ArrayBuffer.isView(input));
+    const unpackProject = canDecode ? (looksLikeZip(input) ? unzipProject : unpackJson) : unpack;
     // unpack (scratch-parser) ignores the extra argument; unzipProject uses it.
     unpackProject(input, isSprite, (unpackError, unpackedProject) => {
         if (unpackError) {

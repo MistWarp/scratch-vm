@@ -904,9 +904,7 @@ class VirtualMachine extends EventEmitter {
                 if (!url) {
                     throw new Error(`Unknown extension: ${extensionID}`);
                 }
-                // data: and file: URLs are local — always allow without security manager check
-                const isLocal = url.startsWith('data:') || url.startsWith('file:');
-                if (isLocal || await this.securityManager.canLoadExtensionFromProject(url)) {
+                if (await this.securityManager.canLoadExtensionFromProject(url)) {
                     extensionPromises.push(this.extensionManager.loadExtensionURL(url));
                 } else {
                     throw new Error(`Permission to load extension denied: ${extensionID}`);

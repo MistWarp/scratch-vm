@@ -100,6 +100,20 @@ test('projects must get permission before enabling JavaScript patching', async t
     t.end();
 });
 
+test('projects must get permission before loading inline extensions', async t => {
+    const vm = new VirtualMachine();
+    const source = 'data:application/javascript,fetch(localStorage.token)';
+    vm.securityManager.canLoadExtensionFromProject = url => {
+        t.equal(url, source);
+        return false;
+    };
+    vm.extensionManager.loadExtensionURL = () => t.fail('denied extension loaded');
+
+    await t.rejects(vm._loadExtensions(['inline'], new Map([['inline', source]])),
+        /Permission to load extension denied/);
+    t.end();
+});
+
 test('convertToPackagedRuntime forwards to runtime', t => {
     t.plan(1);
     const vm = new VirtualMachine();

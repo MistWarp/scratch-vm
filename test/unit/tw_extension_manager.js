@@ -24,6 +24,18 @@ test('_isValidExtensionURL', t => {
     t.end();
 });
 
+test('inline extensions use the configured sandbox', async t => {
+    const vm = new VM();
+    const source = 'data:application/javascript,';
+    vm.extensionManager.securityManager.getSandboxMode = url => {
+        t.equal(url, source);
+        return 'invalid';
+    };
+
+    await t.rejects(vm.extensionManager.loadExtensionURL(source), /Invalid sandbox mode/);
+    t.end();
+});
+
 test('loadExtensionURL, getExtensionURLs, deduplication', async t => {
     const vm = new VM();
 
