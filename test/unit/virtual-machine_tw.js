@@ -95,7 +95,7 @@ test('projects must get permission before enabling JavaScript patching', async t
         loaded = true;
     };
 
-    await t.rejects(vm._loadExtensions(['patching']), /Permission to load extension denied/);
+    await vm._loadExtensions(['patching']);
     t.equal(loaded, false);
     t.end();
 });
@@ -109,8 +109,7 @@ test('projects must get permission before loading inline extensions', async t =>
     };
     vm.extensionManager.loadExtensionURL = () => t.fail('denied extension loaded');
 
-    await t.rejects(vm._loadExtensions(['inline'], new Map([['inline', source]])),
-        /Permission to load extension denied/);
+    await vm._loadExtensions(['inline'], new Map([['inline', source]]));
     t.end();
 });
 

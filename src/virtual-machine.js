@@ -888,7 +888,7 @@ class VirtualMachine extends EventEmitter {
                 extensionID === 'patching' &&
                 !await this.securityManager.canLoadExtensionFromProject('builtin:patching')
             ) {
-                throw new Error(`Permission to load extension denied: ${extensionID}`);
+                continue;
             }
             if (this.extensionManager.isExtensionLoaded(extensionID)) {
                 // Already loaded
@@ -906,8 +906,6 @@ class VirtualMachine extends EventEmitter {
                 }
                 if (await this.securityManager.canLoadExtensionFromProject(url)) {
                     extensionPromises.push(this.extensionManager.loadExtensionURL(url));
-                } else {
-                    throw new Error(`Permission to load extension denied: ${extensionID}`);
                 }
             }
         }

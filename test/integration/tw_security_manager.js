@@ -16,32 +16,25 @@ const BITWISE_EXTENSION = 'https://extensions.turbowarp.org/bitwise.js';
 test('Deny both extensions', async t => {
     const vm = new VirtualMachine();
     vm.extensionManager.loadExtensionURL = () => {
-        t.fail();
+        t.fail('denied extension loaded');
     };
     vm.securityManager.canLoadExtensionFromProject = () => false;
-    try {
-        await vm.loadProject(testProject);
-        // loadProject() should fail because extensions were denied
-        t.fail();
-    } catch (e) {
-        t.pass();
-    }
+    await vm.loadProject(testProject);
+    t.equal(vm.runtime.targets.length, 2);
     t.end();
 });
 
 test('Deny 1 of 2 extensions', async t => {
     const vm = new VirtualMachine();
-    vm.extensionManager.loadExtensionURL = () => {
-        t.fail();
+    const loadedExtensions = [];
+    vm.extensionManager.loadExtensionURL = url => {
+        loadedExtensions.push(url);
+        return Promise.resolve();
     };
     vm.securityManager.canLoadExtensionFromProject = url => Promise.resolve(url === FETCH_EXTENSION);
-    try {
-        await vm.loadProject(testProject);
-        // loadProject() should fail because extensions were denied
-        t.fail();
-    } catch (e) {
-        t.pass();
-    }
+    await vm.loadProject(testProject);
+    t.same(loadedExtensions, [FETCH_EXTENSION]);
+    t.equal(vm.runtime.targets.length, 2);
     t.end();
 });
 
