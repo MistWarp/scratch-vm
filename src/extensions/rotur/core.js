@@ -101,7 +101,7 @@ const createSdkHost = runtime => {
     let clientPromise = null;
     let extraScopes = [];
     let cachedUser = {loggedIn: false};
-    const wantedScopes = () => [...new Set([...scopesUsedByProject(runtime), ...extraScopes])];
+    const wantedScopes = () => [...new Set(extraScopes)];
     const projectLabel = () => String(
         (runtime && runtime.projectName) ||
         (typeof document !== 'undefined' && document.title) || ''
@@ -395,8 +395,12 @@ const run = async (extension, spec, args) => {
         return Boolean(await requestConsent(host, requested, {name: runtime.projectName || ''}));
     }
 
-    const scopes = scopesUsedByProject(runtime);
-    const allowed = await requestConsent(host, scopes, {name: runtime.projectName || ''});
+    const scopes = spec.scope ? [spec.scope] : [];
+    const authenticatedOnly = scopes.length > 0 && !spec.sensitive && scopes.every(scope => scope.endsWith(':view'));
+    const allowed = await requestConsent(host, scopes, {
+        name: runtime.projectName || '',
+        authenticatedOnly: authenticatedOnly || Boolean(spec.sensitive)
+    });
     if (!allowed) {
         throw new Error('Rotur access was not granted for this project');
     }
@@ -456,7 +460,8 @@ const run = async (extension, spec, args) => {
     const mapped = spec.map ? spec.map(args) : Object.values(args);
     const result = await host.call(spec.method, mapped, {
         sensitive: Boolean(spec.sensitive),
-        label: spec.confirm || spec.method
+        label: typeof spec.confirm === 'string' ? spec.confirm : spec.method,
+        confirmation: typeof spec.confirm === 'function' ? spec.confirm(args) : null
     });
     if (result && typeof result === 'object' && result.error) {
         throw new Error(result.error);

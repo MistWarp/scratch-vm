@@ -45,7 +45,7 @@ const account = ext('rotur', 'Rotur Account', [
 
 const economy = ext('roturEconomy', 'Rotur Economy', [
     {opcode: 'balance', blockType: R, text: 'my credits', method: 'me.get', scope: 'credits:view', map: () => [], result: r => (r && typeof r['sys.currency'] === 'number' ? r['sys.currency'] : 0)},
-    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, method: 'me.transfer', scope: 'credits:transfer', sensitive: true, confirm: 'send credits', map: a => [a.USER, Number(a.AMOUNT) || 0, a.NOTE]},
+    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, method: 'me.transfer', scope: 'credits:transfer', sensitive: true, confirm: a => ({type: 'payment', amount: Number(a.AMOUNT) || 0, recipient: String(a.USER || '')}), map: a => [a.USER, Number(a.AMOUNT) || 0, a.NOTE]},
     {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', method: 'me.claimTime', scope: 'credits:view', map: () => [], result: r => (r && typeof r.wait_time === 'number' ? r.wait_time : 0)},
     {opcode: 'transactions', blockType: R, text: 'my transaction history', method: 'me.transactions', scope: 'credits:view', map: () => []},
     {label: 'Gifts'},
