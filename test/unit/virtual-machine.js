@@ -10,6 +10,48 @@ const RenderedTarget = require('../../src/sprites/rendered-target');
 
 const test = tap.test;
 
+test('duplicateCostume keeps the target selected when duplication started', async t => {
+    const vm = new VirtualMachine();
+    let addedToOriginal = 0;
+    let selectedOnOriginal = 0;
+    let addedToNew = 0;
+    const originalTarget = {
+        addCostume: () => addedToOriginal++,
+        getCostumes: () => [{assetId: 'costume', dataFormat: 'svg'}],
+        setCostume: () => selectedOnOriginal++
+    };
+    const newTarget = {addCostume: () => addedToNew++};
+    vm.editingTarget = originalTarget;
+
+    const duplicate = vm.duplicateCostume(0);
+    vm.editingTarget = newTarget;
+    await duplicate;
+
+    t.equal(addedToOriginal, 1);
+    t.equal(selectedOnOriginal, 1);
+    t.equal(addedToNew, 0);
+});
+
+test('duplicateSound keeps the target selected when duplication started', async t => {
+    const vm = new VirtualMachine();
+    let addedToOriginal = 0;
+    let addedToNew = 0;
+    const originalTarget = {
+        addSound: () => addedToOriginal++,
+        getSounds: () => [{md5: 'sound.wav'}],
+        sprite: {soundBank: null}
+    };
+    const newTarget = {addSound: () => addedToNew++};
+    vm.editingTarget = originalTarget;
+
+    const duplicate = vm.duplicateSound(0);
+    vm.editingTarget = newTarget;
+    await duplicate;
+
+    t.equal(addedToOriginal, 1);
+    t.equal(addedToNew, 0);
+});
+
 test('deleteSound returns function after deleting or null if nothing was deleted', t => {
     const vm = new VirtualMachine();
     const rt = new Runtime();

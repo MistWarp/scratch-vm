@@ -933,6 +933,9 @@ class VirtualMachine extends EventEmitter {
 
         safePerformanceMark('scratch-vm-installTargets-loadExtensions-start');
         await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs);
+        if (wholeProject && typeof this.extensionManager.setExtensionOrder === 'function') {
+            await this.extensionManager.setExtensionOrder(extensions.extensionIDs);
+        }
         safePerformanceMark('scratch-vm-installTargets-loadExtensions-end');
         safePerformanceMeasure(
             'scratch-vm-installTargets-loadExtensions',
@@ -1143,12 +1146,13 @@ class VirtualMachine extends EventEmitter {
      * @returns {?Promise} - a promise that resolves when the costume has been decoded and added
      */
     duplicateCostume (costumeIndex) {
-        const originalCostume = this.editingTarget.getCostumes()[costumeIndex];
+        const target = this.editingTarget;
+        const originalCostume = target.getCostumes()[costumeIndex];
         const clone = Object.assign({}, originalCostume);
         const md5ext = `${clone.assetId}.${clone.dataFormat}`;
         return loadCostume(md5ext, clone, this.runtime).then(() => {
-            this.editingTarget.addCostume(clone, costumeIndex + 1);
-            this.editingTarget.setCostume(costumeIndex + 1);
+            target.addCostume(clone, costumeIndex + 1);
+            target.setCostume(costumeIndex + 1);
             this.emitTargetsUpdate();
         });
     }
@@ -1159,10 +1163,11 @@ class VirtualMachine extends EventEmitter {
      * @returns {?Promise} - a promise that resolves when the sound has been decoded and added
      */
     duplicateSound (soundIndex) {
-        const originalSound = this.editingTarget.getSounds()[soundIndex];
+        const target = this.editingTarget;
+        const originalSound = target.getSounds()[soundIndex];
         const clone = Object.assign({}, originalSound);
-        return loadSound(clone, this.runtime, this.editingTarget.sprite.soundBank).then(() => {
-            this.editingTarget.addSound(clone, soundIndex + 1);
+        return loadSound(clone, this.runtime, target.sprite.soundBank).then(() => {
+            target.addSound(clone, soundIndex + 1);
             this.emitTargetsUpdate();
         });
     }

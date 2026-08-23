@@ -306,6 +306,30 @@ class ExtensionManager {
         const [moved] = extensionIds.splice(extensionIndex, 1);
         extensionIds.splice(reorderIndex, 0, moved);
 
+        return this.setExtensionOrder(extensionIds);
+    }
+
+    /**
+     * Apply an ordered list of extension IDs, keeping any loaded IDs omitted from the list at the end.
+     * @param {Iterable<string>} orderedExtensionIds ordered extension IDs
+     * @returns {Promise} resolved after the runtime category order is updated
+     */
+    setExtensionOrder (orderedExtensionIds) {
+        const currentIds = Array.from(this._loadedExtensions.keys());
+        const loadedIds = new Set(currentIds);
+        const seen = new Set();
+        const extensionIds = [];
+
+        for (const id of orderedExtensionIds) {
+            if (loadedIds.has(id) && !seen.has(id)) {
+                extensionIds.push(id);
+                seen.add(id);
+            }
+        }
+        for (const id of currentIds) {
+            if (!seen.has(id)) extensionIds.push(id);
+        }
+
         const nextLoadedExtensions = new Map();
         for (const id of extensionIds) {
             nextLoadedExtensions.set(id, this._loadedExtensions.get(id));

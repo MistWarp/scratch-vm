@@ -25,6 +25,20 @@ const {deserializeCostume, deserializeSound} = require('./deserialize-assets.js'
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
+const getOrderedExtensionIDs = (extensions, runtime) => {
+    const loadedExtensions = runtime.extensionManager && runtime.extensionManager._loadedExtensions;
+    if (!loadedExtensions) return Array.from(extensions);
+
+    const ordered = [];
+    for (const extensionId of loadedExtensions.keys()) {
+        if (extensions.has(extensionId)) ordered.push(extensionId);
+    }
+    for (const extensionId of extensions) {
+        if (!loadedExtensions.has(extensionId)) ordered.push(extensionId);
+    }
+    return ordered;
+};
+
 /**
  * @typedef {object} ImportedProject
  * @property {Array.<Target>} targets - the imported Scratch 3.0 target objects.
@@ -1006,7 +1020,7 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
         const target = serializedTargets[0];
         if (extensions.size) {
             // Vanilla Scratch doesn't include extensions in sprites, so don't add this if it's not needed
-            target.extensions = Array.from(extensions);
+            target.extensions = getOrderedExtensionIDs(extensions, runtime);
         }
         const extensionURLs = getExtensionURLsToSave(extensions, runtime);
         if (extensionURLs) {
@@ -1027,7 +1041,7 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
 
     obj.monitors = serializeMonitors(runtime.getMonitorState(), runtime, extensions);
 
-    obj.extensions = Array.from(extensions);
+    obj.extensions = getOrderedExtensionIDs(extensions, runtime);
     const extensionURLs = getExtensionURLsToSave(extensions, runtime);
     if (extensionURLs) {
         obj.extensionURLs = extensionURLs;

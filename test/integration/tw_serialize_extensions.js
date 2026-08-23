@@ -46,3 +46,30 @@ test('Serializes custom extensions', t => {
 
     t.end();
 });
+
+test('Preserves extension category order', t => {
+    const vm = new VirtualMachine();
+
+    vm.extensionManager.workerURLs[0] = 'https://example.com/test1.js';
+    vm.extensionManager.workerURLs[1] = 'https://example.com/test2.js';
+    vm.extensionManager._loadedExtensions.set('test2', 'test.1.0');
+    vm.extensionManager._loadedExtensions.set('test1', 'test.0.0');
+
+    const target = new RenderedTarget(new Sprite(null, vm.runtime), vm.runtime);
+    vm.runtime.addTarget(target);
+    target.blocks.createBlock({
+        id: 'first',
+        opcode: 'test1_something'
+    });
+    target.blocks.createBlock({
+        id: 'second',
+        opcode: 'test2_something'
+    });
+
+    const serializedProject = JSON.parse(vm.toJSON());
+    t.same(serializedProject.extensions, ['test2', 'test1'], 'saves project extensions in category order');
+
+    const serializedTarget = JSON.parse(vm.toJSON(target.id));
+    t.same(serializedTarget.extensions, ['test2', 'test1'], 'saves sprite extensions in category order');
+    t.end();
+});

@@ -24,6 +24,21 @@ test('_isValidExtensionURL', t => {
     t.end();
 });
 
+test('setExtensionOrder applies saved order and keeps omitted extensions', async t => {
+    const vm = new VM();
+    const manager = vm.extensionManager;
+    manager._loadedExtensions = new Map([
+        ['first', 'service.first'],
+        ['second', 'service.second'],
+        ['third', 'service.third']
+    ]);
+
+    await manager.setExtensionOrder(['third', 'first']);
+
+    t.same(Array.from(manager._loadedExtensions.keys()), ['third', 'first', 'second']);
+    t.end();
+});
+
 test('inline extensions use the configured sandbox', async t => {
     const vm = new VM();
     const source = 'data:application/javascript,';
