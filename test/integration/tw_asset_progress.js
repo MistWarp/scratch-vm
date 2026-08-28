@@ -127,13 +127,22 @@ for (const format of ['sb', 'sb2', 'sb3']) {
     
         vm.loadProject(fixture)
             .then(() => {
-                t.same(log, [
+                const expected = format === 'sb3' ? [
+                    [0, 0], // loadProject() implies dispose()
+                    [0, 4], // 2 unique files plus 2 reference preparations
+                    [1, 4],
+                    [2, 4],
+                    [2, 4], // phase changes from downloading to preparation
+                    [3, 4],
+                    [4, 4]
+                ] : [
                     [0, 0], // loadProject() implies dispose()
                     [0, 1],
                     [0, 2],
                     [1, 2],
                     [2, 2]
-                ]);
+                ];
+                t.same(log, expected);
                 t.end();
             });
     });

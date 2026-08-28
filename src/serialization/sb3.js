@@ -22,6 +22,7 @@ const compress = require('./tw-compress-sb3');
 const {loadCostume} = require('../import/load-costume.js');
 const {loadSound} = require('../import/load-sound.js');
 const {deserializeCostume, deserializeSound} = require('./deserialize-assets.js');
+const ProjectAssetLoad = require('./project-asset-load');
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -1367,7 +1368,7 @@ const deserializeBlocks = function (blocks) {
  * Object of arrays of promises for asset objects used in Sprites. As well as a
  * SoundBank for the sound assets. null for unsupported objects.
  */
-const parseScratchAssets = function (object, runtime, zip) {
+const parseScratchAssets = function (object, runtime, zip, assetLoad) {
     if (!Object.prototype.hasOwnProperty.call(object, 'name')) {
         // Watcher/monitor - skip this object until those are implemented in VM.
         // @todo
@@ -1381,7 +1382,7 @@ const parseScratchAssets = function (object, runtime, zip) {
     };
 
     // Costumes from JSON.
-    assets.costumePromises = (object.costumes || []).map(costumeSource => {
+    assets.costumePromises = (object.costumes || []).map((costumeSource, referenceIndex) => {
         // @todo: Make sure all the relevant metadata is being pulled out.
         const costume = {
             // costumeSource only has an asset if an image is being uploaded as
@@ -1407,8 +1408,20 @@ const parseScratchAssets = function (object, runtime, zip) {
         // we're always loading the 'sb3' representation of the costume
         // any translation that needs to happen will happen in the process
         // of building up the costume object into an sb3 format
-        return runtime.wrapAssetRequest(() => deserializeCostume(costume, runtime, zip)
-            .then(() => loadCostume(costumeMd5Ext, costume, runtime)));
+        const storage = runtime.storage;
+        const assetType = storage && dataFormat.toLowerCase() === 'svg' ?
+            storage.AssetType.ImageVector : storage && storage.AssetType.ImageBitmap;
+        const assetId = costumeSource.assetId || StringUtil.splitFirst(costumeMd5Ext, '.')[0] ||
+            `embedded:${object.name}:${referenceIndex}`;
+        const assetPromise = assetLoad.loadAsset(assetType || 'costume', assetId, dataFormat, () => {
+            const descriptor = Object.assign({}, costume);
+            return deserializeCostume(descriptor, runtime, zip).then(() => {
+                if (descriptor.asset || !storage) return descriptor.asset || null;
+                return storage.load(assetType, assetId, dataFormat.toLowerCase());
+            });
+        });
+        return assetLoad.prepareReference(assetPromise,
+            () => loadCostume(costumeMd5Ext, costume, runtime, null, assetPromise, assetLoad));
         // Only attempt to load the costume after the deserialization
         // process has been completed
     });
@@ -1432,8 +1445,19 @@ const parseScratchAssets = function (object, runtime, zip) {
         // we're always loading the 'sb3' representation of the costume
         // any translation that needs to happen will happen in the process
         // of building up the costume object into an sb3 format
-        return runtime.wrapAssetRequest(() => deserializeSound(sound, runtime, zip)
-            .then(() => loadSound(sound, runtime, assets.soundBank)));
+        const storage = runtime.storage;
+        const dataFormat = sound.dataFormat || StringUtil.splitFirst(sound.md5, '.')[1] || 'wav';
+        const assetId = sound.assetId || StringUtil.splitFirst(sound.md5, '.')[0];
+        const assetType = storage && storage.AssetType.Sound;
+        const assetPromise = assetLoad.loadAsset(assetType || 'sound', assetId, dataFormat, () => {
+            const descriptor = Object.assign({}, sound);
+            return deserializeSound(descriptor, runtime, zip).then(() => {
+                if (descriptor.asset || !storage) return descriptor.asset || null;
+                return storage.load(assetType, assetId, dataFormat.toLowerCase());
+            });
+        });
+        return assetLoad.prepareReference(assetPromise,
+            () => loadSound(sound, runtime, assets.soundBank, assetPromise, assetLoad));
         // Only attempt to load the sound after the deserialization
         // process has been completed.
     });
@@ -1941,7 +1965,12 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
 
     const monitorObjects = json.monitors || [];
 
-    return fontPromise.then(() => targetObjects.map(target => parseScratchAssets(target, runtime, zip)))
+    const assetLoad = new ProjectAssetLoad(runtime);
+    return fontPromise.then(() => {
+        const assets = targetObjects.map(target => parseScratchAssets(target, runtime, zip, assetLoad));
+        assetLoad.finishDiscovery();
+        return assets;
+    })
         // Force this promise to wait for the next loop in the js tick. Let
         // storage have some time to send off asset requests.
         .then(assets => Promise.resolve(assets))

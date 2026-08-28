@@ -34,6 +34,11 @@ const defaultBuiltinExtensions = {
     roturShop: () => require('../extensions/rotur').RoturShop,
     roturGroups: () => require('../extensions/rotur').RoturGroups,
     roturFiles: () => require('../extensions/rotur').RoturFiles,
+    mistwarpPlayers: () => require('../extensions/mistwarp_games').MistWarpPlayers,
+    mistwarpMultiplayer: () => require('../extensions/mistwarp_games').MistWarpMultiplayer,
+    mistwarpData: () => require('../extensions/mistwarp_games').MistWarpData,
+    mistwarpMarketplace: () => require('../extensions/mistwarp_games').MistWarpMarketplace,
+    mistwarpInventory: () => require('../extensions/mistwarp_games').MistWarpInventory,
     // tw: core extension
     tw: () => require('../extensions/tw')
 };

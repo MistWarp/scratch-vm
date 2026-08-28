@@ -9,19 +9,32 @@ const log = require('../util/log');
  * @param {!Asset} soundAsset - the asset loaded from storage.
  * @param {!Runtime} runtime - Scratch runtime, used to access the storage module.
  * @param {SoundBank} soundBank - Scratch Audio SoundBank to add sounds to.
+ * @param {ProjectAssetLoad} [assetLoad] - project-scoped decode cache
  * @returns {!Promise} - a promise which will resolve to the sound when ready.
  */
-const loadSoundFromAsset = function (sound, soundAsset, runtime, soundBank) {
+const loadSoundFromAsset = function (sound, soundAsset, runtime, soundBank, assetLoad) {
     sound.assetId = soundAsset.assetId;
     if (!runtime.audioEngine) {
         log.warn(`No audio engine present; cannot load sound asset: ${sound.md5}`);
         return Promise.resolve(sound);
     }
-    return runtime.audioEngine.decodeSoundPlayer(Object.assign(
+    const soundData = Object.assign(
         {},
         sound,
         {data: soundAsset.data}
-    )).then(soundPlayer => {
+    );
+    let soundPlayerPromise;
+    if (assetLoad && runtime.audioEngine.decodeSoundBuffer && runtime.audioEngine.createSoundPlayer) {
+        soundPlayerPromise = assetLoad.cacheSoundBuffer(
+            soundAsset.assetType,
+            soundAsset.assetId,
+            soundAsset.dataFormat,
+            () => runtime.audioEngine.decodeSoundBuffer(soundData)
+        ).then(buffer => runtime.audioEngine.createSoundPlayer(buffer));
+    } else {
+        soundPlayerPromise = runtime.audioEngine.decodeSoundPlayer(soundData);
+    }
+    return soundPlayerPromise.then(soundPlayer => {
         sound.soundId = soundPlayer.id;
         // Set the sound sample rate and sample count based on the
         // the audio buffer from the audio engine since the sound
@@ -45,7 +58,7 @@ const loadSoundFromAsset = function (sound, soundAsset, runtime, soundBank) {
 // Handle sound loading errors by replacing the runtime sound with the
 // default sound from storage, but keeping track of the original sound metadata
 // in a `broken` field
-const handleSoundLoadError = function (sound, runtime, soundBank) {
+const handleSoundLoadError = function (sound, runtime, soundBank, assetLoad) {
     // Keep track of the old asset information until we're done loading the default sound
     const oldAsset = sound.asset; // could be null
     const oldAssetId = sound.assetId;
@@ -59,7 +72,7 @@ const handleSoundLoadError = function (sound, runtime, soundBank) {
     sound.asset = runtime.storage.get(sound.assetId);
     sound.md5 = `${sound.assetId}.${sound.asset.dataFormat}`;
 
-    return loadSoundFromAsset(sound, sound.asset, runtime, soundBank).then(loadedSound => {
+    return loadSoundFromAsset(sound, sound.asset, runtime, soundBank, assetLoad).then(loadedSound => {
         loadedSound.broken = {};
         loadedSound.broken.assetId = oldAssetId;
         loadedSound.broken.md5 = `${oldAssetId}.${oldDataFormat}`;
@@ -83,9 +96,11 @@ const handleSoundLoadError = function (sound, runtime, soundBank) {
  * @property {Buffer} data - sound data will be written here once loaded.
  * @param {!Runtime} runtime - Scratch runtime, used to access the storage module.
  * @param {SoundBank} soundBank - Scratch Audio SoundBank to add sounds to.
+ * @param {Promise<Asset>} [assetPromise] - project-scoped shared asset request
+ * @param {ProjectAssetLoad} [assetLoad] - project-scoped decode cache
  * @returns {!Promise} - a promise which will resolve to the sound when ready.
  */
-const loadSound = function (sound, runtime, soundBank) {
+const loadSound = function (sound, runtime, soundBank, assetPromise, assetLoad) {
     if (!runtime.storage) {
         log.warn('No storage module present; cannot load sound asset: ', sound.md5);
         return Promise.resolve(sound);
@@ -94,23 +109,23 @@ const loadSound = function (sound, runtime, soundBank) {
     const md5 = idParts[0];
     const ext = idParts[1].toLowerCase();
     sound.dataFormat = ext;
-    return (
+    const resolvedAsset = assetPromise ||
         (sound.asset && Promise.resolve(sound.asset)) ||
-        runtime.storage.load(runtime.storage.AssetType.Sound, md5, ext)
-    )
+        runtime.storage.load(runtime.storage.AssetType.Sound, md5, ext);
+    return resolvedAsset
         .then(soundAsset => {
             sound.asset = soundAsset;
 
             if (!soundAsset) {
                 log.warn('Failed to find sound data: ', sound.md5);
-                return handleSoundLoadError(sound, runtime, soundBank);
+                return handleSoundLoadError(sound, runtime, soundBank, assetLoad);
             }
 
-            return loadSoundFromAsset(sound, soundAsset, runtime, soundBank);
+            return loadSoundFromAsset(sound, soundAsset, runtime, soundBank, assetLoad);
         })
         .catch(e => {
             log.warn(`Failed to load sound: ${sound.md5} with error: ${e}`);
-            return handleSoundLoadError(sound, runtime, soundBank);
+            return handleSoundLoadError(sound, runtime, soundBank, assetLoad);
         });
 };
 

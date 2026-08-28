@@ -3706,8 +3706,8 @@ class Runtime extends EventEmitter {
         this.updatePrivacy();
     }
 
-    emitAssetProgress () {
-        this.emit(Runtime.ASSET_PROGRESS, this.finishedAssetRequests, this.totalAssetRequests);
+    emitAssetProgress (detail) {
+        this.emit(Runtime.ASSET_PROGRESS, this.finishedAssetRequests, this.totalAssetRequests, detail);
     }
 
     resetProgress () {

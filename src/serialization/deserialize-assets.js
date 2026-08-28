@@ -1,6 +1,38 @@
 const JSZip = require('@turbowarp/jszip');
 const log = require('../util/log');
 
+// A single asset can be referenced by several sprites. JSZip otherwise
+// inflates it, hashes it, and creates the same storage asset once per reference.
+// Key first by storage so a zip reused with another runtime cannot return an
+// asset created by an incompatible storage instance. Weak keys allow both
+// levels to disappear after loading.
+const assetPromises = new WeakMap();
+
+const createAssetOnce = function (file, storage, assetType, dataFormat, assetId, generateId) {
+    let byFile = assetPromises.get(storage);
+    if (!byFile) {
+        byFile = new WeakMap();
+        assetPromises.set(storage, byFile);
+    }
+    let byType = byFile.get(file);
+    if (!byType) {
+        byType = new Map();
+        byFile.set(file, byType);
+    }
+    const assetTypeName = assetType && assetType.name ? assetType.name : String(assetType);
+    const key = `${assetTypeName}\0${dataFormat}\0${assetId || ''}\0${generateId ? '1' : '0'}`;
+    let promise = byType.get(key);
+    if (!promise) {
+        promise = file.async('uint8array')
+            .then(data => storage.createAsset(assetType, dataFormat, data, assetId, generateId));
+        byType.set(key, promise);
+        promise.catch(() => {
+            if (byType.get(key) === promise) byType.delete(key);
+        });
+    }
+    return promise;
+};
+
 /**
  * Deserializes sound from file into storage cache so that it can
  * be loaded into the runtime.
@@ -43,15 +75,21 @@ const deserializeSound = function (sound, runtime, zip, assetFileName) {
         return Promise.resolve(null);
     }
 
-    const dataFormat = sound.dataFormat.toLowerCase() === 'mp3' ?
-        storage.DataFormat.MP3 : storage.DataFormat.WAV;
-    return soundFile.async('uint8array').then(data => storage.createAsset(
+    const requestedFormat = sound.dataFormat.toLowerCase();
+    let dataFormat = storage.DataFormat.WAV;
+    if (requestedFormat === 'mp3') {
+        dataFormat = storage.DataFormat.MP3;
+    } else if (requestedFormat === 'ogg') {
+        dataFormat = storage.DataFormat.OGG || 'ogg';
+    }
+    return createAssetOnce(
+        soundFile,
+        storage,
         storage.AssetType.Sound,
         dataFormat,
-        data,
         null,
         true
-    ))
+    )
         .then(asset => {
             sound.asset = asset;
             sound.assetId = asset.assetId;
@@ -140,13 +178,14 @@ const deserializeCostume = function (costume, runtime, zip, assetFileName, textL
             log.error(`Could not find text layer file associated with the ${costume.name} costume.`);
             return Promise.resolve(null);
         }
-        textLayerFilePromise = textLayerFile.async('uint8array')
-            .then(data => storage.createAsset(
-                storage.AssetType.ImageBitmap,
-                'png',
-                data,
-                costume.textLayerMD5
-            ))
+        textLayerFilePromise = createAssetOnce(
+            textLayerFile,
+            storage,
+            storage.AssetType.ImageBitmap,
+            'png',
+            costume.textLayerMD5,
+            false
+        )
             .then(asset => {
                 costume.textLayerAsset = asset;
             });
@@ -155,15 +194,15 @@ const deserializeCostume = function (costume, runtime, zip, assetFileName, textL
     }
 
     return Promise.all([textLayerFilePromise,
-        costumeFile.async('uint8array')
-            .then(data => storage.createAsset(
-                assetType,
-                // TODO eventually we want to map non-png's to their actual file types?
-                costumeFormat,
-                data,
-                null,
-                true
-            ))
+        createAssetOnce(
+            costumeFile,
+            storage,
+            assetType,
+            // TODO eventually we want to map non-png's to their actual file types?
+            costumeFormat,
+            null,
+            true
+        )
             .then(asset => {
                 costume.asset = asset;
                 costume.assetId = asset.assetId;
