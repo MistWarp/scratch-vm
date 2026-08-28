@@ -81,12 +81,13 @@ tap.beforeEach(() => {
 const {test} = tap;
 
 test('basic API', async t => {
-    t.plan(9);
+    t.plan(10);
     const vm = new VirtualMachine();
     class MyExtension {}
     setScript('https://turbowarp.org/1.js', () => {
         t.equal(global.Scratch.vm, vm);
         t.equal(global.Scratch.renderer, vm.runtime.renderer);
+        t.equal(global.Scratch.extensions.isMistWarp, true);
         t.equal(global.Scratch.extensions.unsandboxed, true);
 
         // These APIs are tested elsewhere, just make sure they're getting exported

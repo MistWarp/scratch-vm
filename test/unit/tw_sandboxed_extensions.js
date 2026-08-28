@@ -20,6 +20,7 @@ require('../../src/extension-support/extension-worker');
 
 test('basic API', t => {
     t.type(global.Scratch.extensions.register, 'function');
+    t.equal(global.Scratch.extensions.isMistWarp, true);
     t.equal(global.Scratch.ArgumentType.BOOLEAN, 'Boolean');
     t.equal(global.Scratch.BlockType.REPORTER, 'reporter');
     t.end();
