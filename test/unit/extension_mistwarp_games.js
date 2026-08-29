@@ -33,6 +33,9 @@ const makeRuntime = () => {
             if (method === 'data.global') {
                 return Promise.resolve({revision: 1, value: {colour: 'purple'}});
             }
+            if (method === 'data.global.save') {
+                return Promise.resolve({revision: 2, value: args[0].value});
+            }
             if (method === 'inventory.load' || method === 'inventory.grant') {
                 return Promise.resolve({
                     revision: 2,
@@ -77,7 +80,13 @@ test('MistWarp Players reads trusted host identity', async t => {
     t.equal(await players.username(), 'player');
     t.equal(await players.userId(), '42');
     t.equal(await players.globalData({KEY: 'colour'}), 'purple');
-    t.equal(players.getInfo().blocks.find(block => block.opcode === 'globalData').hideFromPalette, true);
+    await players.setGlobalData({KEY: 'difficulty', VALUE: '"hard"'});
+    t.equal(players.getInfo().blocks.find(block => block.opcode === 'globalData').hideFromPalette, undefined);
+    t.equal(runtime.calls[2].method, 'data.global.save');
+    t.same(runtime.calls[2].args[0], {
+        revision: 1,
+        value: {colour: 'purple', difficulty: 'hard'}
+    });
     t.end();
 });
 
