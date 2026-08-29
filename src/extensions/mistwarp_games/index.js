@@ -89,20 +89,7 @@ class MistWarpPlayers {
                         KIND: {type: ArgumentType.STRING, menu: 'profileImageKind'},
                         USER: {type: ArgumentType.STRING, defaultValue: 'username'}
                     }},
-                {opcode: 'userId', blockType: BlockType.REPORTER, text: 'my MistWarp user ID'},
-                {opcode: 'globalData',
-                    blockType: BlockType.REPORTER,
-                    text: 'my account game data [KEY]',
-                    arguments: {
-                        KEY: {type: ArgumentType.STRING, defaultValue: 'key'}
-                    }},
-                {opcode: 'setGlobalData',
-                    blockType: BlockType.COMMAND,
-                    text: 'set my account game data [KEY] to [VALUE]',
-                    arguments: {
-                        KEY: {type: ArgumentType.STRING, defaultValue: 'key'},
-                        VALUE: {type: ArgumentType.STRING, defaultValue: 'value'}
-                    }}
+                {opcode: 'userId', blockType: BlockType.REPORTER, text: 'my MistWarp user ID'}
             ],
             menus: {
                 profileImageKind: {acceptReporters: true, items: ['avatar', 'banner']}
@@ -167,28 +154,6 @@ class MistWarpPlayers {
         await loadCostumeFromAsset(costume, this.runtime);
         util.target.addCostume(costume);
         util.target.setCostume(util.target.getCostumes().length - 1);
-    }
-
-    async globalData (args) {
-        const result = await getHost(this.runtime).call('data.global', []);
-        const value = result && result.value ? result.value[args.KEY] : null;
-        return stringify(value);
-    }
-
-    async setGlobalData (args) {
-        const key = String(args.KEY || '').trim();
-        if (!key || key.length > 64 || key.startsWith('$') ||
-            key === '__proto__' || key === 'prototype' || key === 'constructor') {
-            throw new Error('Account game data key must be 1 to 64 safe characters and cannot start with $');
-        }
-        const host = getHost(this.runtime);
-        const current = await host.call('data.global', []);
-        const value = current && current.value && typeof current.value === 'object' ? {...current.value} : {};
-        value[key] = parseSaveValue(args.VALUE);
-        await host.call('data.global.save', [{
-            revision: Number(current && current.revision) || 0,
-            value
-        }]);
     }
 
 }
