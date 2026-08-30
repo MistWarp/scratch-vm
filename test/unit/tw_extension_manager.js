@@ -51,6 +51,31 @@ test('inline extensions use the configured sandbox', async t => {
     t.end();
 });
 
+test('project-local extension references can be rewritten to valid URLs', async t => {
+    const vm = new VM();
+    const storedReference = 'extensions/SPanimations.js';
+    const sourceURL = 'https://example.com/saved-extension-source.js';
+    vm.extensionManager.securityManager.getSandboxMode = url => {
+        t.equal(url, storedReference);
+        return 'invalid';
+    };
+    vm.extensionManager.securityManager.rewriteExtensionURL = url => {
+        t.equal(url, storedReference);
+        return sourceURL;
+    };
+
+    await t.rejects(vm.extensionManager.loadExtensionURL(storedReference), /Invalid sandbox mode/);
+    t.end();
+});
+
+test('invalid extension references are rejected when they are not rewritten', async t => {
+    const vm = new VM();
+    const storedReference = 'extensions/SPanimations.js';
+
+    await t.rejects(vm.extensionManager.loadExtensionURL(storedReference), /Invalid extension URL/);
+    t.end();
+});
+
 test('loadExtensionURL, getExtensionURLs, deduplication', async t => {
     const vm = new VM();
 

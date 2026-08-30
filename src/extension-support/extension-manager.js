@@ -249,16 +249,19 @@ class ExtensionManager {
             return;
         }
 
-        if (!this._isValidExtensionURL(extensionURL)) {
+        const sandboxMode = await this.securityManager.getSandboxMode(extensionURL);
+        const rewritten = await this.securityManager.rewriteExtensionURL(extensionURL);
+
+        // A host may map a stable project-local extension reference to a URL that it
+        // controls. Validate the URL that will actually be loaded, not the reference
+        // stored in the project.
+        if (!this._isValidExtensionURL(rewritten)) {
             throw new Error(`Invalid extension URL: ${extensionURL}`);
         }
 
         this.runtime.setExternalCommunicationMethod('customExtensions', true);
 
         this.loadingAsyncExtensions++;
-
-        const sandboxMode = await this.securityManager.getSandboxMode(extensionURL);
-        const rewritten = await this.securityManager.rewriteExtensionURL(extensionURL);
 
         if (sandboxMode === 'unsandboxed') {
             const {load} = require('./tw-unsandboxed-extension-runner');
