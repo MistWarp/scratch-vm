@@ -436,8 +436,8 @@ const run = async (extension, spec, args) => {
             return '';
         }
         const projectUrl = pid ?
-            `https://warp.mistium.com/project/${encodeURIComponent(pid)}` :
-            'https://warp.mistium.com';
+            `https://mistwarp.org/project/${encodeURIComponent(pid)}` :
+            'https://mistwarp.org';
         const name = (host.projectName && host.projectName()) ||
             runtime.projectName || 'a MistWarp project';
         const verb = String(args.VERB || 'Playing').trim() || 'Playing';
