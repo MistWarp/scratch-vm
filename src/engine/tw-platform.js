@@ -3,5 +3,5 @@
 
 module.exports = {
     name: 'Mistwarp',
-    url: 'https://warp.mistium.com/'
+    url: 'https://mistwarp.org/'
 };
