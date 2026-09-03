@@ -443,6 +443,17 @@ class VirtualMachine extends EventEmitter {
         }
     }
 
+    getItems () {
+        return this.runtime.getItems();
+    }
+
+    setItems (items) {
+        this.runtime.setItems(items);
+        if (this.editingTarget) {
+            this.emitWorkspaceUpdate();
+        }
+    }
+
     getTestEntitlements () {
         return this.runtime.getTestEntitlements();
     }

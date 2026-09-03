@@ -680,22 +680,22 @@ class MistWarpInventory {
                 {opcode: 'owns',
                     blockType: BlockType.BOOLEAN,
                     text: 'owns item [ITEM]?',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'project:item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'quantity',
                     blockType: BlockType.REPORTER,
                     text: 'quantity of item [ITEM]',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'project:item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'showItem',
                     blockType: BlockType.COMMAND,
                     text: 'use item [ITEM] on this sprite',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'project:item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'status', blockType: BlockType.REPORTER, text: 'item load status'},
                 '---',
                 label('Project items'),
                 {opcode: 'award',
                     blockType: BlockType.COMMAND,
                     text: 'give player item [ITEM]',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'defineItem',
                     blockType: BlockType.COMMAND,
                     text: 'create item [ITEM] named [NAME] image [IMAGE]',
@@ -703,14 +703,16 @@ class MistWarpInventory {
                         ITEM: {type: ArgumentType.STRING, defaultValue: 'item ID'},
                         NAME: {type: ArgumentType.STRING, defaultValue: 'Collectible'},
                         IMAGE: {type: ArgumentType.STRING, defaultValue: 'image URL'}
-                    }},
+                    },
+                    hideFromPalette: true},
                 {opcode: 'defineCostumeItem',
                     blockType: BlockType.COMMAND,
                     text: 'create item [ITEM] named [NAME] from this costume',
                     arguments: {
                         ITEM: {type: ArgumentType.STRING, defaultValue: 'item ID'},
                         NAME: {type: ArgumentType.STRING, defaultValue: 'Collectible'}
-                    }},
+                    },
+                    hideFromPalette: true},
                 '---',
                 label('Outside items'),
                 {opcode: 'setPolicy',
@@ -730,14 +732,18 @@ class MistWarpInventory {
                 {opcode: 'itemImage',
                     blockType: BlockType.REPORTER,
                     text: 'image URL for item [ITEM]',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'project:item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'itemJSON',
                     blockType: BlockType.REPORTER,
                     text: 'item [ITEM] as JSON',
-                    arguments: {ITEM: {type: ArgumentType.STRING, defaultValue: 'project:item ID'}}},
+                    arguments: {ITEM: {type: ArgumentType.STRING, menu: 'itemSelectMenu', defaultValue: ''}}},
                 {opcode: 'all', blockType: BlockType.REPORTER, text: 'all loaded items as JSON'}
             ],
             menus: {
+                itemSelectMenu: {
+                    acceptReporters: true,
+                    items: 'getItemSelectMenu'
+                },
                 policyMode: {
                     acceptReporters: true,
                     items: [
@@ -748,6 +754,17 @@ class MistWarpInventory {
                 }
             }
         };
+    }
+
+    getItemSelectMenu () {
+        const items = this.runtime.getItems ? this.runtime.getItems() : [];
+        if (!items || items.length === 0) {
+            return [{text: 'none defined', value: ''}];
+        }
+        return items.map(item => ({
+            text: item.name ? `${item.name} (${item.id})` : item.id,
+            value: item.id
+        }));
     }
 
     _setInventory (result) {

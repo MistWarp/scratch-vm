@@ -3050,6 +3050,11 @@ class Runtime extends EventEmitter {
         } else {
             this._products = [];
         }
+        if (Array.isArray(parsed.items)) {
+            this._items = parsed.items;
+        } else {
+            this._items = [];
+        }
         if (parsed.testEntitlements && typeof parsed.testEntitlements === 'object') {
             this._testEntitlements = parsed.testEntitlements;
         } else {
@@ -3127,6 +3132,11 @@ class Runtime extends EventEmitter {
             options.products = currentProducts;
         }
 
+        const currentItems = this.getItems();
+        if (currentItems && currentItems.length > 0) {
+            options.items = currentItems;
+        }
+
         const currentTestEntitlements = this.getTestEntitlements();
         if (currentTestEntitlements && Object.keys(currentTestEntitlements).length > 0) {
             options.testEntitlements = currentTestEntitlements;
@@ -3139,6 +3149,10 @@ class Runtime extends EventEmitter {
             if (Object.prototype.hasOwnProperty.call(extraOptions, 'products')) {
                 options.products = extraOptions.products;
                 this._products = extraOptions.products;
+            }
+            if (Object.prototype.hasOwnProperty.call(extraOptions, 'items')) {
+                options.items = extraOptions.items;
+                this._items = extraOptions.items;
             }
             if (Object.prototype.hasOwnProperty.call(extraOptions, 'testEntitlements')) {
                 options.testEntitlements = extraOptions.testEntitlements;
@@ -3173,6 +3187,20 @@ class Runtime extends EventEmitter {
         this._products = Array.isArray(products) ? products : [];
         this.storeProjectOptions({products: this._products});
         this.emit('PRODUCTS_CHANGED', this._products);
+    }
+
+    getItems () {
+        if (Array.isArray(this._items)) return this._items;
+        if (this._storedProjectOptions && Array.isArray(this._storedProjectOptions.items)) {
+            return this._storedProjectOptions.items;
+        }
+        return [];
+    }
+
+    setItems (items) {
+        this._items = Array.isArray(items) ? items : [];
+        this.storeProjectOptions({items: this._items});
+        this.emit('ITEMS_CHANGED', this._items);
     }
 
     getTestEntitlements () {
