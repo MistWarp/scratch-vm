@@ -432,6 +432,40 @@ class VirtualMachine extends EventEmitter {
         }
     }
 
+    getProducts () {
+        return this.runtime.getProducts();
+    }
+
+    setProducts (products) {
+        this.runtime.setProducts(products);
+        if (this.editingTarget) {
+            this.emitWorkspaceUpdate();
+        }
+    }
+
+    getTestEntitlements () {
+        return this.runtime.getTestEntitlements();
+    }
+
+    setTestEntitlements (entitlements) {
+        this.runtime.setTestEntitlements(entitlements);
+        if (this.editingTarget) {
+            this.emitWorkspaceUpdate();
+        }
+    }
+
+    grantProduct (productId, username) {
+        return this.runtime.grantProduct(productId, username);
+    }
+
+    revokeProduct (productId, username) {
+        return this.runtime.revokeProduct(productId, username);
+    }
+
+    ownsProduct (productId, username) {
+        return this.runtime.ownsProduct(productId, username);
+    }
+
     enableDebug () {
         this.runtime.enableDebug();
         return 'enabled debug mode';
@@ -1875,7 +1909,9 @@ class VirtualMachine extends EventEmitter {
      * of the current editing target's blocks.
      */
     emitWorkspaceUpdate () {
-        const stageVariables = this.runtime.getTargetForStage().variables;
+        const stage = this.runtime.getTargetForStage();
+        if (!stage || !stage.variables) return;
+        const stageVariables = stage.variables;
         // This project-wide scan used to run on every sprite switch. Blocks only
         // need it after a block/variable mutation or a new project is installed.
         if (this._broadcastCleanupNeeded) {

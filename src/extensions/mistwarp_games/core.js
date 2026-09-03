@@ -86,6 +86,7 @@ const getState = runtime => {
             eventValue: '',
             eventSender: '',
             purchaseStatus: '',
+            lastPurchasedProduct: '',
             inventory: [],
             inventoryStatus: 'not loaded'
         };
@@ -140,6 +141,12 @@ const bindHostEvents = (runtime, host) => {
             state.eventValue = stringify(event.value);
             state.eventSender = event.sender && event.sender.id ? event.sender.id : '';
             runtime.startHats('mistwarpMultiplayer_whenEvent', {NAME: state.eventName});
+        } else if (event.type === 'product_purchased') {
+            state.purchaseStatus = 'purchased';
+            state.lastPurchasedProduct = event.productId || '';
+            runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: event.productId || ''});
+            runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: 'any'});
+            runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: ''});
         } else if (event.type === 'disconnected') {
             state.connected = false;
             state.players = {};

@@ -12,10 +12,11 @@ const COLORS = {
 };
 
 const label = text => ({blockType: BlockType.LABEL, text});
-const eventBlock = (opcode, text) => ({
+const eventBlock = (opcode, text, args = null) => ({
     opcode,
     blockType: BlockType.EVENT,
     text,
+    arguments: args || undefined,
     isEdgeActivated: false
 });
 
@@ -513,23 +514,55 @@ class MistWarpMarketplace {
             name: 'Game Shop',
             ...COLORS.marketplace,
             blocks: [
-                {opcode: 'open', blockType: BlockType.COMMAND, text: 'open shop'},
-                {opcode: 'purchase',
+                {
+                    opcode: 'purchase',
                     blockType: BlockType.COMMAND,
-                    text: 'buy [PRODUCT]',
+                    text: 'prompt purchase [PRODUCT]',
                     arguments: {
-                        PRODUCT: {type: ArgumentType.STRING, defaultValue: 'product ID'}
-                    }},
-                {opcode: 'owns',
+                        PRODUCT: {
+                            type: ArgumentType.STRING,
+                            menu: 'productSelectMenu',
+                            defaultValue: ''
+                        }
+                    }
+                },
+                {
+                    opcode: 'owns',
                     blockType: BlockType.BOOLEAN,
                     text: 'owns product [PRODUCT]?',
                     arguments: {
-                        PRODUCT: {type: ArgumentType.STRING, defaultValue: 'product ID'}
-                    }},
-                {opcode: 'status', blockType: BlockType.REPORTER, text: 'last purchase status'},
-                '---',
-                label('Project setup'),
-                {opcode: 'defineProduct',
+                        PRODUCT: {
+                            type: ArgumentType.STRING,
+                            menu: 'productSelectMenu',
+                            defaultValue: ''
+                        }
+                    }
+                },
+                eventBlock('whenPurchased', 'when [PRODUCT] purchased', {
+                    PRODUCT: {
+                        type: ArgumentType.STRING,
+                        menu: 'productsFilterMenu',
+                        defaultValue: 'any'
+                    }
+                }),
+                {
+                    opcode: 'purchasedProduct',
+                    blockType: BlockType.REPORTER,
+                    text: 'purchased product'
+                },
+                {
+                    opcode: 'status',
+                    blockType: BlockType.REPORTER,
+                    text: 'last purchase status'
+                },
+                {
+                    opcode: 'open',
+                    blockType: BlockType.COMMAND,
+                    text: 'open shop',
+                    hideFromPalette: true
+                },
+                {
+                    opcode: 'defineProduct',
                     blockType: BlockType.COMMAND,
                     text: 'create product [PRODUCT] named [NAME] price [PRICE] item [ITEM]',
                     arguments: {
@@ -537,9 +570,46 @@ class MistWarpMarketplace {
                         NAME: {type: ArgumentType.STRING, defaultValue: 'VIP pass'},
                         PRICE: {type: ArgumentType.NUMBER, defaultValue: 10},
                         ITEM: {type: ArgumentType.STRING, defaultValue: 'item ID or blank'}
-                    }}
-            ]
+                    },
+                    hideFromPalette: true
+                }
+            ],
+            menus: {
+                productSelectMenu: {
+                    acceptReporters: true,
+                    items: 'getProductSelectMenu'
+                },
+                productsFilterMenu: {
+                    acceptReporters: true,
+                    items: 'getProductsFilterMenu'
+                }
+            }
         };
+    }
+
+    getProductSelectMenu () {
+        const products = this.runtime.getProducts ? this.runtime.getProducts() : [];
+        if (!products || products.length === 0) {
+            return [{text: 'none defined', value: ''}];
+        }
+        return products.map(p => ({
+            text: p.name ? `${p.name} (${p.id})` : p.id,
+            value: p.id
+        }));
+    }
+
+    getProductsFilterMenu () {
+        const products = this.runtime.getProducts ? this.runtime.getProducts() : [];
+        const items = [{text: 'any product', value: 'any'}];
+        for (const p of products) {
+            if (p && p.id) {
+                items.push({
+                    text: p.name ? `${p.name} (${p.id})` : p.id,
+                    value: p.id
+                });
+            }
+        }
+        return items;
     }
 
     open () {
@@ -557,16 +627,40 @@ class MistWarpMarketplace {
     }
 
     async purchase (args) {
-        const result = await getHost(this.runtime).call('marketplace.purchase', [args.PRODUCT]);
-        getState(this.runtime).purchaseStatus = result && result.status ? result.status : 'complete';
+        const productId = String(args.PRODUCT || '');
+        const host = getHost(this.runtime);
+        const result = await host.call('marketplace.purchase', [productId]);
+        const status = result && result.status ? result.status : 'complete';
+        const state = getState(this.runtime);
+        state.purchaseStatus = status;
+        if (status === 'purchased' || status === 'complete') {
+            state.lastPurchasedProduct = productId;
+            this.runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: productId});
+            this.runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: 'any'});
+            this.runtime.startHats('mistwarpMarketplace_whenPurchased', {PRODUCT: ''});
+        }
     }
 
-    owns (args) {
-        return getHost(this.runtime).call('marketplace.owns', [args.PRODUCT]);
+    async owns (args) {
+        const productId = String(args.PRODUCT || '');
+        if (!productId) return false;
+        const host = getHost(this.runtime);
+        try {
+            const result = await host.call('marketplace.owns', [productId]);
+            if (typeof result === 'boolean') return result;
+        } catch (e) {
+            // fallback to local runtime check
+        }
+        const user = (await host.getUser()).username || '';
+        return this.runtime.ownsProduct ? this.runtime.ownsProduct(productId, user) : false;
+    }
+
+    purchasedProduct () {
+        return getState(this.runtime).lastPurchasedProduct || '';
     }
 
     status () {
-        return getState(this.runtime).purchaseStatus;
+        return getState(this.runtime).purchaseStatus || '';
     }
 }
 
