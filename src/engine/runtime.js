@@ -3011,6 +3011,7 @@ class Runtime extends EventEmitter {
 
     findProjectOptionsComment () {
         const target = this.getTargetForStage();
+        if (!target || !target.comments) return null;
         const comments = target.comments;
         for (const comment of Object.values(comments)) {
             if (comment.text.includes(COMMENT_CONFIG_MAGIC)) {
@@ -3043,6 +3044,17 @@ class Runtime extends EventEmitter {
         }
 
         this._storedProjectOptions = parsed;
+
+        if (Array.isArray(parsed.products)) {
+            this._products = parsed.products;
+        } else {
+            this._products = [];
+        }
+        if (parsed.testEntitlements && typeof parsed.testEntitlements === 'object') {
+            this._testEntitlements = parsed.testEntitlements;
+        } else {
+            this._testEntitlements = {};
+        }
 
         if (typeof parsed.framerate === 'number') {
             this.setFramerate(parsed.framerate);
@@ -3106,11 +3118,34 @@ class Runtime extends EventEmitter {
     storeProjectOptions (extraOptions = null) {
         const options = this.generateDifferingProjectOptions();
 
+        if (this._storedProjectOptions && this._storedProjectOptions.mistwarpTheme) {
+            options.mistwarpTheme = this._storedProjectOptions.mistwarpTheme;
+        }
+
+        const currentProducts = this.getProducts();
+        if (currentProducts && currentProducts.length > 0) {
+            options.products = currentProducts;
+        }
+
+        const currentTestEntitlements = this.getTestEntitlements();
+        if (currentTestEntitlements && Object.keys(currentTestEntitlements).length > 0) {
+            options.testEntitlements = currentTestEntitlements;
+        }
+
         if (extraOptions && typeof extraOptions === 'object') {
             if (Object.prototype.hasOwnProperty.call(extraOptions, 'mistwarpTheme')) {
                 options.mistwarpTheme = extraOptions.mistwarpTheme;
             }
+            if (Object.prototype.hasOwnProperty.call(extraOptions, 'products')) {
+                options.products = extraOptions.products;
+                this._products = extraOptions.products;
+            }
+            if (Object.prototype.hasOwnProperty.call(extraOptions, 'testEntitlements')) {
+                options.testEntitlements = extraOptions.testEntitlements;
+                this._testEntitlements = extraOptions.testEntitlements;
+            }
         }
+        this._storedProjectOptions = {...(this._storedProjectOptions || {}), ...options};
         // TODO: translate
         const text = `Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n${ExtendedJSON.stringify(options)}${COMMENT_CONFIG_MAGIC}`;
         const existingComment = this.findProjectOptionsComment();
@@ -3118,10 +3153,77 @@ class Runtime extends EventEmitter {
             existingComment.text = text;
         } else {
             const target = this.getTargetForStage();
-            // TODO: smarter position logic
-            target.createComment(uid(), null, text, 50, 50, 350, 170, false);
+            if (target) {
+                // TODO: smarter position logic
+                target.createComment(uid(), null, text, 50, 50, 350, 170, false);
+            }
         }
         this.emitProjectChanged();
+    }
+
+    getProducts () {
+        if (Array.isArray(this._products)) return this._products;
+        if (this._storedProjectOptions && Array.isArray(this._storedProjectOptions.products)) {
+            return this._storedProjectOptions.products;
+        }
+        return [];
+    }
+
+    setProducts (products) {
+        this._products = Array.isArray(products) ? products : [];
+        this.storeProjectOptions({products: this._products});
+        this.emit('PRODUCTS_CHANGED', this._products);
+    }
+
+    getTestEntitlements () {
+        if (this._testEntitlements && typeof this._testEntitlements === 'object') {
+            return this._testEntitlements;
+        }
+        if (this._storedProjectOptions && typeof this._storedProjectOptions.testEntitlements === 'object') {
+            return this._storedProjectOptions.testEntitlements;
+        }
+        return {};
+    }
+
+    setTestEntitlements (entitlements) {
+        this._testEntitlements = (entitlements && typeof entitlements === 'object') ? entitlements : {};
+        this.storeProjectOptions({testEntitlements: this._testEntitlements});
+        this.emit('ENTITLEMENTS_CHANGED', this._testEntitlements);
+    }
+
+    grantProduct (productId, username) {
+        const pid = String(productId || '').trim();
+        const user = String(username || '').trim().toLowerCase();
+        if (!pid || !user) return false;
+        const entitlements = {...this.getTestEntitlements()};
+        const currentList = Array.isArray(entitlements[pid]) ? [...entitlements[pid]] : [];
+        if (!currentList.includes(user)) {
+            currentList.push(user);
+            entitlements[pid] = currentList;
+            this.setTestEntitlements(entitlements);
+        }
+        return true;
+    }
+
+    revokeProduct (productId, username) {
+        const pid = String(productId || '').trim();
+        const user = String(username || '').trim().toLowerCase();
+        if (!pid || !user) return false;
+        const entitlements = {...this.getTestEntitlements()};
+        if (!Array.isArray(entitlements[pid])) return false;
+        const filtered = entitlements[pid].filter(u => u.toLowerCase() !== user);
+        entitlements[pid] = filtered;
+        this.setTestEntitlements(entitlements);
+        return true;
+    }
+
+    ownsProduct (productId, username) {
+        const pid = String(productId || '').trim();
+        const user = String(username || '').trim().toLowerCase();
+        if (!pid || !user) return false;
+        const entitlements = this.getTestEntitlements();
+        const list = Array.isArray(entitlements[pid]) ? entitlements[pid] : [];
+        return list.some(u => u.toLowerCase() === user);
     }
 
     /**

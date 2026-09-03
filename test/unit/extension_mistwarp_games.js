@@ -169,7 +169,7 @@ test('MistWarp Games palettes lead with common blocks and use distinct colors', 
         'loggedIn',
         'connect',
         'load',
-        'open',
+        'purchase',
         'load'
     ]);
     t.match(info.map(extension => extension.name), [
@@ -181,7 +181,7 @@ test('MistWarp Games palettes lead with common blocks and use distinct colors', 
     ]);
     const eventBlocks = info.flatMap(extension => extension.blocks)
         .filter(block => block && block.blockType === 'event');
-    t.equal(eventBlocks.length, 7);
+    t.equal(eventBlocks.length, 8);
     t.equal(eventBlocks.every(block => block.isEdgeActivated === false), true);
     t.end();
 });
@@ -191,9 +191,11 @@ test('MistWarp event hats register as externally triggered hats', t => {
     vm.extensionManager.addBuiltinExtension('mistwarpMultiplayer', MistWarpMultiplayer);
     vm.extensionManager.addBuiltinExtension('mistwarpData', MistWarpData);
     vm.extensionManager.addBuiltinExtension('mistwarpInventory', MistWarpInventory);
+    vm.extensionManager.addBuiltinExtension('mistwarpMarketplace', MistWarpMarketplace);
     vm.extensionManager.loadExtensionIdSync('mistwarpMultiplayer');
     vm.extensionManager.loadExtensionIdSync('mistwarpData');
     vm.extensionManager.loadExtensionIdSync('mistwarpInventory');
+    vm.extensionManager.loadExtensionIdSync('mistwarpMarketplace');
 
     const hats = [
         'mistwarpMultiplayer_whenJoined',
@@ -202,7 +204,8 @@ test('MistWarp event hats register as externally triggered hats', t => {
         'mistwarpMultiplayer_whenEvent',
         'mistwarpData_whenLoaded',
         'mistwarpData_whenSaved',
-        'mistwarpInventory_whenLoaded'
+        'mistwarpInventory_whenLoaded',
+        'mistwarpMarketplace_whenPurchased'
     ];
     for (const opcode of hats) {
         t.equal(vm.runtime._hats[opcode].edgeActivated, false, `${opcode} is not a predicate hat`);
@@ -254,3 +257,75 @@ test('MistWarp Inventory defines a simple image item', async t => {
 
     t.end();
 });
+
+test('MistWarp Marketplace dynamic menus reflect runtime products', t => {
+    const runtime = makeRuntime();
+    runtime.getProducts = () => [
+        {id: 'speed_boost', name: 'Speed Boost', price: 20},
+        {id: 'vip', name: 'VIP Pass', price: 100}
+    ];
+    const marketplace = new MistWarpMarketplace(runtime);
+
+    const selectMenu = marketplace.getProductSelectMenu();
+    t.same(selectMenu, [
+        {text: 'Speed Boost (speed_boost)', value: 'speed_boost'},
+        {text: 'VIP Pass (vip)', value: 'vip'}
+    ]);
+
+    const filterMenu = marketplace.getProductsFilterMenu();
+    t.same(filterMenu, [
+        {text: 'any product', value: 'any'},
+        {text: 'Speed Boost (speed_boost)', value: 'speed_boost'},
+        {text: 'VIP Pass (vip)', value: 'vip'}
+    ]);
+    t.end();
+});
+
+test('MistWarp Marketplace purchase triggers hats and records status', async t => {
+    const runtime = makeRuntime();
+    const marketplace = new MistWarpMarketplace(runtime);
+
+    runtime.mistwarpGameHost.call = (method, args) => {
+        runtime.calls.push({method, args});
+        if (method === 'marketplace.purchase') {
+            return Promise.resolve({status: 'purchased'});
+        }
+        return Promise.reject(new Error(`unexpected: ${method}`));
+    };
+
+    await marketplace.purchase({PRODUCT: 'vip'});
+    t.equal(runtime.calls[0].method, 'marketplace.purchase');
+    t.same(runtime.calls[0].args, ['vip']);
+    t.equal(marketplace.status(), 'purchased');
+    t.equal(marketplace.purchasedProduct(), 'vip');
+    t.same(runtime.hats, [
+        'mistwarpMarketplace_whenPurchased',
+        'mistwarpMarketplace_whenPurchased',
+        'mistwarpMarketplace_whenPurchased'
+    ]);
+    t.end();
+});
+
+test('Runtime manages products and test entitlements', t => {
+    const vm = new VirtualMachine();
+    t.same(vm.getProducts(), []);
+    t.same(vm.getTestEntitlements(), {});
+
+    const products = [
+        {id: 'vip', name: 'VIP Pass', price: 100, icon: 'data:image/webp;base64,123'}
+    ];
+    vm.setProducts(products);
+    t.same(vm.getProducts(), products);
+
+    t.equal(vm.ownsProduct('vip', 'player1'), false);
+    t.equal(vm.grantProduct('vip', 'player1'), true);
+    t.equal(vm.ownsProduct('vip', 'player1'), true);
+    t.equal(vm.ownsProduct('vip', 'other'), false);
+
+    t.equal(vm.revokeProduct('vip', 'player1'), true);
+    t.equal(vm.ownsProduct('vip', 'player1'), false);
+
+    vm.quit();
+    t.end();
+});
+

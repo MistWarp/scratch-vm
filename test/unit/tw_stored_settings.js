@@ -125,3 +125,31 @@ test('Can store and load mistwarpTheme', async t => {
     t.same(stored.mistwarpTheme, themePayload, 'mistwarpTheme payload round-trips');
     t.end();
 });
+
+test('Can store and load products and testEntitlements', async t => {
+    const project = readFileToBuffer(path.resolve(__dirname, '../fixtures/tw-stored-settings/no-comment.sb3'));
+    const vm = makeVM();
+    await vm.loadProject(project);
+
+    const products = [
+        {id: 'double_jump', name: 'Double Jump', price: 25, icon: 'data:image/webp;base64,abc'}
+    ];
+    const testEntitlements = {
+        double_jump: ['alice', 'bob']
+    };
+
+    vm.setProducts(products);
+    vm.setTestEntitlements(testEntitlements);
+
+    const newVM = makeVM();
+    await newVM.loadProject(vm.toJSON());
+    const stored = newVM.runtime.getStoredProjectOptions();
+    t.ok(stored, 'stored options exist');
+    t.same(stored.products, products, 'products payload round-trips');
+    t.same(stored.testEntitlements, testEntitlements, 'testEntitlements payload round-trips');
+    t.same(newVM.getProducts(), products, 'newVM getProducts returns stored products');
+    t.equal(newVM.ownsProduct('double_jump', 'alice'), true, 'newVM ownsProduct works for alice');
+    t.equal(newVM.ownsProduct('double_jump', 'charlie'), false, 'newVM ownsProduct works for charlie');
+    t.end();
+});
+
