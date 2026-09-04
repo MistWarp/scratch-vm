@@ -162,6 +162,7 @@ class MistWarpPlayers {
 class MistWarpData {
     constructor (runtime) {
         this.runtime = runtime;
+        this.load().catch(() => {});
     }
 
     getInfo () {

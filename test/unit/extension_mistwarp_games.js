@@ -155,7 +155,7 @@ test('MistWarp Data accepts plain text and still rejects unsafe keys', async t =
     t.end();
 });
 
-test('MistWarp Data lazily loads once and makes reads wait for it', async t => {
+test('MistWarp Data loads on initialization and makes reads wait for it', async t => {
     const runtime = makeRuntime();
     let finishLoad;
     runtime.mistwarpGameHost.call = (method, args) => {
@@ -169,11 +169,13 @@ test('MistWarp Data lazily loads once and makes reads wait for it', async t => {
     };
     const data = new MistWarpData(runtime);
 
+    t.equal(data.status(), 'loading');
+    t.equal(runtime.calls.filter(call => call.method === 'data.load').length, 1);
+
     const coins = data.get({KEY: 'coins'});
     const all = data.all();
     const manualLoad = data.load();
 
-    t.equal(data.status(), 'loading');
     t.equal(runtime.calls.filter(call => call.method === 'data.load').length, 1);
 
     finishLoad({revision: 3, value: {coins: 12}});
