@@ -194,8 +194,15 @@ class MistWarpData {
         };
     }
 
-    async load () {
+    load () {
         const state = getState(this.runtime);
+        if (!state.saveLoadPromise) {
+            state.saveLoadPromise = this._load(state);
+        }
+        return state.saveLoadPromise;
+    }
+
+    async _load (state) {
         state.saveStatus = 'loading';
         try {
             const result = await getHost(this.runtime).call('data.load', []);
@@ -209,7 +216,8 @@ class MistWarpData {
         }
     }
 
-    get (args) {
+    async get (args) {
+        await this.load();
         return stringify(getState(this.runtime).save[args.KEY]);
     }
 
@@ -244,7 +252,8 @@ class MistWarpData {
         return getState(this.runtime).saveStatus;
     }
 
-    all () {
+    async all () {
+        await this.load();
         return JSON.stringify(getState(this.runtime).save);
     }
 }

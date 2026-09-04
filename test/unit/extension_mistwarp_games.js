@@ -128,14 +128,14 @@ test('MistWarp Data loads, edits, and revision-saves JSON', async t => {
 
     await data.load();
     t.equal(data.status(), 'loaded');
-    t.equal(data.get({KEY: 'coins'}), 12);
+    t.equal(await data.get({KEY: 'coins'}), 12);
     t.same(runtime.hats, ['mistwarpData_whenLoaded']);
 
     data.set({KEY: 'position', VALUE: '{"x":10,"y":-4}'});
     await data.save();
 
     t.equal(data.status(), 'saved');
-    t.same(JSON.parse(data.all()), {coins: 12, position: {x: 10, y: -4}});
+    t.same(JSON.parse(await data.all()), {coins: 12, position: {x: 10, y: -4}});
     t.equal(runtime.calls[1].method, 'data.save');
     t.equal(runtime.calls[1].args[0].revision, 3);
     t.match(runtime.calls[1].args[0].requestId, /^mw_[a-z0-9]+_[a-z0-9]+$/);
@@ -143,14 +143,48 @@ test('MistWarp Data loads, edits, and revision-saves JSON', async t => {
     t.end();
 });
 
-test('MistWarp Data accepts plain text and still rejects unsafe keys', t => {
+test('MistWarp Data accepts plain text and still rejects unsafe keys', async t => {
     const data = new MistWarpData(makeRuntime());
 
     t.throws(() => data.set({KEY: '$internal', VALUE: '1'}), /Save key/);
+    await data.load();
     data.set({KEY: 'greeting', VALUE: 'hello player'});
     data.set({KEY: 'coins', VALUE: '12'});
-    t.equal(data.get({KEY: 'greeting'}), 'hello player');
-    t.equal(data.get({KEY: 'coins'}), 12);
+    t.equal(await data.get({KEY: 'greeting'}), 'hello player');
+    t.equal(await data.get({KEY: 'coins'}), 12);
+    t.end();
+});
+
+test('MistWarp Data lazily loads once and makes reads wait for it', async t => {
+    const runtime = makeRuntime();
+    let finishLoad;
+    runtime.mistwarpGameHost.call = (method, args) => {
+        runtime.calls.push({method, args});
+        if (method === 'data.load') {
+            return new Promise(resolve => {
+                finishLoad = resolve;
+            });
+        }
+        return Promise.reject(new Error(`unexpected method: ${method}`));
+    };
+    const data = new MistWarpData(runtime);
+
+    const coins = data.get({KEY: 'coins'});
+    const all = data.all();
+    const manualLoad = data.load();
+
+    t.equal(data.status(), 'loading');
+    t.equal(runtime.calls.filter(call => call.method === 'data.load').length, 1);
+
+    finishLoad({revision: 3, value: {coins: 12}});
+    t.equal(await coins, 12);
+    t.same(JSON.parse(await all), {coins: 12});
+    await manualLoad;
+
+    await data.load();
+    t.equal(await data.get({KEY: 'coins'}), 12);
+    t.equal(runtime.calls.filter(call => call.method === 'data.load').length, 1);
+    t.same(runtime.hats, ['mistwarpData_whenLoaded']);
     t.end();
 });
 
@@ -328,4 +362,3 @@ test('Runtime manages products and test entitlements', t => {
     vm.quit();
     t.end();
 });
-

@@ -73,6 +73,7 @@ const getState = runtime => {
             save: {},
             saveRevision: 0,
             saveStatus: 'not loaded',
+            saveLoadPromise: null,
             connected: false,
             self: '',
             players: {},
