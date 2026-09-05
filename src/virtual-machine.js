@@ -874,12 +874,6 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
-     * Load a project from a Scratch JSON representation.
-     * @param {string} projectJSON JSON string representing a project.
-     * @param {?JSZip} zip Optional zipped project containing assets to be loaded.
-     * @returns {Promise} Promise that resolves after the project has loaded
-     */
-    /**
      * Say what the project load is currently doing, for the loading screen.
      * @param {string} stage One of unzipping, parsing, checking, building, installing.
      * @param {number} [loaded] How much of this stage is done, in bytes or items.
@@ -889,6 +883,12 @@ class VirtualMachine extends EventEmitter {
         this.emit('LOAD_PROGRESS', {stage, loaded, total});
     }
 
+    /**
+     * Load a project from a Scratch JSON representation.
+     * @param {string} projectJSON JSON string representing a project.
+     * @param {?JSZip} zip Optional zipped project containing assets to be loaded.
+     * @returns {Promise} Promise that resolves after the project has loaded
+     */
     deserializeProject (projectJSON, zip, active = () => true) {
         // Clear the current runtime
         this.clear();
