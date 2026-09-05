@@ -5,6 +5,7 @@ if (typeof TextEncoder === 'undefined') {
     _TextEncoder = TextEncoder;
 }
 const EventEmitter = require('events');
+const EditingCommands = require('./editing/commands');
 const JSZip = require('@turbowarp/jszip');
 
 const Buffer = require('buffer').Buffer;
@@ -262,6 +263,7 @@ class VirtualMachine extends EventEmitter {
             this.extensionManager.loadExtensionIdSync(id);
         }
 
+        this.editingCommands = new EditingCommands(this);
         this.blockListener = this.blockListener.bind(this);
         this.flyoutBlockListener = this.flyoutBlockListener.bind(this);
         this.monitorBlockListener = this.monitorBlockListener.bind(this);
@@ -584,7 +586,11 @@ class VirtualMachine extends EventEmitter {
      * @param {string | object} input A json string, object, or ArrayBuffer representing the project to load.
      * @return {!Promise} Promise that resolves after targets are installed.
      */
-    loadProject (input) {
+    loadProject (input, options = {}) {
+        const generation = (this._projectLoadGeneration || 0) + 1;
+        this._projectLoadGeneration = generation;
+        const active = () => this._projectLoadGeneration === generation &&
+            (!options.editSessionActive || options.editSessionActive());
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -633,8 +639,14 @@ class VirtualMachine extends EventEmitter {
             });
 
         return validationPromise
-            .then(validatedInput => this.deserializeProject(validatedInput[0], validatedInput[1]))
-            .then(() => this.runtime.handleProjectLoaded())
+            .then(validatedInput => {
+                if (!active()) throw new Error('Project load cancelled');
+                return this.deserializeProject(validatedInput[0], validatedInput[1], active);
+            })
+            .then(() => {
+                if (!active()) throw new Error('Project load cancelled');
+                return this.runtime.handleProjectLoaded();
+            })
             .then(result => result)
             .catch(error => {
                 // Intentionally rejecting here (want errors to be handled by caller)
@@ -877,7 +889,7 @@ class VirtualMachine extends EventEmitter {
         this.emit('LOAD_PROGRESS', {stage, loaded, total});
     }
 
-    deserializeProject (projectJSON, zip) {
+    deserializeProject (projectJSON, zip, active = () => true) {
         // Clear the current runtime
         this.clear();
 
@@ -907,9 +919,10 @@ class VirtualMachine extends EventEmitter {
                     'scratch-vm-deserialize-end'
                 );
 
+                if (!active()) throw new Error('Project load cancelled');
                 this.emitLoadProgress('installing');
                 safePerformanceMark('scratch-vm-installTargets-start');
-                return this.installTargets(targets, extensions, true).then(result => {
+                return this.installTargets(targets, extensions, true, active).then(result => {
                     safePerformanceMark('scratch-vm-installTargets-end');
                     safePerformanceMeasure(
                         'scratch-vm-installTargets',
@@ -964,7 +977,7 @@ class VirtualMachine extends EventEmitter {
      * @param {boolean} wholeProject - set to true if installing a whole project, as opposed to a single sprite.
      * @returns {Promise} resolved once targets have been installed
      */
-    async installTargets (targets, extensions, wholeProject) {
+    async installTargets (targets, extensions, wholeProject, active = () => true) {
         safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-start');
         await this.extensionManager.allAsyncExtensionsLoaded();
         safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-end');
@@ -974,6 +987,9 @@ class VirtualMachine extends EventEmitter {
             'scratch-vm-installTargets-waitAsyncExtensions-end'
         );
 
+        if (!active() || (this._editCommandActive && !this._editCommandActive())) {
+            throw new Error('Editing session ended');
+        }
         targets = targets.filter(target => !!target);
 
         safePerformanceMark('scratch-vm-installTargets-loadExtensions-start');
@@ -988,6 +1004,9 @@ class VirtualMachine extends EventEmitter {
             'scratch-vm-installTargets-loadExtensions-end'
         );
 
+        if (!active() || (this._editCommandActive && !this._editCommandActive())) {
+            throw new Error('Editing session ended');
+        }
         safePerformanceMark('scratch-vm-installTargets-addTargets-start');
         const seenSpriteNames = new Set(
             this.runtime.targets
@@ -1041,7 +1060,7 @@ class VirtualMachine extends EventEmitter {
         }
 
         this._broadcastCleanupNeeded = true;
-        this.runtime.setEditingTarget(this.editingTarget);
+        if (!this._editCommandContext) this.runtime.setEditingTarget(this.editingTarget);
         // Update the VM user's knowledge of targets and blocks on the workspace.
         this.emitTargetsUpdate(false /* Don't emit project change */);
         this.emitWorkspaceUpdate();
@@ -1155,6 +1174,7 @@ class VirtualMachine extends EventEmitter {
             this.editingTarget;
         if (target) {
             return loadCostume(md5ext, costumeObject, this.runtime, optVersion).then(() => {
+                if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
                 target.addCostume(costumeObject);
                 target.setCostume(
                     target.getCostumes().length - 1
@@ -1196,6 +1216,7 @@ class VirtualMachine extends EventEmitter {
         const clone = Object.assign({}, originalCostume);
         const md5ext = `${clone.assetId}.${clone.dataFormat}`;
         return loadCostume(md5ext, clone, this.runtime).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             target.addCostume(clone, costumeIndex + 1);
             target.setCostume(costumeIndex + 1);
             this.emitTargetsUpdate();
@@ -1212,6 +1233,7 @@ class VirtualMachine extends EventEmitter {
         const originalSound = target.getSounds()[soundIndex];
         const clone = Object.assign({}, originalSound);
         return loadSound(clone, this.runtime, target.sprite.soundBank).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             target.addSound(clone, soundIndex + 1);
             this.emitTargetsUpdate();
         });
@@ -1257,6 +1279,7 @@ class VirtualMachine extends EventEmitter {
             this.editingTarget;
         if (target) {
             return loadSound(soundObject, this.runtime, target.sprite.soundBank).then(() => {
+                if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
                 target.addSound(soundObject);
                 this.emitTargetsUpdate();
             });
@@ -1435,9 +1458,13 @@ class VirtualMachine extends EventEmitter {
         );
 
         // @todo there should be a better way to get from ImageData to a decodable storage format
-        canvas.toBlob(blob => {
+        return new Promise((resolve, reject) => canvas.toBlob(blob => {
             const reader = new FileReader();
-            reader.addEventListener('loadend', () => {
+            reader.addEventListener('load', () => {
+                if (this._editCommandActive && !this._editCommandActive()) {
+                    reject(new Error('Editing session ended'));
+                    return;
+                }
                 const storage = this.runtime.storage;
                 costume.dataFormat = storage.DataFormat.PNG;
                 costume.bitmapResolution = bitmapResolution;
@@ -1452,12 +1479,16 @@ class VirtualMachine extends EventEmitter {
                 costume.assetId = costume.asset.assetId;
                 costume.md5 = `${costume.assetId}.${costume.dataFormat}`;
                 this.emitTargetsUpdate();
+                resolve();
             });
+            reader.addEventListener('error', () => reject(new Error('Could not encode bitmap')));
             // Bitmaps with a zero width or height return null for their blob
             if (blob){
                 reader.readAsArrayBuffer(blob);
+            } else {
+                reject(new Error('Could not encode bitmap'));
             }
-        });
+        }));
     }
 
     /**
@@ -1622,6 +1653,10 @@ class VirtualMachine extends EventEmitter {
             throw new Error('No sprite associated with this target.');
         }
         return target.duplicate().then(newTarget => {
+            if (this._editCommandActive && !this._editCommandActive()) {
+                newTarget.dispose();
+                throw new Error('Editing session ended');
+            }
             this.runtime.addTarget(newTarget);
             newTarget.goBehindOther(target);
             this.setEditingTarget(newTarget.id);
@@ -1700,6 +1735,8 @@ class VirtualMachine extends EventEmitter {
      * @param {!Blockly.Event} e Any Blockly event.
      */
     blockListener (e) {
+        if (this.editingCommands.handler && this.editingCommands.captureEvent &&
+            this.editingCommands.captureEvent(e)) return;
         if (this.editingTarget) {
             if (e && ['create', 'change', 'delete', 'var_create', 'var_delete'].includes(e.type)) {
                 this._broadcastCleanupNeeded = true;
@@ -1733,6 +1770,8 @@ class VirtualMachine extends EventEmitter {
      * @param {!Blockly.Event} e Any Blockly event.
      */
     variableListener (e) {
+        if (this.editingCommands.handler && this.editingCommands.captureEvent &&
+            this.editingCommands.captureEvent(e, true)) return;
         // Filter events by type, since blocks only needs to listen to these
         // var events.
         if (['var_create', 'var_rename', 'var_delete'].indexOf(e.type) !== -1) {
@@ -1813,6 +1852,7 @@ class VirtualMachine extends EventEmitter {
         );
 
         return this._loadExtensions(extensionIDs, extensionURLs).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             copiedBlocks.forEach(block => {
                 target.blocks.createBlock(block);
             });
@@ -1839,6 +1879,7 @@ class VirtualMachine extends EventEmitter {
         const clone = Object.assign({}, originalCostume);
         const md5ext = `${clone.assetId}.${clone.dataFormat}`;
         return loadCostume(md5ext, clone, this.runtime).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             const target = this.runtime.getTargetById(targetId);
             if (target) {
                 target.addCostume(clone);
@@ -1860,6 +1901,7 @@ class VirtualMachine extends EventEmitter {
         const clone = Object.assign({}, originalSound);
         const target = this.runtime.getTargetById(targetId);
         return loadSound(clone, this.runtime, target.sprite.soundBank).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             if (target) {
                 target.addSound(clone);
                 this.emitTargetsUpdate();
