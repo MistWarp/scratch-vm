@@ -993,7 +993,15 @@ class VirtualMachine extends EventEmitter {
         targets = targets.filter(target => !!target);
 
         safePerformanceMark('scratch-vm-installTargets-loadExtensions-start');
-        await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs);
+        // Flag for security policies (e.g. MistWarp's platform rewrite): only extensions
+        // installed as part of a whole project were saved with that project. Sprites added
+        // later may reference foreign extensions with no pinned server copy.
+        this._mwInstallingWholeProject = wholeProject;
+        try {
+            await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs);
+        } finally {
+            this._mwInstallingWholeProject = null;
+        }
         if (wholeProject && typeof this.extensionManager.setExtensionOrder === 'function') {
             await this.extensionManager.setExtensionOrder(extensions.extensionIDs);
         }
