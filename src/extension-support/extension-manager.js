@@ -265,8 +265,24 @@ class ExtensionManager {
 
         if (sandboxMode === 'unsandboxed') {
             const {load} = require('./tw-unsandboxed-extension-runner');
-            const extensionObjects = await load(rewritten, this.vm)
-                .catch(error => this._failedLoadingExtensionScript(error));
+            let extensionObjects;
+            try {
+                extensionObjects = await load(rewritten, this.vm);
+            } catch (rewrittenError) {
+                if (rewritten === extensionURL) {
+                    this._failedLoadingExtensionScript(rewrittenError);
+                }
+                // The rewritten URL is a pinned server copy that may not exist (for example,
+                // an extension from an imported sprite that was never saved with this project).
+                // Fall back to the original URL instead of failing the load.
+                log.warn(`Falling back to original extension URL after rewrite failed: ${extensionURL}`,
+                    rewrittenError);
+                try {
+                    extensionObjects = await load(extensionURL, this.vm);
+                } catch (originalError) {
+                    this._failedLoadingExtensionScript(originalError);
+                }
+            }
             const fakeWorkerId = this.nextExtensionWorker++;
             this.workerURLs[fakeWorkerId] = extensionURL;
 
@@ -294,10 +310,23 @@ class ExtensionManager {
         }
         /* eslint-enable max-len */
 
-        return new Promise((resolve, reject) => {
-            this.pendingExtensions.push({extensionURL: rewritten, resolve, reject});
+        const loadSandboxedOnce = extensionUrlToLoad => new Promise((resolve, reject) => {
+            this.pendingExtensions.push({extensionURL: extensionUrlToLoad, resolve, reject});
             dispatch.addWorker(new ExtensionWorker());
-        }).catch(error => this._failedLoadingExtensionScript(error));
+        });
+
+        try {
+            await loadSandboxedOnce(rewritten);
+        } catch (rewrittenError) {
+            if (rewritten === extensionURL) {
+                return this._failedLoadingExtensionScript(rewrittenError);
+            }
+            log.warn(`Falling back to original extension URL after rewrite failed: ${extensionURL}`,
+                rewrittenError);
+            return loadSandboxedOnce(extensionURL)
+                .catch(error => this._failedLoadingExtensionScript(error));
+        }
+        return;
     }
 
     /**
