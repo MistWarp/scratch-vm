@@ -44,7 +44,7 @@ global.document = {
                 setTimeout(() => {
                     const callback = scriptCallbacks.get(element.src);
                     if (callback) {
-                        callback();
+                        callback(element);
                         element.onload();
                     } else {
                         element.onerror();
@@ -79,6 +79,19 @@ tap.beforeEach(() => {
 });
 
 const {test} = tap;
+
+test('CORS error details are enabled only for the compatible extension host', async t => {
+    for (const [url, expected] of [
+        ['https://extensions.mistium.com/featured/Shaders.js', 'anonymous'],
+        ['https://example.com/extension.js', undefined]
+    ]) {
+        setScript(url, element => {
+            t.equal(element.crossOrigin, expected);
+            global.Scratch.extensions.register({});
+        });
+        await UnsandboxedExtensionRunner.load(url, new VirtualMachine());
+    }
+});
 
 test('basic API', async t => {
     t.plan(10);
