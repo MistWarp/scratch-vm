@@ -800,7 +800,14 @@ class MistWarpInventory {
     }
 
     _item (id) {
-        return getState(this.runtime).inventory.find(item => item.id === String(id || ''));
+        const key = String(id || '');
+        return getState(this.runtime).inventory.find(item => {
+            if (!item) return false;
+            if (item.id === key) return true;
+            if (item.itemId === key) return true;
+            if (typeof item.id === 'string' && item.id.split(':').pop() === key) return true;
+            return false;
+        });
     }
 
     owns (args) {
