@@ -225,6 +225,13 @@ const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, rej
         });
 
     const script = document.createElement('script');
+    // This extension host serves Access-Control-Allow-Origin: *. Request CORS
+    // so exceptions retain their message and stack instead of "Script error.".
+    // Other extension hosts may only support classic, non-CORS script loading.
+    const parsed = parseURL(extensionURL);
+    if (parsed && parsed.origin === 'https://extensions.mistium.com') {
+        script.crossOrigin = 'anonymous';
+    }
 
     script.onerror = event => {
         const error = new Error(`Failed to load extension script from ${extensionURL}`);
@@ -284,6 +291,7 @@ const prefetchExtensionScript = extensionURL => {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.as = 'script';
+    if (parsed.origin === 'https://extensions.mistium.com') link.crossOrigin = 'anonymous';
     link.href = extensionURL;
     link.onload = () => link.remove();
     link.onerror = () => link.remove();

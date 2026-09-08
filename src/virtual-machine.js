@@ -7,6 +7,7 @@ if (typeof TextEncoder === 'undefined') {
 const EventEmitter = require('events');
 const EditingCommands = require('./editing/commands');
 const JSZip = require('@turbowarp/jszip');
+const normalizeAssetData = require('./util/normalize-asset-data');
 
 const Buffer = require('buffer').Buffer;
 const centralDispatch = require('./dispatch/central-dispatch');
@@ -810,7 +811,10 @@ class VirtualMachine extends EventEmitter {
             ...soundDescs,
             ...fontDescs,
             ...customAssetDescs
-        ];
+        ].map(file => ({
+            fileName: file.fileName,
+            fileContent: normalizeAssetData(file.fileContent, file.fileName)
+        }));
     }
 
     _addFileDescsToZip (fileDescs, zip) {

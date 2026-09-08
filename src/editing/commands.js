@@ -322,6 +322,7 @@ class EditingCommands {
                 await this.originals.addSprite.call(context, buffer);
                 target = context.editingTarget;
                 target.id = patch.id;
+                vm.runtime.invalidateTargetCaches();
             }
             if (!target) throw new Error(`Missing target ${patch.id}`);
             await this.applyState(target, patch.state || patch, getAsset, active);
@@ -333,6 +334,7 @@ class EditingCommands {
         if (!active()) throw new Error('Editing session ended');
         const order = new Map(result.order.map((id, index) => [id, index]));
         vm.runtime.targets.sort((a, b) => (order.get(a.id) || 0) - (order.get(b.id) || 0));
+        vm.runtime.invalidateTargetCaches();
         this.refresh(result.patches);
     }
 
@@ -362,6 +364,8 @@ class EditingCommands {
             target.sprite[list] = loaded;
         }
         if (!active()) throw new Error('Editing session ended');
+        const oldCloudVariables = target.isStage && state.variables ?
+            new Map(Object.entries(target.variables).filter(([, variable]) => variable.isCloud)) : null;
         for (const key of ['variables', 'comments', 'frames']) {
             if (!state[key]) continue;
             if (!target[key] || typeof state.isStage !== 'undefined') target[key] = Object.create(null);
@@ -374,6 +378,25 @@ class EditingCommands {
                 target[key][id] = Object.assign(Object.create(prototype), value);
             }
         }
+        if (oldCloudVariables) {
+            const runtime = this.vm.runtime;
+            const cloud = runtime.ioDevices.cloud;
+            for (const [id, old] of oldCloudVariables) {
+                const current = target.variables[id];
+                if (!current || !current.isCloud) {
+                    cloud.requestDeleteVariable(old.name);
+                    runtime.removeCloudVariable();
+                } else if (current.name !== old.name) {
+                    cloud.requestRenameVariable(old.name, current.name);
+                }
+            }
+            for (const [id, variable] of Object.entries(target.variables)) {
+                if (variable.isCloud && !oldCloudVariables.has(id)) {
+                    runtime.addCloudVariable();
+                    cloud.requestCreateVariable(variable);
+                }
+            }
+        }
         if (state.blocks) {
             if (typeof state.isStage !== 'undefined') target.blocks._blocks = Object.create(null);
             for (const [id, block] of Object.entries(state.blocks)) {
@@ -384,7 +407,10 @@ class EditingCommands {
                 .filter(id => target.blocks._blocks[id].topLevel);
             target.blocks.resetCache();
         }
-        if (typeof state.name === 'string') target.sprite.name = state.name;
+        if (typeof state.name === 'string') {
+            target.sprite.name = state.name;
+            this.vm.runtime.invalidateTargetCaches();
+        }
         const props = state.props || {};
         if ('x' in props || 'y' in props) {
             target.setXY(typeof props.x === 'undefined' ? target.x : props.x,
