@@ -17,6 +17,10 @@ const normalizeAssetData = (data, fileName) => {
     if (typeof data === 'string' || Array.isArray(data) || type === '[object Blob]' || type === '[object File]') {
         return data;
     }
+    if (type === '[object Object]' && data.type === 'Buffer' && Array.isArray(data.data) &&
+        data.data.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
+        return new Uint8Array(data.data);
+    }
     // Never silently omit an asset from a saved project.
     throw new TypeError(`Cannot save asset '${fileName}': unsupported asset data ${type}`);
 };

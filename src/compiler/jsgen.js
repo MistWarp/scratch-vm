@@ -1149,10 +1149,11 @@ class JSGenerator {
      * @returns {string}
      */
     referenceVariable (variable) {
-        if (variable.scope === 'target') {
-            return this.evaluateOnce(`target.variables["${sanitize(variable.id)}"]`);
-        }
-        return this.evaluateOnce(`stage.variables["${sanitize(variable.id)}"]`);
+        const owner = variable.scope === 'target' ? 'target' : 'stage';
+        const lookup = variable.type === 'list' ? 'lookupOrCreateList' : 'lookupOrCreateVariable';
+        const id = sanitize(variable.id);
+        const name = sanitize(variable.name);
+        return this.evaluateOnce(`${owner}.variables["${id}"] || ${owner}.${lookup}("${id}", "${name}")`);
     }
 
     /**

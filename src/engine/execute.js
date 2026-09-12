@@ -297,7 +297,7 @@ class BlockCached {
         // Assign opcode isHat and blockFunction data to avoid dynamic lookups.
         this._isHat = runtime.getIsHat(opcode);
         this._blockFunction = runtime.getOpcodeFunction(opcode);
-        this._definedBlockFunction = typeof this._blockFunction !== 'undefined';
+        this._definedBlockFunction = typeof this._blockFunction === 'function';
 
         const flowing = runtime._flowing[opcode];
         this._isConditional = !!(flowing && flowing.conditional);

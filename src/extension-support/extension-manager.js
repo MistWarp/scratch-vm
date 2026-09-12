@@ -617,7 +617,13 @@ class ExtensionManager {
 
         // TODO: Fix this to use dispatch.call when extensions are running in workers.
         const menuFunc = extensionObject[menuItemFunctionName];
-        const menuItems = menuFunc.call(extensionObject, editingTargetID).map(
+        if (typeof menuFunc !== 'function') {
+            log.warn(`Could not find extension menu function called ${menuItemFunctionName}`);
+            return [['', '']];
+        }
+        const items = menuFunc.call(extensionObject, editingTargetID);
+        if (!Array.isArray(items) || items.length === 0) return [['', '']];
+        const menuItems = items.map(
             item => {
                 item = maybeFormatMessage(item, extensionMessageContext);
                 switch (typeof item) {
@@ -711,12 +717,15 @@ class ExtensionManager {
 
                 // avoid promise latency if we can call direct
                 const serviceObject = dispatch.services[serviceName];
-                if (!serviceObject[funcName]) {
+                if (typeof serviceObject[funcName] !== 'function') {
                     // The function might show up later as a dynamic property of the service object
                     log.warn(`Could not find extension block function called ${funcName}`);
                 }
-                return (args, util, realBlockInfo) =>
-                    serviceObject[funcName](args, util, realBlockInfo);
+                return (args, util, realBlockInfo) => {
+                    // Dynamic extension methods can disappear when an extension is refreshed.
+                    if (typeof serviceObject[funcName] !== 'function') return '';
+                    return serviceObject[funcName](args, util, realBlockInfo);
+                };
             })();
 
             blockInfo.func = (args, util) => {
