@@ -3683,6 +3683,7 @@ class Runtime extends EventEmitter {
      * @property {string} [label] - the label for this opcode if `labelFn` is absent
      */
     getLabelForOpcode (extendedOpcode) {
+        if (typeof extendedOpcode !== 'string') return;
         const [category, opcode] = StringUtil.splitFirst(extendedOpcode, '_');
         if (!(category && opcode)) return;
 

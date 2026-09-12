@@ -39,3 +39,9 @@ test('invalid asset data fails with its filename instead of losing the asset', t
     }
     t.end();
 });
+
+test('normalizes JSON-serialized Buffer assets without accepting invalid bytes', t => {
+    t.same(Array.from(normalize({type: 'Buffer', data: [0, 127, 255]}, 'image.svg')), [0, 127, 255]);
+    t.throws(() => normalize({type: 'Buffer', data: [256]}, 'image.svg'));
+    t.end();
+});

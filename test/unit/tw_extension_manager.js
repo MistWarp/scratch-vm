@@ -130,3 +130,13 @@ test('loadExtensionURL, getExtensionURLs, deduplication', async t => {
 
     t.end();
 });
+
+test('dynamic extension menus tolerate missing methods and empty results', t => {
+    const vm = new VM();
+    for (const extension of [{}, {menu: 1}, {menu: () => null}, {menu: () => []}]) {
+        t.same(vm.extensionManager._getExtensionMenuItems(extension, 'menu'), [['', '']]);
+    }
+    t.same(vm.extensionManager._getExtensionMenuItems({menu: () => ['hello']}, 'menu'), [['hello', 'hello']]);
+    vm.quit();
+    t.end();
+});

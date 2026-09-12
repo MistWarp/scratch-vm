@@ -156,7 +156,7 @@ const executeInCompatibilityLayer = function*(inputs, blockFunction, isWarp, use
 
     const executeBlock = () => {
         blockUtility.init(thread, blockId, stackFrame);
-        return blockFunction(inputs, blockUtility);
+        return typeof blockFunction === 'function' ? blockFunction(inputs, blockUtility) : '';
     };
 
     let returnValue = executeBlock();

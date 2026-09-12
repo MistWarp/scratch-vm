@@ -633,3 +633,34 @@ test('casting a raw patch reporter keeps its operator precedence', async t => {
     t.equal(`${global.__rawIndex}`, '4', 'the spliced expression is added, not concatenated');
     delete global.__rawIndex;
 });
+
+test('cached compiled scripts recreate deleted variables with the correct type', async t => {
+    const vm = new VirtualMachine();
+    try {
+        await vm.loadProject({
+            targets: [{
+                isStage: true, name: 'Stage', variables: {score: ['score', 0]}, lists: {items: ['items', []]},
+                broadcasts: {}, costumes: [], sounds: [], currentCostume: 0,
+                blocks: {
+                    hat: {opcode: 'event_whenflagclicked', next: 'set', parent: null, inputs: {}, fields: {}, topLevel: true},
+                    set: {opcode: 'data_setvariableto', parent: 'hat', next: 'add',
+                        inputs: {VALUE: [1, [4, '7']]}, fields: {VARIABLE: ['score', 'score']}},
+                    add: {opcode: 'data_addtolist', parent: 'set', next: null,
+                        inputs: {ITEM: [1, [4, '9']]}, fields: {LIST: ['items', 'items']}}
+                }
+            }],
+            monitors: [], extensions: [], meta: {semver: '3.0.0'}
+        });
+        vm.runtime.precompile();
+        const stage = vm.runtime.getTargetForStage();
+        stage.deleteVariable('score');
+        stage.deleteVariable('items');
+        vm.greenFlag();
+        vm.runtime._step();
+        t.equal(stage.variables.score.value, 7);
+        t.same(stage.variables.items.value, ['9']);
+        t.equal(stage.variables.items.type, 'list');
+    } finally {
+        vm.quit();
+    }
+});

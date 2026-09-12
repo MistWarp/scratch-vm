@@ -1333,6 +1333,7 @@ class ScriptTreeGenerator {
                 scope: 'target',
                 id: currVar.id,
                 name: currVar.name,
+                type: currVar.type,
                 isCloud: currVar.isCloud
             };
         }
@@ -1345,6 +1346,7 @@ class ScriptTreeGenerator {
                     scope: 'stage',
                     id: currVar.id,
                     name: currVar.name,
+                    type: currVar.type,
                     isCloud: currVar.isCloud
                 };
             }
@@ -1359,6 +1361,7 @@ class ScriptTreeGenerator {
                         scope: 'target',
                         id: currVar.id,
                         name: currVar.name,
+                        type: currVar.type,
                         isCloud: currVar.isCloud
                     };
                 }
@@ -1375,6 +1378,7 @@ class ScriptTreeGenerator {
                             scope: 'stage',
                             id: currVar.id,
                             name: currVar.name,
+                            type: currVar.type,
                             isCloud: currVar.isCloud
                         };
                     }
@@ -1406,6 +1410,7 @@ class ScriptTreeGenerator {
             // This is intentional to match vanilla Scratch quirks.
             id,
             name: newVariable.name,
+            type: newVariable.type,
             isCloud: newVariable.isCloud
         };
     }
