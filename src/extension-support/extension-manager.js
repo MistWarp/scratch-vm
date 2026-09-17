@@ -219,6 +219,19 @@ class ExtensionManager {
         this.builtinExtensions[extensionId] = () => extensionClass;
     }
 
+    _resolveExtensionURL (extensionURL) {
+        try {
+            new URL(extensionURL); // eslint-disable-line no-new
+            return extensionURL;
+        } catch (e) {
+            try {
+                return new URL(extensionURL, location.href).toString();
+            } catch (e2) {
+                return extensionURL;
+            }
+        }
+    }
+
     _isValidExtensionURL (extensionURL) {
         try {
             const parsedURL = new URL(extensionURL);
@@ -250,7 +263,7 @@ class ExtensionManager {
         }
 
         const sandboxMode = await this.securityManager.getSandboxMode(extensionURL);
-        const rewritten = await this.securityManager.rewriteExtensionURL(extensionURL);
+        const rewritten = this._resolveExtensionURL(await this.securityManager.rewriteExtensionURL(extensionURL));
 
         // A host may map a stable project-local extension reference to a URL that it
         // controls. Validate the URL that will actually be loaded, not the reference
@@ -677,9 +690,16 @@ class ExtensionManager {
             if (blockInfo.opcode) {
                 log.warn(`Ignoring opcode "${blockInfo.opcode}" for button with text: ${blockInfo.text}`);
             }
-            blockInfo.callFunc = () => {
-                dispatch.call(serviceName, blockInfo.func);
-            };
+            if (blockInfo.func) {
+                blockInfo.callFunc = () => {
+                    dispatch.call(serviceName, blockInfo.func).catch(error => {
+                        log.error(`Button "${blockInfo.text}" failed:`, error);
+                    });
+                };
+            } else {
+                log.warn(`Ignoring button with no func, text: ${blockInfo.text}`);
+                blockInfo.callFunc = () => {};
+            }
             break;
         case BlockType.LABEL:
             if (blockInfo.opcode) {

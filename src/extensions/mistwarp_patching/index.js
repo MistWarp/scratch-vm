@@ -19,6 +19,11 @@ const block = (opcode, blockType, text, defaults) => ({
 });
 
 class PatchingBlocks {
+    constructor (runtime) {
+        this.runtime = runtime;
+        this.warned = false;
+    }
+
     getInfo () {
         return {
             id: 'patching',
@@ -34,8 +39,18 @@ class PatchingBlocks {
         };
     }
 
-    unsupported () {
-        throw new Error('Patching blocks require the compiler');
+    unsupported (args, util) {
+        if (!this.warned) {
+            this.warned = true;
+            const error = new Error('Patching blocks require the compiler. Turn the compiler back on in settings.');
+            const target = util && util.target;
+            if (this.runtime && target) {
+                this.runtime.emitCompileError(target, error);
+            } else {
+                console.warn(error); // eslint-disable-line no-console
+            }
+        }
+        return '';
     }
 }
 
