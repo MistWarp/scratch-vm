@@ -10,6 +10,28 @@ test('isBuiltinExtension', t => {
     t.end();
 });
 
+test('_resolveExtensionURL', t => {
+    const fakeRuntime = {};
+    const manager = new ExtensionManager(fakeRuntime);
+    const originalLocation = global.location;
+    global.location = {href: 'https://mistwarp.org/editor'};
+
+    t.equal(manager._resolveExtensionURL('https://extensions.turbowarp.org/fetch.js'),
+        'https://extensions.turbowarp.org/fetch.js', 'absolute URLs pass through unchanged');
+    t.equal(manager._resolveExtensionURL('data:application/javascript;base64,YWxlcnQoMSk='),
+        'data:application/javascript;base64,YWxlcnQoMSk=');
+
+    t.equal(manager._resolveExtensionURL('extensions/OSLUtils.js'), 'https://mistwarp.org/extensions/OSLUtils.js',
+        'a project-relative reference resolves against the page');
+    t.equal(manager._isValidExtensionURL(manager._resolveExtensionURL('extensions/OSLUtils.js')), true,
+        'and is then accepted instead of rejected as an invalid URL');
+    t.equal(new URL(manager._resolveExtensionURL('../../../etc/passwd')).origin, 'https://mistwarp.org',
+        'resolving never escapes the page origin');
+
+    global.location = originalLocation;
+    t.end();
+});
+
 test('_isValidExtensionURL', t => {
     const fakeRuntime = {};
     const manager = new ExtensionManager(fakeRuntime);
