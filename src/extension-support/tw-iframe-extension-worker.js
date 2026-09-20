@@ -59,7 +59,7 @@ class IframeExtensionWorker {
     }
 
     _onWindowMessage (e) {
-        if (!e.data || e.data.vmIframeId !== this.id) {
+        if (e.source !== this.iframe.contentWindow || !e.data || e.data.vmIframeId !== this.id) {
             return;
         }
         if (e.data.ready) {
