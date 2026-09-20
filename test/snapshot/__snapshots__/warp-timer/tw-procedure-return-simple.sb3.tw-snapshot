@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
 if ((("" + thread.procedures["Zsimplest"]()).toLowerCase() === "It works!".toLowerCase())) {
@@ -60,7 +60,7 @@ return "";
 
 // Sprite1 Zno shadowing 1 %s %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function funXYZ_no_shadowing_1__ (p0,p1) {
 if (((("" + p0).toLowerCase() === "f".toLowerCase()) && (("" + p1).toLowerCase() === "g".toLowerCase()))) {
 runtime.ext_scratch3_looks._say("pass shadow check 1", target);

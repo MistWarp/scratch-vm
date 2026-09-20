@@ -7,7 +7,7 @@ const b0 = stage && stage.lookupVariableByNameAndType("Stage variable", "", true
 const b1 = runtime.getSpriteTargetByName("Test sprite");
 const b2 = b1 && b1.lookupVariableByNameAndType("Private variable", "", true);
 const b3 = stage && stage.lookupVariableByNameAndType("This variable used to exist", "", true);
-const b4 = stage.variables["GTmK+*w8mNQP,z`4WG8#"];
+const b4 = stage.variables["GTmK+*w8mNQP,z`4WG8#"] || stage.lookupOrCreateVariable("GTmK+*w8mNQP,z`4WG8#", "Dynamic non-existent sprite name");
 const b5 = runtime.getSpriteTargetByName("Sprite that doesn't exist");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 32", target);

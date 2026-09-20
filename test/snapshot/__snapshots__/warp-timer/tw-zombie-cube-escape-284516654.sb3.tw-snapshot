@@ -3,8 +3,8 @@
 
 // Sprite2 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["7qur6!bGgvC9I(Nd5.HP"];
-const b1 = stage.variables["sUOp@-6J4y0PqwiXit4!"];
+const b0 = stage.variables["7qur6!bGgvC9I(Nd5.HP"] || stage.lookupOrCreateVariable("7qur6!bGgvC9I(Nd5.HP", "steps");
+const b1 = stage.variables["sUOp@-6J4y0PqwiXit4!"] || stage.lookupOrCreateVariable("sUOp@-6J4y0PqwiXit4!", "END?");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
@@ -20,8 +20,8 @@ retire(); return;
 
 // Sprite2 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["7qur6!bGgvC9I(Nd5.HP"];
-const b1 = stage.variables["sUOp@-6J4y0PqwiXit4!"];
+const b0 = stage.variables["7qur6!bGgvC9I(Nd5.HP"] || stage.lookupOrCreateVariable("7qur6!bGgvC9I(Nd5.HP", "steps");
+const b1 = stage.variables["sUOp@-6J4y0PqwiXit4!"] || stage.lookupOrCreateVariable("sUOp@-6J4y0PqwiXit4!", "END?");
 return function* genXYZ () {
 b0.value = (toNotNaN(+b0.value) + 1);
 if ((b0.value === 5)) {

@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ () {
 b0.value = 0;
 while (true) {
@@ -33,7 +33,7 @@ retire(); return;
 
 // Sprite1 Znon warp
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ_non_warp () {
 b0.value = 0;
 for (var a0 = 5; a0 > 0; a0--) {
@@ -73,7 +73,7 @@ return "";
 
 // Sprite1 Wverify runs warp %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ_verify_runs_warp_ (p0) {
 b0.value = 0;
 for (var a0 = 5; a0 > 0; a0--) {
@@ -95,7 +95,7 @@ return "";
 
 // Sprite1 Zverify runs non warp %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ_verify_runs_non_warp (p0) {
 b0.value = 0;
 for (var a0 = 5; a0 > 0; a0--) {

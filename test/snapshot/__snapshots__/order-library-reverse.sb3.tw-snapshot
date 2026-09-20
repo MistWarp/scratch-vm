@@ -3,8 +3,8 @@
 
 // Sprite2 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"];
-const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"];
+const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
+const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
@@ -26,7 +26,7 @@ retire(); return;
 
 // Sprite3 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"];
+const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 thread.timer = timer();
@@ -59,8 +59,8 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"];
-const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"];
+const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
+const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();

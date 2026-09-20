@@ -12,11 +12,11 @@ retire(); return;
 
 // Sprite1 Wrun test
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["mfV;yS}9e:%h5UZ)QyiY"];
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b2 = stage.variables["n^wm8jw#b24sggt.S^tD"];
-const b3 = stage.variables["_]6^lq+-%H0{ov`tKt7$"];
-const b4 = stage.variables["3lyKRepBc$tx)EWlpr!y"];
+const b0 = stage.variables["mfV;yS}9e:%h5UZ)QyiY"] || stage.lookupOrCreateVariable("mfV;yS}9e:%h5UZ)QyiY", "n");
+const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i");
+const b2 = stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values");
+const b3 = stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariable("_]6^lq+-%H0{ov`tKt7$", "j");
+const b4 = stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected");
 return function* genXYZ_run_test () {
 thread.procedures["Wsetup values"]();
 b0.value = 0;
@@ -47,7 +47,7 @@ return "";
 
 // Sprite1 Wsetup values
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["n^wm8jw#b24sggt.S^tD"];
+const b0 = stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values");
 return function funXYZ_setup_values () {
 b0.value = [];
 b0.value.push(0);
