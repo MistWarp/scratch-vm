@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
+const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 18", target);
 b0.value = 0;
@@ -60,8 +60,8 @@ return "";
 
 // Sprite1 Zrecursing yields between each %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
+const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function* genXYZ_recursing_yields_bet (p0) {
 if ((("" + p0).toLowerCase() === "initial".toLowerCase())) {
 b0.value = 0;
@@ -83,9 +83,9 @@ return "";
 
 // Sprite1 Zrecursing arguments eval order %s %s %s %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["4HH82mPlVMOONdl(Ot*7"];
-const b1 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
-const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["4HH82mPlVMOONdl(Ot*7"] || stage.lookupOrCreateList("4HH82mPlVMOONdl(Ot*7", "log");
+const b1 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
+const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function* genXYZ_recursing_arguments_ (p0,p1,p2,p3) {
 if ((("" + p0).toLowerCase() === "initial".toLowerCase())) {
 b0.value = [];
@@ -124,7 +124,7 @@ return "";
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ () {
 b0.value = 0;
 while (true) {

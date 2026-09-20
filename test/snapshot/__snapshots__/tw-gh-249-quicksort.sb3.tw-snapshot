@@ -13,8 +13,8 @@ retire(); return;
 
 // Sprite1 Wrun
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"];
-const b1 = stage.variables["rQq!wAuU2T9DV9,S[/s."];
+const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
+const b1 = stage.variables["rQq!wAuU2T9DV9,S[/s."] || stage.lookupOrCreateList("rQq!wAuU2T9DV9,S[/s.", "original");
 return function funXYZ_run () {
 b0.value = [];
 for (var a0 = 100; a0 > 0; a0--) {
@@ -27,10 +27,10 @@ return "";
 
 // Sprite1 Wvalidate
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["7AH{dO^X;}C[{[l~g-7m"];
-const b1 = stage.variables["gPJ}c-PZz?Y+_L][iMU_"];
-const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"];
-const b3 = stage.variables["FsKqV/2kid0gw0J+Jj(c"];
+const b0 = stage.variables["7AH{dO^X;}C[{[l~g-7m"] || stage.lookupOrCreateVariable("7AH{dO^X;}C[{[l~g-7m", "passed");
+const b1 = stage.variables["gPJ}c-PZz?Y+_L][iMU_"] || stage.lookupOrCreateVariable("gPJ}c-PZz?Y+_L][iMU_", "@");
+const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
+const b3 = stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected");
 return function funXYZ_validate () {
 b0.value = 1;
 b1.value = 1;
@@ -49,15 +49,15 @@ return "";
 
 // Sprite1 Wqsort %s %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"];
-const b1 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"];
-const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"];
-const b3 = stage.variables["EF^k=u-t@S)w60;RP?dZ-high-"];
-const b4 = stage.variables["EF^k=u-t@S)w60;RP?dZ-tmp-"];
-const b5 = target.variables["JIHtr29*ug5G;5*`f2.K-i-"];
-const b6 = target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"];
-const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"];
-const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"];
+const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-pivot-", "z_pivot");
+const b1 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
+const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-low-", "z_low");
+const b3 = stage.variables["EF^k=u-t@S)w60;RP?dZ-high-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-high-", "z_high");
+const b4 = stage.variables["EF^k=u-t@S)w60;RP?dZ-tmp-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-tmp-", "tmp");
+const b5 = target.variables["JIHtr29*ug5G;5*`f2.K-i-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-i-", "i");
+const b6 = target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min pos-", "z_min pos");
+const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min");
+const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i");
 return function funXYZ_qsort__ (p0,p1) {
 if (compareLessThan(p0, p1)) {
 if (!((toNotNaN(+p1) - toNotNaN(+p0)) <= 7)) {

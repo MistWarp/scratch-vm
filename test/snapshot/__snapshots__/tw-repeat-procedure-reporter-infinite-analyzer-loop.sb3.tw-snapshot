@@ -12,7 +12,7 @@ retire(); return;
 
 // Text Wtest 1
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = target.variables["ts-.PQ{/]mN_9@MbG:m/"];
+const b0 = target.variables["ts-.PQ{/]mN_9@MbG:m/"] || target.lookupOrCreateVariable("ts-.PQ{/]mN_9@MbG:m/", "variable");
 return function funXYZ_test_1 () {
 for (var a0 = toNotNaN(+thread.procedures["Wany procedure reporter"]()); a0 >= 0.5; a0--) {
 b0.value = (toNotNaN(+b0.value) + 1);

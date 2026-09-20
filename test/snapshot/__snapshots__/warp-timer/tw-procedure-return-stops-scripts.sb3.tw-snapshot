@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
+const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 yield* thread.procedures["Wreturn stops the script immediately"]();
@@ -20,7 +20,7 @@ retire(); return;
 
 // Sprite1 Wreturn stops the script immediately
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
+const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
 return function* genXYZ_return_stops_the_scr () {
 b0.value = 0;
 for (var a0 = 100; a0 > 0; a0--) {
@@ -36,7 +36,7 @@ return "";
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"];
+const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
 return function* genXYZ () {
 b0.value = 0;
 while (true) {

@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["{vwNMZe-LO,q/k3(A,.`"];
-const b1 = stage.variables["DKX$)W98mALB-eeMoj(d"];
+const b0 = stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariable("{vwNMZe-LO,q/k3(A,.`", "true as boolean");
+const b1 = stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
 if (!("true".toLowerCase() === "1".toLowerCase())) {

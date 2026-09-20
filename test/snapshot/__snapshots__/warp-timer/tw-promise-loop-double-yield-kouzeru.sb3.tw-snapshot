@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["JbF5exWEi*m?-UEmkASS"];
-const b1 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"];
+const b0 = stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch");
+const b1 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch");
 const b2 = runtime.getOpcodeFunction("sound_seteffectto");
 return function* genXYZ () {
 while (true) {
@@ -22,8 +22,8 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"];
-const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"];
+const b0 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch");
+const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch");
 return function* genXYZ () {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 15", target);

@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"];
-const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"];
+const b0 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list");
+const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
@@ -24,9 +24,9 @@ retire(); return;
 
 // Sprite1 Wtest
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"];
-const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i");
+const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list");
 return function* genXYZ_test () {
 b0.value = "";
 b1.value = 1;

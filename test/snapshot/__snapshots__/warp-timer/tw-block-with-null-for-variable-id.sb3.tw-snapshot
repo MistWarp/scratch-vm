@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables[")|GMR5fz;%F_H,c0wGVM"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1");
+const b1 = stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 b0.value = 1;
@@ -17,7 +17,7 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1");
 return function* genXYZ () {
 if ((toNotNaN(+b0.value) === 1)) {
 runtime.ext_scratch3_looks._say("pass variable 1", target);
@@ -27,7 +27,7 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables[")|GMR5fz;%F_H,c0wGVM"];
+const b0 = stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2");
 return function* genXYZ () {
 if ((toNotNaN(+b0.value) === 2)) {
 runtime.ext_scratch3_looks._say("pass variable 2", target);
