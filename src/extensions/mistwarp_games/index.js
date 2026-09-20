@@ -16,7 +16,7 @@ const eventBlock = (opcode, text, args = null) => ({
     opcode,
     blockType: BlockType.EVENT,
     text,
-    arguments: args || undefined,
+    ...(args ? {arguments: args} : {}),
     isEdgeActivated: false
 });
 

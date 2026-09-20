@@ -3221,7 +3221,8 @@ class Runtime extends EventEmitter {
 
     grantProduct (productId, username) {
         const pid = String(productId || '').trim();
-        const user = String(username || '').trim().toLowerCase();
+        const user = String(username || '').trim()
+            .toLowerCase();
         if (!pid || !user) return false;
         const entitlements = {...this.getTestEntitlements()};
         const currentList = Array.isArray(entitlements[pid]) ? [...entitlements[pid]] : [];
@@ -3235,7 +3236,8 @@ class Runtime extends EventEmitter {
 
     revokeProduct (productId, username) {
         const pid = String(productId || '').trim();
-        const user = String(username || '').trim().toLowerCase();
+        const user = String(username || '').trim()
+            .toLowerCase();
         if (!pid || !user) return false;
         const entitlements = {...this.getTestEntitlements()};
         if (!Array.isArray(entitlements[pid])) return false;
@@ -3247,7 +3249,8 @@ class Runtime extends EventEmitter {
 
     ownsProduct (productId, username) {
         const pid = String(productId || '').trim();
-        const user = String(username || '').trim().toLowerCase();
+        const user = String(username || '').trim()
+            .toLowerCase();
         if (!pid || !user) return false;
         const entitlements = this.getTestEntitlements();
         const list = Array.isArray(entitlements[pid]) ? entitlements[pid] : [];
