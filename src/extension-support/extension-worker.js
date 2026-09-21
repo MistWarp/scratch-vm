@@ -40,17 +40,31 @@ class ExtensionWorker {
                 const [id, extension] = x;
                 this.workerId = id;
 
+                let timer;
+                let onError;
+                const failed = new Promise((resolve, reject) => {
+                    timer = setTimeout(() => reject(new Error(
+                        `Extension did not finish registering within 30 seconds: ${extension}`
+                    )), 30000);
+                    onError = event => reject(new Error(event.message || `Extension failed to start: ${extension}`));
+                    if (typeof self.addEventListener === 'function') self.addEventListener('error', onError);
+                });
                 try {
-                    await loadScripts(extension);
-                    await this.firstRegistrationPromise;
+                    await Promise.race([loadScripts(extension), failed]);
+                    await Promise.race([this.firstRegistrationPromise, failed]);
 
                     const initialRegistrations = this.initialRegistrations;
                     this.initialRegistrations = null;
 
-                    Promise.all(initialRegistrations).then(() => dispatch.call('extensions', 'onWorkerInit', id));
+                    await Promise.race([Promise.all(initialRegistrations), failed]);
+                    await dispatch.call('extensions', 'onWorkerInit', id);
                 } catch (e) {
                     log.error(e);
-                    dispatch.call('extensions', 'onWorkerInit', id, `${e}`);
+                    this.failed = true;
+                    await dispatch.call('extensions', 'onWorkerInit', id, `${e}`);
+                } finally {
+                    clearTimeout(timer);
+                    if (typeof self.removeEventListener === 'function') self.removeEventListener('error', onError);
                 }
             });
         });
@@ -59,6 +73,7 @@ class ExtensionWorker {
     }
 
     register (extensionObject) {
+        if (this.failed) return Promise.reject(new Error('Extension initialization has already failed.'));
         const extensionId = this.nextExtensionId++;
         this.extensions.push(extensionObject);
         const serviceName = `extension.${this.workerId}.${extensionId}`;
