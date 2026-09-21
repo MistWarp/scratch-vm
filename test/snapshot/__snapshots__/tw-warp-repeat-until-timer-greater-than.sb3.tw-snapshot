@@ -12,7 +12,7 @@ retire(); return;
 
 // Sprite1 Wrun without screen refresh
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["F?*}X,`9XBpN_[piGRrz"];
+const b0 = stage.variables["F?*}X,`9XBpN_[piGRrz"] || stage.lookupOrCreateVariable("F?*}X,`9XBpN_[piGRrz", "bail at");
 return function* genXYZ_run_without_screen_r () {
 b0.value = ((daysSince2000() * 86400) + 3);
 runtime.ioDevices.clock.resetProjectTimer();

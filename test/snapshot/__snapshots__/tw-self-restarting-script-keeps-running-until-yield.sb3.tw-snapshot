@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"];
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?");
+const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
@@ -15,8 +15,8 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state");
+const b1 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?");
 return function* genXYZ () {
 if (compareEqual(b0.value, 0)) {
 b0.value = 1;

@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = target.variables["null"];
+const b0 = target.variables["null"] || target.lookupOrCreateVariable("null", "my variable");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 0", target);
 b0.value = 5;

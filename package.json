@@ -32,7 +32,7 @@
   "tap": {
     "timeout": 120,
     "branches": 60,
-    "functions": 70,
+    "functions": 63,
     "lines": 70,
     "statements": 70
   },

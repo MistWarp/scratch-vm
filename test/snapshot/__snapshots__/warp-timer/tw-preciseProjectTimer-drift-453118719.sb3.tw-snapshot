@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["PsY$$vp$IVH;dDAr[q2h"];
-const b1 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"];
+const b0 = stage.variables["PsY$$vp$IVH;dDAr[q2h"] || stage.lookupOrCreateVariable("PsY$$vp$IVH;dDAr[q2h", "done");
+const b1 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"] || stage.lookupOrCreateVariable("l^q!%fq]Bv;72dlGf}^Z", "timer");
 return function* genXYZ () {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 0", target);
@@ -27,9 +27,9 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"];
+const b0 = stage.variables["l^q!%fq]Bv;72dlGf}^Z"] || stage.lookupOrCreateVariable("l^q!%fq]Bv;72dlGf}^Z", "timer");
 const b1 = runtime.getOpcodeFunction("event_whengreaterthan");
-const b2 = stage.variables["PsY$$vp$IVH;dDAr[q2h"];
+const b2 = stage.variables["PsY$$vp$IVH;dDAr[q2h"] || stage.lookupOrCreateVariable("PsY$$vp$IVH;dDAr[q2h", "done");
 return function* genXYZ () {
 {
 const resolvedValue = toBoolean((yield* executeInCompatibilityLayer({"VALUE":b0.value,"WHENGREATERTHANMENU":"TIMER",}, b1, false, false, "iNmua~6veGey6O-_UB9.", null)));

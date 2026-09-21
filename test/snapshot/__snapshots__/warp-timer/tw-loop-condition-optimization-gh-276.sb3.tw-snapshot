@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 yield* thread.procedures["Wtest %s"]("random");
@@ -16,8 +16,8 @@ retire(); return;
 
 // Sprite1 Wtest %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables["t)]?yi[*8XU73qhMqOa8"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+const b1 = stage.variables["t)]?yi[*8XU73qhMqOa8"] || stage.lookupOrCreateList("t)]?yi[*8XU73qhMqOa8", "list");
 return function* genXYZ_test_ (p0) {
 b0.value = p0;
 while (!(("" + listGet(b1.value, b0.value)).toLowerCase() === "something".toLowerCase())) {
