@@ -330,6 +330,7 @@ class ExtensionManager {
 
         try {
             await loadSandboxedOnce(rewritten);
+            this._finishedLoadingExtensionScript();
         } catch (rewrittenError) {
             if (rewritten === extensionURL) {
                 return this._failedLoadingExtensionScript(rewrittenError);
@@ -337,6 +338,7 @@ class ExtensionManager {
             log.warn(`Falling back to original extension URL after rewrite failed: ${extensionURL}`,
                 rewrittenError);
             return loadSandboxedOnce(extensionURL)
+                .then(() => this._finishedLoadingExtensionScript())
                 .catch(error => this._failedLoadingExtensionScript(error));
         }
         return;
@@ -474,10 +476,9 @@ class ExtensionManager {
      * @param {string} serviceName - the name of the service hosting the extension.
      */
     registerExtensionService (serviceName) {
-        dispatch.call(serviceName, 'getInfo').then(info => {
-            this._loadedExtensions.set(info.id, serviceName);
+        return dispatch.call(serviceName, 'getInfo').then(info => {
             this._registerExtensionInfo(serviceName, info);
-            this._finishedLoadingExtensionScript();
+            this._loadedExtensions.set(info.id, serviceName);
         });
     }
 
