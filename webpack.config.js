@@ -24,6 +24,23 @@ const base = {
             }
         },
         {
+            // rotur-sdk ships class fields, which webpack 4's parser cannot read,
+            // so it has to go through babel like src does. javascript/auto keeps
+            // .mjs out of webpack's stricter ESM mode, where the CommonJS
+            // interop the rest of the bundle relies on is unavailable.
+            // Matched by pattern rather than by resolved path, so a hoisted or
+            // symlinked install still gets transpiled.
+            test: /\.m?js$/,
+            type: 'javascript/auto',
+            loader: 'babel-loader',
+            include: /[\\/]node_modules[\\/]rotur-sdk[\\/]/,
+            query: {
+                babelrc: false,
+                configFile: false,
+                presets: [['@babel/preset-env']]
+            }
+        },
+        {
             test: /\.mp3$/,
             loader: 'file-loader',
             options: {

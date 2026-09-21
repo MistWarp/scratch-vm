@@ -3,7 +3,7 @@
 
 // Sprite3 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
+const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"] || stage.lookupOrCreateVariable("):/PVGTvoVRvq(ikGwRE-wait", "wait");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 thread.timer = timer();
@@ -36,8 +36,8 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
-const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
+const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"] || stage.lookupOrCreateVariable("):/PVGTvoVRvq(ikGwRE-order", "order");
+const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"] || stage.lookupOrCreateVariable("):/PVGTvoVRvq(ikGwRE-wait", "wait");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();
@@ -59,8 +59,8 @@ retire(); return;
 
 // Sprite2 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"];
-const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"];
+const b0 = stage.variables["):/PVGTvoVRvq(ikGwRE-order"] || stage.lookupOrCreateVariable("):/PVGTvoVRvq(ikGwRE-order", "order");
+const b1 = stage.variables["):/PVGTvoVRvq(ikGwRE-wait"] || stage.lookupOrCreateVariable("):/PVGTvoVRvq(ikGwRE-wait", "wait");
 return function* genXYZ () {
 b0.value = 0;
 thread.timer = timer();

@@ -60,11 +60,11 @@ test('logs in once with only the scopes the project uses', async t => {
     t.equal(await economy.balance({}), 42);
     t.equal(await economy.balance({}), 42);
     t.same(logins, [['credits:view']]);
-    t.same(systems, ['mistwarp: test']);
+    t.same(systems, ['MistWarp: test']);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
         token: 'token-1',
         scopes: ['credits:view'],
-        system: 'mistwarp: test'
+        system: 'MistWarp: test'
     });
     t.end();
 });
@@ -86,7 +86,7 @@ test('logs in again when the stored token no longer validates', async t => {
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
         token: 'token-2',
         scopes: ['credits:view'],
-        system: 'mistwarp: test'
+        system: 'MistWarp: test'
     });
     authValid = true;
     t.end();
@@ -98,7 +98,7 @@ test('does not hand another project on the same origin the stored token', async 
 
     t.equal(await economy.balance({}), 42);
     t.equal(logins.length, before + 1);
-    t.equal(systems[systems.length - 1], 'mistwarp: other');
+    t.equal(systems[systems.length - 1], 'MistWarp: other');
     t.end();
 });
 

@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ () {
 b0.value = 0;
 while (true) {
@@ -23,7 +23,7 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"];
+const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 b0.value = 0;
