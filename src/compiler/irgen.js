@@ -1115,6 +1115,10 @@ class ScriptTreeGenerator {
         case 'sensing_resettimer':
             return new IntermediateStackBlock(StackOpcode.SENSING_TIMER_RESET);
 
+        case 'argument_reporter_string_number':
+        case 'argument_reporter_boolean':
+            return this.descendVisualReport(block) || new IntermediateStackBlock(StackOpcode.NOP);
+
         default: {
             const opcodeFunction = this.runtime.getOpcodeFunction(block.opcode);
             if (opcodeFunction) {
