@@ -32,7 +32,7 @@ const b1 = runtime.getOpcodeFunction("event_whengreaterthan");
 const b2 = stage.variables["PsY$$vp$IVH;dDAr[q2h"] || stage.lookupOrCreateVariable("PsY$$vp$IVH;dDAr[q2h", "done");
 return function* genXYZ () {
 {
-const resolvedValue = toBoolean((yield* executeInCompatibilityLayer({"VALUE":b0.value,"WHENGREATERTHANMENU":"TIMER",}, b1, false, false, "iNmua~6veGey6O-_UB9.", null)));
+const resolvedValue = toBoolean(yield* executeInCompatibilityLayer({"VALUE":b0.value,"WHENGREATERTHANMENU":"TIMER",}, b1, false, false, "iNmua~6veGey6O-_UB9.", null));
 const id = "iNmua~6veGey6O-_UB9.";
 const hasOldEdgeValue = target.hasEdgeActivatedValue(id);
 const oldEdgeValue = target.updateEdgeActivatedValue(id, resolvedValue);

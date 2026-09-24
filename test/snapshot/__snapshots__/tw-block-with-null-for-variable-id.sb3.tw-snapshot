@@ -19,7 +19,7 @@ retire(); return;
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1");
 return function* genXYZ () {
-if ((toNotNaN(+b0.value) === 1)) {
+if (toNotNaN(+b0.value) === 1) {
 runtime.ext_scratch3_looks._say("pass variable 1", target);
 }
 retire(); return;
@@ -29,7 +29,7 @@ retire(); return;
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2");
 return function* genXYZ () {
-if ((toNotNaN(+b0.value) === 2)) {
+if (toNotNaN(+b0.value) === 2) {
 runtime.ext_scratch3_looks._say("pass variable 2", target);
 }
 retire(); return;

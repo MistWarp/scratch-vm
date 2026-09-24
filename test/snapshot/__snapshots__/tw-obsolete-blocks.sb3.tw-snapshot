@@ -15,9 +15,9 @@ const b8 = runtime.getOpcodeFunction("looks_changestretchby");
 const b9 = runtime.getOpcodeFunction("looks_hideallsprites");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-b0.value = (yield* executeInCompatibilityLayer({}, b1, false, false, "X[|X;C.(v[|^i|@0Eqy4", null));
-b0.value = (yield* executeInCompatibilityLayer({}, b2, false, false, "z;H$hVK7X;MZSyO9U/#1", null));
-b0.value = (yield* executeInCompatibilityLayer({}, b3, false, false, ";Q94_J}Jv36TqTll;ji*", null));
+b0.value = yield* executeInCompatibilityLayer({}, b1, false, false, "X[|X;C.(v[|^i|@0Eqy4", null);
+b0.value = yield* executeInCompatibilityLayer({}, b2, false, false, "z;H$hVK7X;MZSyO9U/#1", null);
+b0.value = yield* executeInCompatibilityLayer({}, b3, false, false, ";Q94_J}Jv36TqTll;ji*", null);
 yield* executeInCompatibilityLayer({"DISTANCE":10,}, b4, false, false, "_TLJeW5hG9gAtYO2c*D9", null);
 yield* executeInCompatibilityLayer({"DISTANCE":10,}, b5, false, false, "o=l#1WJR!L37RN`q:`8E", null);
 yield* executeInCompatibilityLayer({"ALIGNMENT":"bottom-left",}, b6, false, false, "idkZ9I+=Q:@xXm;N-2Oy", null);

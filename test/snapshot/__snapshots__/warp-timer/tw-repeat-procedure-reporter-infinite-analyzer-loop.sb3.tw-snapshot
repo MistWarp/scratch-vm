@@ -15,7 +15,7 @@ retire(); return;
 const b0 = target.variables["ts-.PQ{/]mN_9@MbG:m/"] || target.lookupOrCreateVariable("ts-.PQ{/]mN_9@MbG:m/", "variable");
 return function* genXYZ_test_1 () {
 for (var a0 = toNotNaN(+thread.procedures["Wany procedure reporter"]()); a0 >= 0.5; a0--) {
-b0.value = (toNotNaN(+b0.value) + 1);
+b0.value = toNotNaN(+b0.value) + 1;
 if (isStuck()) yield;
 }
 return "";

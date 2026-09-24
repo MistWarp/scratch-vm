@@ -22,21 +22,21 @@ thread.procedures["Wsetup values"]();
 b0.value = 0;
 b1.value = 0;
 for (var a0 = b2.value.length; a0 > 0; a0--) {
-b1.value = (b1.value + 1);
+b1.value = b1.value + 1;
 b3.value = 0;
 for (var a1 = b2.value.length; a1 > 0; a1--) {
-b3.value = (b3.value + 1);
-b0.value = (b0.value + 1);
-if (!compareEqual(compareGreaterThan((b2.value[b1.value - 1] ?? ""), (b2.value[b3.value - 1] ?? "")), (b4.value[b0.value - 1] ?? ""))) {
-runtime.ext_scratch3_looks._say(("fail " + (("" + (b2.value[b1.value - 1] ?? "")) + (" should be > " + ("" + (b2.value[b3.value - 1] ?? ""))))), target);
+b3.value = b3.value + 1;
+b0.value = b0.value + 1;
+if (!compareEqual(compareGreaterThan(b2.value[b1.value - 1] ?? "", b2.value[b3.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + (b2.value[b1.value - 1] ?? "") + (" should be > " + (b2.value[b3.value - 1] ?? ""))), target);
 }
-b0.value = (b0.value + 1);
-if (!compareEqual(compareEqual((b2.value[b1.value - 1] ?? ""), (b2.value[b3.value - 1] ?? "")), (b4.value[b0.value - 1] ?? ""))) {
-runtime.ext_scratch3_looks._say(("fail " + (("" + (b2.value[b1.value - 1] ?? "")) + (" should be = " + ("" + (b2.value[b3.value - 1] ?? ""))))), target);
+b0.value = b0.value + 1;
+if (!compareEqual(compareEqual(b2.value[b1.value - 1] ?? "", b2.value[b3.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + (b2.value[b1.value - 1] ?? "") + (" should be = " + (b2.value[b3.value - 1] ?? ""))), target);
 }
-b0.value = (b0.value + 1);
-if (!compareEqual(compareLessThan((b2.value[b1.value - 1] ?? ""), (b2.value[b3.value - 1] ?? "")), (b4.value[b0.value - 1] ?? ""))) {
-runtime.ext_scratch3_looks._say(("fail " + (("" + (b2.value[b1.value - 1] ?? "")) + (" should be < " + ("" + (b2.value[b3.value - 1] ?? ""))))), target);
+b0.value = b0.value + 1;
+if (!compareEqual(compareLessThan(b2.value[b1.value - 1] ?? "", b2.value[b3.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + (b2.value[b1.value - 1] ?? "") + (" should be < " + (b2.value[b3.value - 1] ?? ""))), target);
 }
 }
 }
@@ -70,25 +70,25 @@ b0.value.push("-.123");
 b0._monitorUpToDate = false;
 b0.value.push("1.");
 b0._monitorUpToDate = false;
-b0.value.push((0 + 0));
+b0.value.push(0);
 b0._monitorUpToDate = false;
-b0.value.push((1 + 0));
+b0.value.push(1);
 b0._monitorUpToDate = false;
-b0.value.push((2 + 0));
+b0.value.push(2);
 b0._monitorUpToDate = false;
-b0.value.push((-1 + 0));
+b0.value.push(-1);
 b0._monitorUpToDate = false;
-b0.value.push((-2 + 0));
+b0.value.push(-2);
 b0._monitorUpToDate = false;
-b0.value.push((0.123 + 0));
+b0.value.push(0.123);
 b0._monitorUpToDate = false;
-b0.value.push((-0.123 + 0));
+b0.value.push(-0.123);
 b0._monitorUpToDate = false;
-b0.value.push((1 + 0));
+b0.value.push(1);
 b0._monitorUpToDate = false;
 b0.value.push("1e99");
 b0._monitorUpToDate = false;
-b0.value.push((1e+99 + 0));
+b0.value.push(1e+99);
 b0._monitorUpToDate = false;
 b0.value.push(Infinity);
 b0._monitorUpToDate = false;
@@ -96,11 +96,11 @@ b0.value.push(-Infinity);
 b0._monitorUpToDate = false;
 b0.value.push("-infinitY");
 b0._monitorUpToDate = false;
-b0.value.push((1 / 0));
+b0.value.push(Infinity);
 b0._monitorUpToDate = false;
-b0.value.push((-1 / 0));
+b0.value.push(-Infinity);
 b0._monitorUpToDate = false;
-b0.value.push((0 / 0));
+b0.value.push(NaN);
 b0._monitorUpToDate = false;
 b0.value.push("NaN");
 b0._monitorUpToDate = false;
@@ -112,9 +112,9 @@ b0.value.push("true");
 b0._monitorUpToDate = false;
 b0.value.push("false");
 b0._monitorUpToDate = false;
-b0.value.push(!false);
+b0.value.push(true);
 b0._monitorUpToDate = false;
-b0.value.push(!!false);
+b0.value.push(false);
 b0._monitorUpToDate = false;
 b0.value.push("");
 b0._monitorUpToDate = false;

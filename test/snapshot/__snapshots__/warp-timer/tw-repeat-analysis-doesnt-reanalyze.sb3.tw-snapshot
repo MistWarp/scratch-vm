@@ -7,7 +7,7 @@ const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 yield* thread.procedures["Wa"]();
-if ((("" + b0.value).toLowerCase() === "bwah".toLowerCase())) {
+if (("" + b0.value).toLowerCase() === "bwah") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

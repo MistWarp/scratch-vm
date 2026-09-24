@@ -48,11 +48,11 @@ while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = (toNotNaN(+b0.value) + 1);
-if ((b0.value === 1)) {
+b0.value = toNotNaN(+b0.value) + 1;
+if (b0.value === 1) {
 runtime.ext_scratch3_looks._say("pass order is correct (1)", target);
 } else {
-runtime.ext_scratch3_looks._say(("fail order is incorrect 1 != " + ("" + b0.value)), target);
+runtime.ext_scratch3_looks._say("fail order is incorrect 1 != " + b0.value, target);
 }
 retire(); return;
 }; })
@@ -71,11 +71,11 @@ while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = (toNotNaN(+b0.value) + 1);
-if ((b0.value === 2)) {
+b0.value = toNotNaN(+b0.value) + 1;
+if (b0.value === 2) {
 runtime.ext_scratch3_looks._say("pass order is correct (2)", target);
 } else {
-runtime.ext_scratch3_looks._say(("fail order is incorrect 2 != " + ("" + b0.value)), target);
+runtime.ext_scratch3_looks._say("fail order is incorrect 2 != " + b0.value, target);
 }
 retire(); return;
 }; })

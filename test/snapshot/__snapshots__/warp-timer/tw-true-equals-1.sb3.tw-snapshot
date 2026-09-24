@@ -7,30 +7,22 @@ const b0 = stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariab
 const b1 = stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
-if (!("true".toLowerCase() === "1".toLowerCase())) {
+runtime.ext_scratch3_looks._say("pass", target);
+runtime.ext_scratch3_looks._say("pass", target);
+runtime.ext_scratch3_looks._say("pass", target);
+runtime.ext_scratch3_looks._say("pass", target);
+b0.value = true;
+b1.value = "true";
+if (!(b1.value.toLowerCase() === "1")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (!("1".toLowerCase() === "true".toLowerCase())) {
+if (!("1" === b1.value.toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (((+(2 === 2)) === 1)) {
+if (+b0.value === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if ((1 === (+(2 === 2)))) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-b0.value = (2 === 2);
-b1.value = ("tr" + "ue");
-if (!(toNotNaN(+b1.value) === 1)) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-if (!(1 === toNotNaN(+b1.value))) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-if (((+b0.value) === 1)) {
-runtime.ext_scratch3_looks._say("pass", target);
-}
-if ((1 === (+b0.value))) {
+if (1 === +b0.value) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

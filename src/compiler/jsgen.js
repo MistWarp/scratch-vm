@@ -53,6 +53,123 @@ const functionNameVariablePool = new VariablePool('fun');
  */
 const generatorNameVariablePool = new VariablePool('gen');
 
+/**
+ * JavaScript operator precedence of generated expressions. Higher binds tighter. An expression is
+ * only parenthesized when it lands somewhere that needs it to bind tighter than it does.
+ * @readonly
+ * @enum {number}
+ */
+const Precedence = {
+    LOWEST: 0,
+    YIELD: 2,
+    CONDITIONAL: 3,
+    NULLISH: 3,
+    OR: 4,
+    AND: 5,
+    BITWISE_OR: 6,
+    EQUALITY: 9,
+    RELATIONAL: 10,
+    SHIFT: 11,
+    ADDITIVE: 12,
+    MULTIPLICATIVE: 13,
+    EXPONENT: 14,
+    UNARY: 15,
+    CALL: 17
+};
+
+/**
+ * @typedef Expression
+ * @property {string} js Source of the expression.
+ * @property {Precedence} precedence How tightly the outermost operator of the source binds.
+ */
+
+/**
+ * @param {string} js
+ * @param {Precedence} precedence
+ * @returns {Expression}
+ */
+const expression = (js, precedence) => ({js, precedence});
+
+/**
+ * @param {string} js A literal, identifier, member chain or call: never needs parentheses.
+ * @returns {Expression}
+ */
+const primary = js => expression(js, Precedence.CALL);
+
+/**
+ * @param {string} js A conditional expression without its outer parentheses.
+ * @returns {Expression}
+ */
+const conditional = js => expression(js, Precedence.CONDITIONAL);
+
+/**
+ * @param {string} left Already parenthesized as the operator needs.
+ * @param {string} operator
+ * @param {string} right Already parenthesized as the operator needs.
+ * @param {Precedence} precedence Precedence of the operator.
+ * @returns {Expression}
+ */
+const binary = (left, operator, right, precedence) => expression(`${left} ${operator} ${right}`, precedence);
+
+/**
+ * @param {string} operand Already bound at least as tightly as a unary operator.
+ * @returns {Expression}
+ */
+const unaryPlus = operand => expression(operand.startsWith('+') ? `+(${operand})` : `+${operand}`, Precedence.UNARY);
+
+/**
+ * @param {string} js A comparison to negate as a whole.
+ * @returns {Expression}
+ */
+const unaryNot = js => expression(`!(${js})`, Precedence.UNARY);
+
+/**
+ * @param {number} value
+ * @returns {Expression}
+ */
+const numberLiteral = value => {
+    const js = Object.is(value, -0) ? '-0' : value.toString();
+    return expression(js, js.startsWith('-') ? Precedence.UNARY : Precedence.CALL);
+};
+
+/**
+ * Source written by something other than this generator, such as an extension's compiler, binds
+ * however it happens to bind. Treat it as a primary only when nothing outside brackets or quotes
+ * could be an operator.
+ * @param {string} js
+ * @returns {Expression}
+ */
+const foreign = js => {
+    let depth = 0;
+    let quote = null;
+    for (let i = 0; i < js.length; i++) {
+        const character = js[i];
+        if (quote) {
+            if (character === '\\') {
+                i++;
+            } else if (character === quote) {
+                quote = null;
+            }
+        } else if (character === '"' || character === "'" || character === '`') {
+            quote = character;
+        } else if (character === '(' || character === '[' || character === '{') {
+            depth++;
+        } else if (character === ')' || character === ']' || character === '}') {
+            depth--;
+        } else if (depth === 0 && !/[\w$.]/.test(character)) {
+            return expression(js, Precedence.LOWEST);
+        }
+    }
+    return primary(js);
+};
+
+/**
+ * @param {IntermediateInput} input
+ * @returns {boolean} true if the input is a literal below zero (not -0).
+ */
+const isNegativeConstant = input => input.opcode === InputOpcode.CONSTANT &&
+    typeof input.inputs.value === 'number' && input.inputs.value < 0;
+
 const isSafeInputForEqualsOptimization = (input, other) => {
     // Only optimize constants
     if (input.opcode !== InputOpcode.CONSTANT) return false;
@@ -165,64 +282,110 @@ class JSGenerator {
 
     /**
      * @param {IntermediateInput} block Input node to compile.
-     * @returns {string} Compiled input.
+     * @returns {string} Compiled input. Safe to splice into any expression.
      */
     descendInput (block) {
+        return this.descendInputAt(block, Precedence.UNARY);
+    }
+
+    /**
+     * @param {IntermediateInput} block Input node to compile.
+     * @param {number} minimumPrecedence How tightly the surrounding source needs the input to bind.
+     * @returns {string} Compiled input, parenthesized only if it binds looser than required.
+     */
+    descendInputAt (block, minimumPrecedence) {
+        const {js, precedence} = this.descendInputExpression(block);
+        return precedence < minimumPrecedence ? `(${js})` : js;
+    }
+
+    /**
+     * @param {IntermediateInput} block A boolean input.
+     * @returns {string} Source for the opposite of the input.
+     */
+    descendNegated (block) {
+        if (block.opcode === InputOpcode.OP_NOT) {
+            return this.descendInputAt(block.inputs.operand, Precedence.LOWEST);
+        }
+        return `!${this.descendInputAt(block, Precedence.UNARY)}`;
+    }
+
+    /**
+     * @param {IntermediateInput} block An input to compare case-insensitively.
+     * @returns {string} The input lowercased, done now if it is a literal.
+     */
+    descendLowercased (block) {
+        const input = block.toType(InputType.STRING);
+        if (input.opcode === InputOpcode.CONSTANT) {
+            return `"${sanitize(input.inputs.value.toLowerCase())}"`;
+        }
+        return `${this.descendInputAt(input, Precedence.CALL)}.toLowerCase()`;
+    }
+
+    /**
+     * @param {IntermediateInput} block Input node to compile.
+     * @returns {Expression} Compiled input and how tightly it binds.
+     */
+    descendInputExpression (block) {
         const node = block.inputs;
+        const at = (input, precedence) => this.descendInputAt(input, precedence);
+        const argument = input => this.descendInputAt(input, Precedence.LOWEST);
+
         switch (block.opcode) {
         case InputOpcode.NOP:
-            return `""`;
+            return primary(`""`);
 
         case InputOpcode.PROCEDURE_ARGUMENT:
-            return `p${node.index}`;
+            return primary(`p${node.index}`);
 
         case InputOpcode.ADDON_CALL:
-            return `(${this.descendAddonCall(node)})`;
+            return expression(this.descendAddonCall(node), Precedence.YIELD);
 
         case InputOpcode.CAST_BOOLEAN:
-            return `toBoolean(${this.descendInput(node.target)})`;
+            return primary(`toBoolean(${argument(node.target)})`);
         case InputOpcode.CAST_NUMBER:
             if (node.target.isAlwaysType(InputType.BOOLEAN_INTERPRETABLE)) {
-                return `(+${this.descendInput(node.target.toType(InputType.BOOLEAN))})`;
+                return unaryPlus(at(node.target.toType(InputType.BOOLEAN), Precedence.UNARY));
             }
             if (node.target.isAlwaysType(InputType.NUMBER_OR_NAN)) {
-                return `toNotNaN(${this.descendInput(node.target)})`;
+                return primary(`toNotNaN(${argument(node.target)})`);
             }
-            return `toNotNaN(+${this.descendInput(node.target)})`;
+            return primary(`toNotNaN(${unaryPlus(at(node.target, Precedence.UNARY)).js})`);
         case InputOpcode.CAST_NUMBER_OR_NAN:
-            return `(+${this.descendInput(node.target)})`;
+            return unaryPlus(at(node.target, Precedence.UNARY));
         case InputOpcode.CAST_NUMBER_INDEX:
-            return `(${this.descendInput(node.target.toType(InputType.NUMBER_OR_NAN))} | 0)`;
+            return expression(
+                `${at(node.target.toType(InputType.NUMBER_OR_NAN), Precedence.BITWISE_OR)} | 0`,
+                Precedence.BITWISE_OR
+            );
         case InputOpcode.CAST_STRING:
-            return `("" + ${this.descendInput(node.target)})`;
+            return expression(`"" + ${at(node.target, Precedence.MULTIPLICATIVE)}`, Precedence.ADDITIVE);
         case InputOpcode.CAST_COLOR:
-            return `colorToList(${this.descendInput(node.target)})`;
+            return primary(`colorToList(${argument(node.target)})`);
 
         case InputOpcode.COMPATIBILITY_LAYER:
             // Compatibility layer inputs never use flags.
-            return `(${this.generateCompatibilityLayerCall(node, false)})`;
+            return expression(this.generateCompatibilityLayerCall(node, false), Precedence.YIELD);
 
         case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
-            return this.oldCompilerStub.descendInputFromNewCompiler(block);
+            return foreign(this.oldCompilerStub.descendInputFromNewCompiler(block));
 
         case InputOpcode.EXTENSION:
-            return this.generateExtensionCompilerSource(node);
+            return foreign(this.generateExtensionCompilerSource(node));
 
         case InputOpcode.RAW_SOURCE: {
             // Parenthesized so casts and operators cannot rebind the spliced expression.
             // ("" + a + 1) would concatenate; ("" + (a + 1)) adds first, like the old compiler.
             const source = this.generateRawSource(node.fragments);
-            return source === '' ? source : `(${source})`;
+            return primary(source === '' ? source : `(${source})`);
         }
 
         case InputOpcode.CONSTANT:
-            if (block.isAlwaysType(InputType.NUMBER)) {
+            if (block.isAlwaysType(InputType.NUMBER_OR_NAN)) {
                 if (typeof node.value !== 'number') throw new Error(`JS: '${block.type}' type constant had ${typeof node.value} type value. Expected number.`);
-                if (Object.is(node.value, -0)) return '-0';
-                return node.value.toString();
+                return numberLiteral(node.value);
             } else if (block.isAlwaysType(InputType.BOOLEAN)) {
                 if (typeof node.value !== 'boolean') throw new Error(`JS: '${block.type}' type constant had ${typeof node.value} type value. Expected boolean.`);
-                return node.value.toString();
+                return primary(node.value.toString());
             } else if (block.isAlwaysType(InputType.COLOR)) {
                 if (!Array.isArray(node.value)) throw new Error(`JS: '${block.type}' type constant was not an array.`);
                 if (node.value.length !== 3) throw new Error(`JS: '${block.type}' type constant had an array of length '${node.value.length}'. Expected 3.`);
@@ -231,209 +394,240 @@ class JSGenerator {
                         throw new Error(`JS: '${block.type}' type constant element ${i} had a value of type '${node.value[i]}'. Expected number.`);
                     }
                 }
-                return `[${node.value[0]},${node.value[1]},${node.value[2]}]`;
+                return primary(`[${node.value[0]},${node.value[1]},${node.value[2]}]`);
             } else if (block.isSometimesType(InputType.STRING)) {
-                return `"${sanitize(node.value.toString())}"`;
+                return primary(`"${sanitize(node.value.toString())}"`);
             } throw new Error(`JS: Unknown constant input type '${block.type}'.`);
 
         case InputOpcode.SENSING_KEY_DOWN:
-            return `runtime.ioDevices.keyboard.getKeyIsDown(${this.descendInput(node.key)})`;
+            return primary(`runtime.ioDevices.keyboard.getKeyIsDown(${argument(node.key)})`);
 
         case InputOpcode.LIST_CONTAINS:
-            return `listContains(${this.referenceVariable(node.list)}, ${this.descendInput(node.item)})`;
+            return primary(`listContains(${this.referenceVariable(node.list)}, ${argument(node.item)})`);
         case InputOpcode.LIST_CONTENTS:
-            return `listContents(${this.referenceVariable(node.list)})`;
+            return primary(`listContents(${this.referenceVariable(node.list)})`);
         case InputOpcode.LIST_GET: {
+            const list = this.referenceVariable(node.list);
             if (environment.supportsNullishCoalescing) {
                 if (node.index.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN)) {
-                    return `(${this.referenceVariable(node.list)}.value[${this.descendInput(node.index.toType(InputType.NUMBER_INDEX))} - 1] ?? "")`;
+                    const index = at(node.index.toType(InputType.NUMBER_INDEX), Precedence.ADDITIVE);
+                    return expression(`${list}.value[${index} - 1] ?? ""`, Precedence.NULLISH);
                 }
                 if (node.index.isConstant('last')) {
-                    return `(${this.referenceVariable(node.list)}.value[${this.referenceVariable(node.list)}.value.length - 1] ?? "")`;
+                    return expression(`${list}.value[${list}.value.length - 1] ?? ""`, Precedence.NULLISH);
                 }
             }
-            return `listGet(${this.referenceVariable(node.list)}.value, ${this.descendInput(node.index)})`;
+            return primary(`listGet(${list}.value, ${argument(node.index)})`);
         }
         case InputOpcode.LIST_INDEX_OF:
-            return `listIndexOf(${this.referenceVariable(node.list)}, ${this.descendInput(node.item)})`;
+            return primary(`listIndexOf(${this.referenceVariable(node.list)}, ${argument(node.item)})`);
         case InputOpcode.LIST_LENGTH:
-            return `${this.referenceVariable(node.list)}.value.length`;
+            return primary(`${this.referenceVariable(node.list)}.value.length`);
         case InputOpcode.LIST_AS:
-            return node.format.toUpperCase() === 'JSON' ?
+            return primary(node.format.toUpperCase() === 'JSON' ?
                 `JSON.stringify(${this.referenceVariable(node.list)}.value)` :
-                `${this.referenceVariable(node.list)}.value.join(", ")`;
+                `${this.referenceVariable(node.list)}.value.join(", ")`);
 
         case InputOpcode.LOOKS_SIZE_GET:
-            return 'Math.round(target.size)';
+            return primary('Math.round(target.size)');
         case InputOpcode.LOOKS_BACKDROP_NAME:
-            return 'stage.getCostumes()[stage.currentCostume].name';
+            return primary('stage.getCostumes()[stage.currentCostume].name');
         case InputOpcode.LOOKS_BACKDROP_NUMBER:
-            return '(stage.currentCostume + 1)';
+            return expression('stage.currentCostume + 1', Precedence.ADDITIVE);
         case InputOpcode.LOOKS_COSTUME_NAME:
-            return 'target.getCostumes()[target.currentCostume].name';
+            return primary('target.getCostumes()[target.currentCostume].name');
         case InputOpcode.LOOKS_COSTUME_NUMBER:
-            return '(target.currentCostume + 1)';
+            return expression('target.currentCostume + 1', Precedence.ADDITIVE);
         case InputOpcode.LOOKS_COSTUMES:
-            return 'JSON.stringify(target.getCostumes().map(costume => costume.name))';
+            return primary('JSON.stringify(target.getCostumes().map(costume => costume.name))');
 
         case InputOpcode.MOTION_DIRECTION_GET:
-            return 'target.direction';
+            return primary('target.direction');
         case InputOpcode.MOTION_X_GET:
-            return 'limitPrecision(target.x)';
+            return primary('limitPrecision(target.x)');
         case InputOpcode.MOTION_Y_GET:
-            return 'limitPrecision(target.y)';
+            return primary('limitPrecision(target.y)');
 
         case InputOpcode.SENSING_MOUSE_DOWN:
-            return 'runtime.ioDevices.mouse.getIsDown()';
+            return primary('runtime.ioDevices.mouse.getIsDown()');
         case InputOpcode.SENSING_MOUSE_X:
-            return 'runtime.ioDevices.mouse.getScratchX()';
+            return primary('runtime.ioDevices.mouse.getScratchX()');
         case InputOpcode.SENSING_MOUSE_Y:
-            return 'runtime.ioDevices.mouse.getScratchY()';
+            return primary('runtime.ioDevices.mouse.getScratchY()');
 
         case InputOpcode.OP_ABS:
-            return `Math.abs(${this.descendInput(node.value)})`;
+            return primary(`Math.abs(${argument(node.value)})`);
         case InputOpcode.OP_ACOS:
-            return `((Math.acos(${this.descendInput(node.value)}) * 180) / Math.PI)`;
+            return expression(`Math.acos(${argument(node.value)}) * 180 / Math.PI`, Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_ADD:
-            return `(${this.descendInput(node.left)} + ${this.descendInput(node.right)})`;
+            if (isNegativeConstant(node.right)) {
+                // x + -1 reads as x - 1, and IEEE addition of a negated value is subtraction.
+                return binary(at(node.left, Precedence.ADDITIVE), '-', numberLiteral(-node.right.inputs.value).js, Precedence.ADDITIVE);
+            }
+            return binary(at(node.left, Precedence.ADDITIVE), '+', at(node.right, Precedence.MULTIPLICATIVE), Precedence.ADDITIVE);
         case InputOpcode.OP_AND:
-            return `(${this.descendInput(node.left)} && ${this.descendInput(node.right)})`;
+            return binary(at(node.left, Precedence.AND), '&&', at(node.right, Precedence.BITWISE_OR), Precedence.AND);
         case InputOpcode.OP_ASIN:
-            return `((Math.asin(${this.descendInput(node.value)}) * 180) / Math.PI)`;
+            return expression(`Math.asin(${argument(node.value)}) * 180 / Math.PI`, Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_ATAN:
-            return `((Math.atan(${this.descendInput(node.value)}) * 180) / Math.PI)`;
+            return expression(`Math.atan(${argument(node.value)}) * 180 / Math.PI`, Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_CEILING:
-            return `Math.ceil(${this.descendInput(node.value)})`;
+            return primary(`Math.ceil(${argument(node.value)})`);
         case InputOpcode.OP_CONTAINS:
-            return `(${this.descendInput(node.string)}.toLowerCase().indexOf(${this.descendInput(node.contains)}.toLowerCase()) !== -1)`;
+            return expression(
+                `${this.descendLowercased(node.string)}.indexOf(${this.descendLowercased(node.contains)}) !== -1`,
+                Precedence.EQUALITY
+            );
         case InputOpcode.OP_COS:
-            return `(Math.round(Math.cos((Math.PI * ${this.descendInput(node.value)}) / 180) * 1e10) / 1e10)`;
+            return expression(
+                `Math.round(Math.cos(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) * 1e10) / 1e10`,
+                Precedence.MULTIPLICATIVE
+            );
         case InputOpcode.OP_DIVIDE:
-            return `(${this.descendInput(node.left)} / ${this.descendInput(node.right)})`;
+            return binary(at(node.left, Precedence.MULTIPLICATIVE), '/', at(node.right, Precedence.EXPONENT), Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_EQUALS: {
             const left = node.left;
             const right = node.right;
 
             // When either operand is known to never be a number, only use string comparison to avoid all number parsing.
             if (!left.isSometimesType(InputType.NUMBER_INTERPRETABLE) || !right.isSometimesType(InputType.NUMBER_INTERPRETABLE)) {
-                return `(${this.descendInput(left.toType(InputType.STRING))}.toLowerCase() === ${this.descendInput(right.toType(InputType.STRING))}.toLowerCase())`;
+                return binary(this.descendLowercased(left), '===', this.descendLowercased(right), Precedence.EQUALITY);
             }
             // When both operands are known to be numbers, we can use ===
             if (left.isAlwaysType(InputType.NUMBER_INTERPRETABLE) && right.isAlwaysType(InputType.NUMBER_INTERPRETABLE)) {
-                return `(${this.descendInput(left.toType(InputType.NUMBER))} === ${this.descendInput(right.toType(InputType.NUMBER))})`;
+                return binary(at(left.toType(InputType.NUMBER), Precedence.EQUALITY), '===', at(right.toType(InputType.NUMBER), Precedence.RELATIONAL), Precedence.EQUALITY);
             }
             // In certain conditions, we can use === when one of the operands is known to be a safe number.
             if (isSafeInputForEqualsOptimization(left, right) || isSafeInputForEqualsOptimization(right, left)) {
-                return `(${this.descendInput(left.toType(InputType.NUMBER))} === ${this.descendInput(right.toType(InputType.NUMBER))})`;
+                return binary(at(left.toType(InputType.NUMBER), Precedence.EQUALITY), '===', at(right.toType(InputType.NUMBER), Precedence.RELATIONAL), Precedence.EQUALITY);
             }
             // No compile-time optimizations possible - use fallback method.
-            return `compareEqual(${this.descendInput(left)}, ${this.descendInput(right)})`;
+            return primary(`compareEqual(${argument(left)}, ${argument(right)})`);
         }
         case InputOpcode.OP_POW_E:
-            return `Math.exp(${this.descendInput(node.value)})`;
+            return primary(`Math.exp(${argument(node.value)})`);
         case InputOpcode.OP_FLOOR:
-            return `Math.floor(${this.descendInput(node.value)})`;
+            return primary(`Math.floor(${argument(node.value)})`);
         case InputOpcode.OP_GREATER: {
             const left = node.left;
             const right = node.right;
             // When the left operand is a number and the right operand is a number or NaN, we can use >
             if (left.isAlwaysType(InputType.NUMBER_INTERPRETABLE) && right.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN)) {
-                return `(${this.descendInput(left.toType(InputType.NUMBER))} > ${this.descendInput(right.toType(InputType.NUMBER_OR_NAN))})`;
+                return binary(at(left.toType(InputType.NUMBER), Precedence.RELATIONAL), '>', at(right.toType(InputType.NUMBER_OR_NAN), Precedence.SHIFT), Precedence.RELATIONAL);
             }
             // When the left operand is a number or NaN and the right operand is a number, we can negate <=
             if (left.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN) && right.isAlwaysType(InputType.NUMBER_INTERPRETABLE)) {
-                return `!(${this.descendInput(left.toType(InputType.NUMBER_OR_NAN))} <= ${this.descendInput(right.toType(InputType.NUMBER))})`;
+                return unaryNot(`${at(left.toType(InputType.NUMBER_OR_NAN), Precedence.RELATIONAL)} <= ${at(right.toType(InputType.NUMBER), Precedence.SHIFT)}`);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (!left.isSometimesType(InputType.NUMBER_INTERPRETABLE) || !right.isSometimesType(InputType.NUMBER_INTERPRETABLE)) {
-                return `(${this.descendInput(left.toType(InputType.STRING))}.toLowerCase() > ${this.descendInput(right.toType(InputType.STRING))}.toLowerCase())`;
+                return binary(this.descendLowercased(left), '>', this.descendLowercased(right), Precedence.RELATIONAL);
             }
             // No compile-time optimizations possible - use fallback method.
-            return `compareGreaterThan(${this.descendInput(left)}, ${this.descendInput(right)})`;
+            return primary(`compareGreaterThan(${argument(left)}, ${argument(right)})`);
         }
-        case InputOpcode.OP_JOIN:
-            return `(${this.descendInput(node.left)} + ${this.descendInput(node.right)})`;
+        case InputOpcode.OP_JOIN: {
+            // The left side is already a string, so + stringifies the right side exactly like "" + x would.
+            const right = node.right.opcode === InputOpcode.CAST_STRING ? node.right.inputs.target : node.right;
+            return binary(at(node.left, Precedence.ADDITIVE), '+', at(right, Precedence.MULTIPLICATIVE), Precedence.ADDITIVE);
+        }
         case InputOpcode.OP_LENGTH:
-            return `${this.descendInput(node.string)}.length`;
+            return primary(`${at(node.string, Precedence.CALL)}.length`);
         case InputOpcode.OP_LESS: {
             const left = node.left;
             const right = node.right;
             // When the left operand is a number or NaN and the right operand is a number, we can use <
             if (left.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN) && right.isAlwaysType(InputType.NUMBER_INTERPRETABLE)) {
-                return `(${this.descendInput(left.toType(InputType.NUMBER_OR_NAN))} < ${this.descendInput(right.toType(InputType.NUMBER))})`;
+                return binary(at(left.toType(InputType.NUMBER_OR_NAN), Precedence.RELATIONAL), '<', at(right.toType(InputType.NUMBER), Precedence.SHIFT), Precedence.RELATIONAL);
             }
             // When the left operand is a number and the right operand is a number or NaN, we can negate >=
             if (left.isAlwaysType(InputType.NUMBER_INTERPRETABLE) && right.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN)) {
-                return `!(${this.descendInput(left.toType(InputType.NUMBER))} >= ${this.descendInput(right.toType(InputType.NUMBER_OR_NAN))})`;
+                return unaryNot(`${at(left.toType(InputType.NUMBER), Precedence.RELATIONAL)} >= ${at(right.toType(InputType.NUMBER_OR_NAN), Precedence.SHIFT)}`);
             }
             // When either operand is known to never be a number, avoid all number parsing.
             if (!left.isSometimesType(InputType.NUMBER_INTERPRETABLE) || !right.isSometimesType(InputType.NUMBER_INTERPRETABLE)) {
-                return `(${this.descendInput(left.toType(InputType.STRING))}.toLowerCase() < ${this.descendInput(right.toType(InputType.STRING))}.toLowerCase())`;
+                return binary(this.descendLowercased(left), '<', this.descendLowercased(right), Precedence.RELATIONAL);
             }
             // No compile-time optimizations possible - use fallback method.
-            return `compareLessThan(${this.descendInput(left)}, ${this.descendInput(right)})`;
+            return primary(`compareLessThan(${argument(left)}, ${argument(right)})`);
         }
         case InputOpcode.OP_LETTER_OF:
-            return `((${this.descendInput(node.string)})[${this.descendInput(node.letter)} - 1] || "")`;
+            return expression(
+                `${at(node.string, Precedence.CALL)}[${at(node.letter, Precedence.ADDITIVE)} - 1] || ""`,
+                Precedence.OR
+            );
         case InputOpcode.OP_LETTERS_OF:
-            return `${this.descendInput(node.string)}.substring(${this.descendInput(node.start)} - 1, ${this.descendInput(node.end)})`;
+            return primary(`${at(node.string, Precedence.CALL)}.substring(${at(node.start, Precedence.ADDITIVE)} - 1, ${argument(node.end)})`);
         case InputOpcode.OP_INDEX_OF:
-            return `(${this.descendInput(node.string)}.toLowerCase().indexOf(${this.descendInput(node.substring)}.toLowerCase()) + 1)`;
+            return expression(
+                `${this.descendLowercased(node.string)}.indexOf(${this.descendLowercased(node.substring)}) + 1`,
+                Precedence.ADDITIVE
+            );
         case InputOpcode.OP_CHANGE_CASE:
-            return `${this.descendInput(node.string)}.${node.upper ? 'toUpperCase' : 'toLowerCase'}()`;
+            return primary(`${at(node.string, Precedence.CALL)}.${node.upper ? 'toUpperCase' : 'toLowerCase'}()`);
         case InputOpcode.OP_REPEAT:
-            return `repeatString(${this.descendInput(node.string)}, ${this.descendInput(node.count)})`;
+            return primary(`repeatString(${argument(node.string)}, ${argument(node.count)})`);
         case InputOpcode.OP_REPLACE:
-            return `replaceString(${this.descendInput(node.substring)}, ${this.descendInput(node.string)}, ${this.descendInput(node.replacement)})`;
+            return primary(`replaceString(${argument(node.substring)}, ${argument(node.string)}, ${argument(node.replacement)})`);
         case InputOpcode.OP_TRIM:
-            return `${this.descendInput(node.string)}.trim()`;
+            return primary(`${at(node.string, Precedence.CALL)}.trim()`);
         case InputOpcode.OP_LOG_E:
-            return `Math.log(${this.descendInput(node.value)})`;
+            return primary(`Math.log(${argument(node.value)})`);
         case InputOpcode.OP_LOG_10:
-            return `(Math.log(${this.descendInput(node.value)}) / Math.LN10)`;
+            return expression(`Math.log(${argument(node.value)}) / Math.LN10`, Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_MOD: {
             this.descendedIntoModulo = true;
             if (node.right.opcode === InputOpcode.CONSTANT) {
                 const modulus = +node.right.inputs.value;
                 const exponent = Math.round(Math.log2(modulus));
                 if (exponent >= 0 && exponent <= 52 && 2 ** exponent === modulus) {
-                    return `modP2(${this.descendInput(node.left)}, ${modulus})`;
+                    return primary(`modP2(${argument(node.left)}, ${modulus})`);
                 }
                 if (Number.isFinite(modulus) && modulus !== 0) {
                     const temp = this.localVariables.next();
                     this.expressionTempVariables.push(temp);
                     const modulusSource = modulus < 0 ? `(${modulus})` : `${modulus}`;
-                    return `((${temp} = ${this.descendInput(node.left)} % ${modulusSource}) / ${modulusSource} < 0 ? ${temp} + ${modulusSource} : ${temp})`;
+                    const remainder = `(${temp} = ${at(node.left, Precedence.MULTIPLICATIVE)} % ${modulusSource})`;
+                    return expression(`${remainder} / ${modulusSource} < 0 ? ${temp} + ${modulusSource} : ${temp}`, Precedence.CONDITIONAL);
                 }
             }
-            return `mod(${this.descendInput(node.left)}, ${this.descendInput(node.right)})`;
+            return primary(`mod(${argument(node.left)}, ${argument(node.right)})`);
         }
         case InputOpcode.OP_MULTIPLY:
-            return `(${this.descendInput(node.left)} * ${this.descendInput(node.right)})`;
+            return binary(at(node.left, Precedence.MULTIPLICATIVE), '*', at(node.right, Precedence.EXPONENT), Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_NOT:
-            return `!${this.descendInput(node.operand)}`;
+            if (node.operand.opcode === InputOpcode.OP_NOT) {
+                return this.descendInputExpression(node.operand.inputs.operand);
+            }
+            return expression(`!${at(node.operand, Precedence.UNARY)}`, Precedence.UNARY);
         case InputOpcode.OP_OR:
-            return `(${this.descendInput(node.left)} || ${this.descendInput(node.right)})`;
+            return binary(at(node.left, Precedence.OR), '||', at(node.right, Precedence.AND), Precedence.OR);
         case InputOpcode.OP_RANDOM:
             if (node.useInts) {
-                return `randomInt(${this.descendInput(node.low)}, ${this.descendInput(node.high)})`;
+                return primary(`randomInt(${argument(node.low)}, ${argument(node.high)})`);
             }
             if (node.useFloats) {
-                return `randomFloat(${this.descendInput(node.low)}, ${this.descendInput(node.high)})`;
+                return primary(`randomFloat(${argument(node.low)}, ${argument(node.high)})`);
             }
-            return `runtime.ext_scratch3_operators._random(${this.descendInput(node.low)}, ${this.descendInput(node.high)})`;
+            return primary(`runtime.ext_scratch3_operators._random(${argument(node.low)}, ${argument(node.high)})`);
         case InputOpcode.OP_ROUND:
-            return `Math.round(${this.descendInput(node.value)})`;
+            return primary(`Math.round(${argument(node.value)})`);
         case InputOpcode.OP_SIN:
-            return `(Math.round(Math.sin((Math.PI * ${this.descendInput(node.value)}) / 180) * 1e10) / 1e10)`;
+            return expression(
+                `Math.round(Math.sin(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) * 1e10) / 1e10`,
+                Precedence.MULTIPLICATIVE
+            );
         case InputOpcode.OP_SQRT:
-            return `Math.sqrt(${this.descendInput(node.value)})`;
+            return primary(`Math.sqrt(${argument(node.value)})`);
         case InputOpcode.OP_SUBTRACT:
-            return `(${this.descendInput(node.left)} - ${this.descendInput(node.right)})`;
+            if (isNegativeConstant(node.right)) {
+                return binary(at(node.left, Precedence.ADDITIVE), '+', numberLiteral(-node.right.inputs.value).js, Precedence.ADDITIVE);
+            }
+            return binary(at(node.left, Precedence.ADDITIVE), '-', at(node.right, Precedence.MULTIPLICATIVE), Precedence.ADDITIVE);
         case InputOpcode.OP_TAN:
-            return `tan(${this.descendInput(node.value)})`;
+            return primary(`tan(${argument(node.value)})`);
         case InputOpcode.OP_POW_10:
-            return `(10 ** ${this.descendInput(node.value)})`;
+            return expression(`10 ** ${at(node.value, Precedence.EXPONENT)}`, Precedence.EXPONENT);
 
         case InputOpcode.PROCEDURE_CALL: {
             const procedureCode = node.code;
@@ -441,7 +635,7 @@ class JSGenerator {
             const procedureData = this.ir.procedures[procedureVariant];
             if (procedureData.stack === null) {
                 // TODO still need to evaluate arguments for side effects
-                return '""';
+                return primary('""');
             }
 
             // Recursion makes this complicated because:
@@ -451,93 +645,93 @@ class JSGenerator {
             const procedureReference = `thread.procedures["${sanitize(procedureVariant)}"]`;
             const args = [];
             for (const input of node.arguments) {
-                args.push(this.descendInput(input));
+                args.push(argument(input));
             }
-            const joinedArgs = args.join(',');
+            const joinedArgs = args.join(', ');
 
             const yieldForRecursion = !this.isWarp && procedureCode === this.script.procedureCode;
             const yieldForHat = this.isInHat;
             if (yieldForRecursion || yieldForHat) {
                 const runtimeFunction = procedureData.yields ? 'yieldThenCallGenerator' : 'yieldThenCall';
-                return `(yield* ${runtimeFunction}(${procedureReference}, ${joinedArgs}))`;
+                return expression(`yield* ${runtimeFunction}(${procedureReference}, ${joinedArgs})`, Precedence.YIELD);
             }
             if (procedureData.yields) {
-                return `(yield* ${procedureReference}(${joinedArgs}))`;
+                return expression(`yield* ${procedureReference}(${joinedArgs})`, Precedence.YIELD);
             }
-            return `${procedureReference}(${joinedArgs})`;
+            return primary(`${procedureReference}(${joinedArgs})`);
         }
         case InputOpcode.SENSING_ANSWER:
-            return `runtime.ext_scratch3_sensing._answer`;
+            return primary(`runtime.ext_scratch3_sensing._answer`);
         case InputOpcode.SENSING_COLOR_TOUCHING_COLOR:
-            return `target.colorIsTouchingColor(${this.descendInput(node.target)}, ${this.descendInput(node.mask)})`;
+            return primary(`target.colorIsTouchingColor(${argument(node.target)}, ${argument(node.mask)})`);
         case InputOpcode.SENSING_TIME_DATE:
-            return `(new Date().getDate())`;
+            return primary(`new Date().getDate()`);
         case InputOpcode.SENSING_TIME_WEEKDAY:
-            return `(new Date().getDay() + 1)`;
+            return expression(`new Date().getDay() + 1`, Precedence.ADDITIVE);
         case InputOpcode.SENSING_TIME_DAYS_SINCE_2000:
-            return 'daysSince2000()';
+            return primary('daysSince2000()');
         case InputOpcode.SENSING_DISTANCE:
             // TODO: on stages, this can be computed at compile time
-            return `distance(${this.descendInput(node.target)})`;
+            return primary(`distance(${argument(node.target)})`);
         case InputOpcode.SENSING_TIME_HOUR:
-            return `(new Date().getHours())`;
+            return primary(`new Date().getHours()`);
         case InputOpcode.SENSING_TIME_MINUTE:
-            return `(new Date().getMinutes())`;
+            return primary(`new Date().getMinutes()`);
         case InputOpcode.SENSING_TIME_MONTH:
-            return `(new Date().getMonth() + 1)`;
+            return expression(`new Date().getMonth() + 1`, Precedence.ADDITIVE);
         case InputOpcode.SENSING_OF:
-            return `runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ${this.descendInput(node.object)}, PROPERTY: "${sanitize(node.property)}" })`;
+            return primary(`runtime.ext_scratch3_sensing.getAttributeOf({OBJECT: ${argument(node.object)}, PROPERTY: "${sanitize(node.property)}" })`);
         case InputOpcode.SENSING_OF_VOLUME: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.volume : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.volume : 0`);
         } case InputOpcode.SENSING_OF_BACKDROP_NUMBER:
-            return `(stage.currentCostume + 1)`;
+            return expression(`stage.currentCostume + 1`, Precedence.ADDITIVE);
         case InputOpcode.SENSING_OF_BACKDROP_NAME:
-            return `stage.getCostumes()[stage.currentCostume].name`;
+            return primary(`stage.getCostumes()[stage.currentCostume].name`);
         case InputOpcode.SENSING_OF_POS_X: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.x : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.x : 0`);
         } case InputOpcode.SENSING_OF_POS_Y: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.y : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.y : 0`);
         } case InputOpcode.SENSING_OF_DIRECTION: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.direction : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.direction : 0`);
         } case InputOpcode.SENSING_OF_COSTUME_NUMBER: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.currentCostume + 1 : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.currentCostume + 1 : 0`);
         } case InputOpcode.SENSING_OF_COSTUME_NAME: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.getCostumes()[${targetRef}.currentCostume].name : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.getCostumes()[${targetRef}.currentCostume].name : 0`);
         } case InputOpcode.SENSING_OF_SIZE: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? ${targetRef}.size : 0)`;
+            return conditional(`${targetRef} ? ${targetRef}.size : 0`);
         } case InputOpcode.SENSING_OF_VAR: {
             const targetRef = this.descendTargetReference(node.object);
             const varRef = this.evaluateOnce(`${targetRef} && ${targetRef}.lookupVariableByNameAndType("${sanitize(node.property)}", "", true)`);
-            return `(${varRef} ? ${varRef}.value : 0)`;
+            return conditional(`${varRef} ? ${varRef}.value : 0`);
         } case InputOpcode.SENSING_TIME_SECOND:
-            return `(new Date().getSeconds())`;
+            return primary(`new Date().getSeconds()`);
         case InputOpcode.SENSING_TOUCHING_OBJECT:
-            return `target.isTouchingObject(${this.descendInput(node.object)})`;
+            return primary(`target.isTouchingObject(${argument(node.object)})`);
         case InputOpcode.SENSING_TOUCHING_COLOR:
-            return `target.isTouchingColor(${this.descendInput(node.color)})`;
+            return primary(`target.isTouchingColor(${argument(node.color)})`);
         case InputOpcode.SENSING_USERNAME:
-            return 'runtime.ioDevices.userData.getUsername()';
+            return primary('runtime.ioDevices.userData.getUsername()');
         case InputOpcode.SENSING_TIME_YEAR:
-            return `(new Date().getFullYear())`;
+            return primary(`new Date().getFullYear()`);
 
         case InputOpcode.SENSING_TIMER_GET:
-            return 'runtime.ioDevices.clock.projectTimer()';
+            return primary('runtime.ioDevices.clock.projectTimer()');
 
         case InputOpcode.CONTROL_COUNTER:
-            return 'runtime.ext_scratch3_control._counter';
+            return primary('runtime.ext_scratch3_control._counter');
 
         case InputOpcode.TW_KEY_LAST_PRESSED:
-            return 'runtime.ioDevices.keyboard.getLastKeyPressed()';
+            return primary('runtime.ioDevices.keyboard.getLastKeyPressed()');
 
         case InputOpcode.VAR_GET:
-            return `${this.referenceVariable(node.variable)}.value`;
+            return primary(`${this.referenceVariable(node.variable)}.value`);
 
         default:
             log.warn(`JS: Unknown input: ${block.opcode}`, node);
@@ -605,7 +799,7 @@ class JSGenerator {
             this.source += '{\n';
             // For exact Scratch parity, evaluate the input before checking old edge state.
             // Can matter if the input is not instantly evaluated.
-            this.source += `const resolvedValue = ${this.descendInput(node.condition)};\n`;
+            this.source += `const resolvedValue = ${this.descendInputAt(node.condition, Precedence.LOWEST)};\n`;
             this.source += `const id = "${sanitize(node.id)}";\n`;
             this.source += 'const hasOldEdgeValue = target.hasEdgeActivatedValue(id);\n';
             this.source += `const oldEdgeValue = target.updateEdgeActivatedValue(id, resolvedValue);\n`;
@@ -620,7 +814,7 @@ class JSGenerator {
 
         case StackOpcode.HAT_PREDICATE:
             this.isInHat = true;
-            this.source += `if (!${this.descendInput(node.condition)}) {\n`;
+            this.source += `if (${this.descendNegated(node.condition)}) {\n`;
             this.retire();
             this.source += '}\n';
             this.source += 'yield;\n';
@@ -628,7 +822,7 @@ class JSGenerator {
             break;
 
         case StackOpcode.CONTROL_CLONE_CREATE:
-            this.source += `runtime.ext_scratch3_control._createClone(${this.descendInput(node.target)}, target);\n`;
+            this.source += `runtime.ext_scratch3_control._createClone(${this.descendInputAt(node.target, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.CONTROL_CLONE_DELETE:
             this.source += 'if (!target.isOriginal) {\n';
@@ -640,7 +834,7 @@ class JSGenerator {
         case StackOpcode.CONTROL_FOR: {
             const index = this.localVariables.next();
             this.source += `var ${index} = 0; `;
-            this.source += `while (${index} < ${this.descendInput(node.count)}) { `;
+            this.source += `while (${index} < ${this.descendInputAt(node.count, Precedence.SHIFT)}) { `;
             this.source += `${index}++; `;
             this.source += `${this.referenceVariable(node.variable)}.value = ${index};\n`;
             this.descendStack(node.do, new Frame(true));
@@ -649,7 +843,14 @@ class JSGenerator {
             break;
         }
         case StackOpcode.CONTROL_IF_ELSE:
-            this.source += `if (${this.descendInput(node.condition)}) {\n`;
+            if (node.whenTrue.blocks.length === 0 && node.whenFalse.blocks.length !== 0) {
+                // An empty "then" reads better as a negated condition than as an empty block.
+                this.source += `if (${this.descendNegated(node.condition)}) {\n`;
+                this.descendStack(node.whenFalse, new Frame(false));
+                this.source += `}\n`;
+                break;
+            }
+            this.source += `if (${this.descendInputAt(node.condition, Precedence.LOWEST)}) {\n`;
             this.descendStack(node.whenTrue, new Frame(false));
             // only add the else branch if it won't be empty
             // this makes scripts have a bit less useless noise in them
@@ -660,12 +861,12 @@ class JSGenerator {
             this.source += `}\n`;
             break;
         case StackOpcode.CONTROL_SWITCH:
-            this.source += `switch (${this.descendInput(node.value)}) {\n`;
+            this.source += `switch (${this.descendInputAt(node.value, Precedence.LOWEST)}) {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += `}\n`;
             break;
         case StackOpcode.CONTROL_CASE:
-            this.source += `case ${this.descendInput(node.value)}: {\n`;
+            this.source += `case ${this.descendInputAt(node.value, Precedence.LOWEST)}: {\n`;
             this.descendStack(node.do, new Frame(false));
             this.source += 'break; }\n';
             break;
@@ -677,14 +878,14 @@ class JSGenerator {
             this.source += 'break;\n';
             break;
         case StackOpcode.CONTROL_CASE_FALLTHROUGH:
-            this.source += `case ${this.descendInput(node.value)}:\n`;
+            this.source += `case ${this.descendInputAt(node.value, Precedence.LOWEST)}:\n`;
             break;
         case StackOpcode.CONTROL_REPEAT: {
             const i = this.localVariables.next();
             if (node.times.isAlwaysType(InputType.NUMBER_INT | InputType.NUMBER_INF)) {
-                this.source += `for (var ${i} = ${this.descendInput(node.times)}; ${i} > 0; ${i}--) {\n`;
+                this.source += `for (var ${i} = ${this.descendInputAt(node.times, Precedence.LOWEST)}; ${i} > 0; ${i}--) {\n`;
             } else {
-                this.source += `for (var ${i} = ${this.descendInput(node.times)}; ${i} >= 0.5; ${i}--) {\n`;
+                this.source += `for (var ${i} = ${this.descendInputAt(node.times, Precedence.LOWEST)}; ${i} >= 0.5; ${i}--) {\n`;
             }
             this.descendStack(node.do, new Frame(true));
             this.yieldLoop();
@@ -704,7 +905,7 @@ class JSGenerator {
         case StackOpcode.CONTROL_WAIT: {
             const duration = this.localVariables.next();
             this.source += `thread.timer = timer();\n`;
-            this.source += `var ${duration} = Math.max(0, 1000 * ${this.descendInput(node.seconds)});\n`;
+            this.source += `var ${duration} = Math.max(0, 1000 * ${this.descendInputAt(node.seconds, Precedence.EXPONENT)});\n`;
             this.requestRedraw();
             // always yield at least once, even on 0 second durations
             this.yieldNotWarp();
@@ -715,13 +916,13 @@ class JSGenerator {
             break;
         }
         case StackOpcode.CONTROL_WAIT_UNTIL: {
-            this.source += `while (!${this.descendInput(node.condition)}) {\n`;
+            this.source += `while (${this.descendNegated(node.condition)}) {\n`;
             this.yieldStuckOrNotWarp();
             this.source += `}\n`;
             break;
         }
         case StackOpcode.CONTROL_WHILE:
-            this.source += `while (${this.descendInput(node.condition)}) {\n`;
+            this.source += `while (${this.descendInputAt(node.condition, Precedence.LOWEST)}) {\n`;
             this.descendStack(node.do, new Frame(true));
             if (node.warpTimer) {
                 this.yieldStuckOrNotWarp();
@@ -738,16 +939,16 @@ class JSGenerator {
             break;
 
         case StackOpcode.EVENT_BROADCAST:
-            this.source += `startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast)} });\n`;
+            this.source += `startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInputAt(node.broadcast, Precedence.LOWEST)} });\n`;
             break;
         case StackOpcode.EVENT_BROADCAST_AND_WAIT:
-            this.source += `yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInput(node.broadcast)} }));\n`;
+            this.source += `yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInputAt(node.broadcast, Precedence.LOWEST)} }));\n`;
             this.yielded();
             break;
 
         case StackOpcode.LIST_ADD: {
             const list = this.referenceVariable(node.list);
-            this.source += `${list}.value.push(${this.descendInput(node.item)});\n`;
+            this.source += `${list}.value.push(${this.descendInputAt(node.item, Precedence.LOWEST)});\n`;
             this.source += `${list}._monitorUpToDate = false;\n`;
             break;
         }
@@ -764,7 +965,7 @@ class JSGenerator {
                 break;
             }
             // do not need a special case for all as that is handled in IR generation (list.deleteAll)
-            this.source += `listDelete(${list}, ${this.descendInput(node.index)});\n`;
+            this.source += `listDelete(${list}, ${this.descendInputAt(node.index, Precedence.LOWEST)});\n`;
             break;
         }
         case StackOpcode.LIST_DELETE_ALL:
@@ -775,28 +976,28 @@ class JSGenerator {
             break;
         case StackOpcode.LIST_INSERT: {
             const list = this.referenceVariable(node.list);
-            const item = this.descendInput(node.item);
+            const item = this.descendInputAt(node.item, Precedence.LOWEST);
             if (node.index.isConstant(1)) {
                 this.source += `${list}.value.unshift(${item});\n`;
                 this.source += `${list}._monitorUpToDate = false;\n`;
                 break;
             }
-            this.source += `listInsert(${list}, ${this.descendInput(node.index)}, ${item});\n`;
+            this.source += `listInsert(${list}, ${this.descendInputAt(node.index, Precedence.LOWEST)}, ${item});\n`;
             break;
         }
         case StackOpcode.LIST_REPLACE:
-            this.source += `listReplace(${this.referenceVariable(node.list)}, ${this.descendInput(node.index)}, ${this.descendInput(node.item)});\n`;
+            this.source += `listReplace(${this.referenceVariable(node.list)}, ${this.descendInputAt(node.index, Precedence.LOWEST)}, ${this.descendInputAt(node.item, Precedence.LOWEST)});\n`;
             break;
         case StackOpcode.LIST_SHOW:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
         case StackOpcode.LIST_SET_ARRAY:
-            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInput(node.array)}); } catch {}\n`;
+            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInputAt(node.array, Precedence.LOWEST)}); } catch {}\n`;
             break;
 
         case StackOpcode.LOOKS_LAYER_BACKWARD:
             if (!this.target.isStage) {
-                this.source += `target.goBackwardLayers(${this.descendInput(node.layers)});\n`;
+                this.source += `target.goBackwardLayers(${this.descendInputAt(node.layers, Precedence.LOWEST)});\n`;
             }
             break;
         case StackOpcode.LOOKS_EFFECT_CLEAR:
@@ -804,15 +1005,15 @@ class JSGenerator {
             break;
         case StackOpcode.LOOKS_EFFECT_CHANGE:
             if (Object.prototype.hasOwnProperty.call(this.target.effects, node.effect)) {
-                this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInput(node.value)} + target.effects["${sanitize(node.effect)}"]));\n`;
+                this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInputAt(node.value, Precedence.ADDITIVE)} + target.effects["${sanitize(node.effect)}"]));\n`;
             }
             break;
         case StackOpcode.LOOKS_SIZE_CHANGE:
-            this.source += `target.setSize(target.size + ${this.descendInput(node.size)});\n`;
+            this.source += `target.setSize(target.size + ${this.descendInputAt(node.size, Precedence.MULTIPLICATIVE)});\n`;
             break;
         case StackOpcode.LOOKS_LAYER_FORWARD:
             if (!this.target.isStage) {
-                this.source += `target.goForwardLayers(${this.descendInput(node.layers)});\n`;
+                this.source += `target.goForwardLayers(${this.descendInputAt(node.layers, Precedence.LOWEST)});\n`;
             }
             break;
         case StackOpcode.LOOKS_LAYER_BACK:
@@ -837,46 +1038,46 @@ class JSGenerator {
             break;
         case StackOpcode.LOOKS_EFFECT_SET:
             if (Object.prototype.hasOwnProperty.call(this.target.effects, node.effect)) {
-                this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInput(node.value)}));\n`;
+                this.source += `target.setEffect("${sanitize(node.effect)}", runtime.ext_scratch3_looks.clampEffect("${sanitize(node.effect)}", ${this.descendInputAt(node.value, Precedence.LOWEST)}));\n`;
             }
             break;
         case StackOpcode.LOOKS_SIZE_SET:
-            this.source += `target.setSize(${this.descendInput(node.size)});\n`;
+            this.source += `target.setSize(${this.descendInputAt(node.size, Precedence.LOWEST)});\n`;
             break;
         case StackOpcode.LOOKS_SHOW:
             this.source += 'target.setVisible(true);\n';
             this.source += 'runtime.ext_scratch3_looks._renderBubble(target);\n';
             break;
         case StackOpcode.LOOKS_BACKDROP_SET:
-            this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInput(node.backdrop)});\n`;
+            this.source += `runtime.ext_scratch3_looks._setBackdrop(stage, ${this.descendInputAt(node.backdrop, Precedence.LOWEST)});\n`;
             break;
         case StackOpcode.LOOKS_COSTUME_SET:
-            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInput(node.costume)});\n`;
+            this.source += `runtime.ext_scratch3_looks._setCostume(target, ${this.descendInputAt(node.costume, Precedence.LOWEST)});\n`;
             break;
         case StackOpcode.LOOKS_SAY:
-            this.source += `runtime.ext_scratch3_looks._say(${this.descendInput(node.message)}, target);\n`;
+            this.source += `runtime.ext_scratch3_looks._say(${this.descendInputAt(node.message, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.LOOKS_THINK:
-            this.source += `runtime.ext_scratch3_looks._think(${this.descendInput(node.message)}, target);\n`;
+            this.source += `runtime.ext_scratch3_looks._think(${this.descendInputAt(node.message, Precedence.LOWEST)}, target);\n`;
             break;
 
         case StackOpcode.MOTION_X_CHANGE:
-            this.source += `target.setXY(target.x + ${this.descendInput(node.dx)}, target.y);\n`;
+            this.source += `target.setXY(target.x + ${this.descendInputAt(node.dx, Precedence.MULTIPLICATIVE)}, target.y);\n`;
             break;
         case StackOpcode.MOTION_Y_CHANGE:
-            this.source += `target.setXY(target.x, target.y + ${this.descendInput(node.dy)});\n`;
+            this.source += `target.setXY(target.x, target.y + ${this.descendInputAt(node.dy, Precedence.MULTIPLICATIVE)});\n`;
             break;
         case StackOpcode.MOTION_IF_ON_EDGE_BOUNCE:
             this.source += `runtime.ext_scratch3_motion._ifOnEdgeBounce(target);\n`;
             break;
         case StackOpcode.MOTION_DIRECTION_SET:
-            this.source += `target.setDirection(${this.descendInput(node.direction)});\n`;
+            this.source += `target.setDirection(${this.descendInputAt(node.direction, Precedence.LOWEST)});\n`;
             break;
         case StackOpcode.MOTION_POINT_TOWARDS_XY:
-            this.source += `target.setDirection(90 - (Math.atan2(${this.descendInput(node.y)} - target.y, ${this.descendInput(node.x)} - target.x) * 180 / Math.PI));\n`;
+            this.source += `target.setDirection(90 - (Math.atan2(${this.descendInputAt(node.y, Precedence.ADDITIVE)} - target.y, ${this.descendInputAt(node.x, Precedence.ADDITIVE)} - target.x) * 180 / Math.PI));\n`;
             break;
         case StackOpcode.MOTION_POINT_TOWARDS_XY_FROM:
-            this.source += `target.setDirection(90 - (Math.atan2(${this.descendInput(node.y)} - ${this.descendInput(node.fromY)}, ${this.descendInput(node.x)} - ${this.descendInput(node.fromX)}) * 180 / Math.PI));\n`;
+            this.source += `target.setDirection(90 - (Math.atan2(${this.descendInputAt(node.y, Precedence.ADDITIVE)} - ${this.descendInputAt(node.fromY, Precedence.MULTIPLICATIVE)}, ${this.descendInputAt(node.x, Precedence.ADDITIVE)} - ${this.descendInputAt(node.fromX, Precedence.MULTIPLICATIVE)}) * 180 / Math.PI));\n`;
             break;
         case StackOpcode.MOTION_ROTATION_STYLE_SET:
             this.source += `target.setRotationStyle("${sanitize(node.style)}");\n`;
@@ -885,8 +1086,8 @@ class JSGenerator {
         case StackOpcode.MOTION_Y_SET: // fallthrough
         case StackOpcode.MOTION_XY_SET: {
             this.descendedIntoModulo = false;
-            const x = 'x' in node ? this.descendInput(node.x) : 'target.x';
-            const y = 'y' in node ? this.descendInput(node.y) : 'target.y';
+            const x = 'x' in node ? this.descendInputAt(node.x, Precedence.LOWEST) : 'target.x';
+            const y = 'y' in node ? this.descendInputAt(node.y, Precedence.LOWEST) : 'target.y';
             this.source += `target.setXY(${x}, ${y});\n`;
             if (this.descendedIntoModulo) {
                 this.source += `if (target.interpolationData) target.interpolationData = null;\n`;
@@ -894,7 +1095,7 @@ class JSGenerator {
             break;
         }
         case StackOpcode.MOTION_STEP:
-            this.source += `runtime.ext_scratch3_motion._moveSteps(${this.descendInput(node.steps)}, target);\n`;
+            this.source += `runtime.ext_scratch3_motion._moveSteps(${this.descendInputAt(node.steps, Precedence.LOWEST)}, target);\n`;
             break;
 
         case StackOpcode.NOP:
@@ -907,40 +1108,40 @@ class JSGenerator {
             this.source += `${PEN_EXT}._penDown(target);\n`;
             break;
         case StackOpcode.PEN_COLOR_PARAM_CHANGE:
-            this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInput(node.param)}, ${this.descendInput(node.value)}, ${PEN_STATE}, true);\n`;
+            this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInputAt(node.param, Precedence.LOWEST)}, ${this.descendInputAt(node.value, Precedence.LOWEST)}, ${PEN_STATE}, true);\n`;
             break;
         case StackOpcode.PEN_SIZE_CHANGE:
-            this.source += `${PEN_EXT}._changePenSizeBy(${this.descendInput(node.size)}, target);\n`;
+            this.source += `${PEN_EXT}._changePenSizeBy(${this.descendInputAt(node.size, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_HUE_CHANGE_LEGACY:
-            this.source += `${PEN_EXT}._changePenHueBy(${this.descendInput(node.hue)}, target);\n`;
+            this.source += `${PEN_EXT}._changePenHueBy(${this.descendInputAt(node.hue, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_SHADE_CHANGE_LEGACY:
-            this.source += `${PEN_EXT}._changePenShadeBy(${this.descendInput(node.shade)}, target);\n`;
+            this.source += `${PEN_EXT}._changePenShadeBy(${this.descendInputAt(node.shade, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_HUE_SET_LEGACY:
-            this.source += `${PEN_EXT}._setPenHueToNumber(${this.descendInput(node.hue)}, target);\n`;
+            this.source += `${PEN_EXT}._setPenHueToNumber(${this.descendInputAt(node.hue, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_SHADE_SET_LEGACY:
-            this.source += `${PEN_EXT}._setPenShadeToNumber(${this.descendInput(node.shade)}, target);\n`;
+            this.source += `${PEN_EXT}._setPenShadeToNumber(${this.descendInputAt(node.shade, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_SET:
-            this.source += `${PEN_EXT}._setPenColorToColor(${this.descendInput(node.color)}, target);\n`;
+            this.source += `${PEN_EXT}._setPenColorToColor(${this.descendInputAt(node.color, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_COLOR_PARAM_SET:
-            this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInput(node.param)}, ${this.descendInput(node.value)}, ${PEN_STATE}, false);\n`;
+            this.source += `${PEN_EXT}._setOrChangeColorParam(${this.descendInputAt(node.param, Precedence.LOWEST)}, ${this.descendInputAt(node.value, Precedence.LOWEST)}, ${PEN_STATE}, false);\n`;
             break;
         case StackOpcode.PEN_SIZE_SET:
-            this.source += `${PEN_EXT}._setPenSizeTo(${this.descendInput(node.size)}, target);\n`;
+            this.source += `${PEN_EXT}._setPenSizeTo(${this.descendInputAt(node.size, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_STAMP:
             this.source += `${PEN_EXT}._stamp(target);\n`;
             break;
         case StackOpcode.PEN_PRINT_TEXT:
-            this.source += `${PEN_EXT}._printText(${this.descendInput(node.text)}, ${this.descendInput(node.x)}, ${this.descendInput(node.y)}, target);\n`;
+            this.source += `${PEN_EXT}._printText(${this.descendInputAt(node.text, Precedence.LOWEST)}, ${this.descendInputAt(node.x, Precedence.LOWEST)}, ${this.descendInputAt(node.y, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_DRAW_TRIANGLE:
-            this.source += `${PEN_EXT}._triangle(${this.descendInput(node.x0)}, ${this.descendInput(node.y0)}, ${this.descendInput(node.x1)}, ${this.descendInput(node.y1)}, ${this.descendInput(node.x2)}, ${this.descendInput(node.y2)}, target);\n`;
+            this.source += `${PEN_EXT}._triangle(${this.descendInputAt(node.x0, Precedence.LOWEST)}, ${this.descendInputAt(node.y0, Precedence.LOWEST)}, ${this.descendInputAt(node.x1, Precedence.LOWEST)}, ${this.descendInputAt(node.y1, Precedence.LOWEST)}, ${this.descendInputAt(node.x2, Precedence.LOWEST)}, ${this.descendInputAt(node.y2, Precedence.LOWEST)}, target);\n`;
             break;
         case StackOpcode.PEN_UP:
             this.source += `${PEN_EXT}._penUp(target);\n`;
@@ -968,14 +1169,14 @@ class JSGenerator {
             this.source += `thread.procedures["${sanitize(procedureVariant)}"](`;
             const args = [];
             for (const input of node.arguments) {
-                args.push(this.descendInput(input));
+                args.push(this.descendInputAt(input, Precedence.LOWEST));
             }
-            this.source += args.join(',');
+            this.source += args.join(', ');
             this.source += `);\n`;
             break;
         }
         case StackOpcode.PROCEDURE_RETURN:
-            this.stopScriptAndReturn(this.descendInput(node.value));
+            this.stopScriptAndReturn(this.descendInputAt(node.value, Precedence.LOWEST));
             break;
 
         case StackOpcode.SENSING_TIMER_RESET:
@@ -991,7 +1192,7 @@ class JSGenerator {
             break;
         case StackOpcode.VAR_SET: {
             const varReference = this.referenceVariable(node.variable);
-            this.source += `${varReference}.value = ${this.descendInput(node.value)};\n`;
+            this.source += `${varReference}.value = ${this.descendInputAt(node.value, Precedence.LOWEST)};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${varReference}.value);\n`;
             }
@@ -1003,7 +1204,7 @@ class JSGenerator {
 
         case StackOpcode.VISUAL_REPORT: {
             const value = this.localVariables.next();
-            this.source += `const ${value} = ${this.descendInput(node.input)};`;
+            this.source += `const ${value} = ${this.descendInputAt(node.input, Precedence.LOWEST)};`;
             // blocks like legacy no-ops can return a literal `undefined`
             this.source += `if (${value} !== undefined) runtime.visualReport(target, "${sanitize(this.script.topBlockId)}", ${value});\n`;
             break;
@@ -1025,7 +1226,7 @@ class JSGenerator {
             throw new Error(`JS: Object references must be strings!`);
         }
         if (input.isConstant('_stage_')) return 'stage';
-        return this.evaluateOnce(`runtime.getSpriteTargetByName(${this.descendInput(input)})`);
+        return this.evaluateOnce(`runtime.getSpriteTargetByName(${this.descendInputAt(input, Precedence.LOWEST)})`);
     }
 
     /**
@@ -1037,7 +1238,7 @@ class JSGenerator {
         let result = '{';
         for (const name of Object.keys(inputs)) {
             const node = inputs[name];
-            result += `"${sanitize(name)}":${this.descendInput(node)},`;
+            result += `"${sanitize(name)}":${this.descendInputAt(node, Precedence.LOWEST)},`;
         }
         result += '}';
         return result;
@@ -1238,7 +1439,7 @@ class JSGenerator {
 
         for (const inputName of Object.keys(node.inputs)) {
             const input = node.inputs[inputName];
-            const compiledInput = this.descendInput(input);
+            const compiledInput = this.descendInputAt(input, Precedence.LOWEST);
             result += `"${sanitize(inputName)}":${compiledInput},`;
         }
         for (const fieldName of Object.keys(node.fields)) {
@@ -1418,6 +1619,7 @@ JSGenerator.unstable_exports = {
     PEN_EXT,
     PEN_STATE,
     Frame,
+    Precedence,
     sanitize
 };
 

@@ -1,6 +1,7 @@
 // @ts-check
 
 const {StackOpcode, InputOpcode, InputType} = require('./enums.js');
+const {foldStack} = require('./irfold');
 const log = require('../util/log');
 
 // These imports are used by jsdoc comments but eslint doesn't know that
@@ -158,34 +159,44 @@ class IROptimizer {
         case InputOpcode.ADDON_CALL:
             break;
 
-        case InputOpcode.CAST_BOOLEAN: {
-            const innerType = inputs.target.type;
-            if (innerType & InputType.BOOLEAN) return innerType;
+        // Casts produce exactly the values their generated code can produce from the inner type.
+        case InputOpcode.CAST_BOOLEAN:
             return InputType.BOOLEAN;
-        }
 
         case InputOpcode.CAST_NUMBER: {
+            // toNotNaN(+x), or +toBoolean(x) for booleans and "true"/"false"
             const innerType = inputs.target.type;
-            if (innerType & InputType.NUMBER) return innerType;
-            return InputType.NUMBER;
+            let resultType = innerType & InputType.NUMBER;
+            if (innerType & (InputType.NUMBER_NAN | InputType.STRING_NAN | InputType.BOOLEAN_INTERPRETABLE)) {
+                resultType |= InputType.NUMBER_ZERO;
+            }
+            if (innerType & InputType.BOOLEAN_INTERPRETABLE) resultType |= InputType.NUMBER_POS_INT;
+            if (innerType & InputType.STRING_NUM) resultType |= InputType.NUMBER;
+            return resultType || InputType.NUMBER;
         }
 
-        case InputOpcode.CAST_NUMBER_INDEX: {
-            const innerType = inputs.target.type;
-            if (innerType & InputType.NUMBER_INDEX) return innerType;
-            return InputType.NUMBER_INDEX;
-        }
+        case InputOpcode.CAST_NUMBER_INDEX:
+            // (+x) | 0 wraps to a 32-bit integer, so anything may become any integer.
+            return InputType.NUMBER_POS_INT | InputType.NUMBER_ZERO | InputType.NUMBER_NEG_INT;
 
         case InputOpcode.CAST_NUMBER_OR_NAN: {
+            // +x
             const innerType = inputs.target.type;
-            if (innerType & InputType.NUMBER_OR_NAN) return innerType;
-            return InputType.NUMBER_OR_NAN;
+            let resultType = innerType & InputType.NUMBER_OR_NAN;
+            if (innerType & (InputType.STRING_NAN | InputType.STRING_BOOLEAN)) resultType |= InputType.NUMBER_NAN;
+            if (innerType & InputType.BOOLEAN) resultType |= InputType.NUMBER_ZERO | InputType.NUMBER_POS_INT;
+            if (innerType & InputType.STRING_NUM) resultType |= InputType.NUMBER;
+            return resultType || InputType.NUMBER_OR_NAN;
         }
 
         case InputOpcode.CAST_STRING: {
+            // "" + x
             const innerType = inputs.target.type;
-            if (innerType & InputType.STRING) return innerType;
-            return InputType.STRING;
+            let resultType = innerType & InputType.STRING;
+            if (innerType & InputType.NUMBER) resultType |= InputType.STRING_NUM;
+            if (innerType & InputType.NUMBER_NAN) resultType |= InputType.STRING_NAN;
+            if (innerType & InputType.BOOLEAN) resultType |= InputType.STRING_BOOLEAN;
+            return resultType || InputType.STRING;
         }
 
         case InputOpcode.OP_ADD: {
@@ -815,6 +826,9 @@ class IROptimizer {
             this.optimizeScript(this.ir.procedures[procVariant], alreadyOptimized);
         }
 
+        // Fold before analysis so the analysis sees exact constants and no dead branches.
+        if (script.stack) foldStack(script.stack);
+
         this.exitState = null;
         const exitState = new TypeState();
         this.analyzeStack(script.stack, exitState);
@@ -823,6 +837,9 @@ class IROptimizer {
         script.cachedAnalysisEndState = this.exitState;
 
         this.optimizeStack(script.stack, new TypeState());
+
+        // Removing casts exposes identities such as x + 0 for inputs now known to be numbers.
+        if (script.stack) foldStack(script.stack);
     }
 
     optimize () {

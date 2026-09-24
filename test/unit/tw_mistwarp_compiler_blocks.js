@@ -111,7 +111,7 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
 
     t.match(source, /Math\.atan2/, 'coordinate block is native');
     t.match(source, /_printText/, 'pen text block is native');
-    t.match(source, /\.trim\(\)/, 'text operator is native');
+    t.match(source, /_printText\("text", 0, 0, target\)/, 'text operator on a literal is folded to its result');
     t.match(source, /getCostumes\(\)\.map/, 'costume list reporter is native');
     t.match(source, /JSON\.parse/, 'list import is native');
     t.match(source, /JSON\.stringify\(.*\.value\)/, 'list export is native');
@@ -218,8 +218,8 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
     t.equal(migrated.mutation.itemcount, '3', 'legacy arity is preserved');
     t.match(
         source,
-        /globalThis\.__originPatch = \(toNotNaN\(\(1 \+ 2\)\) \+ 3\);/,
-        'literal source and variadic reporters are joined'
+        /globalThis\.__originPatch = \(3 \+ 3\);/,
+        'literal source and variadic reporters are joined, and the spliced reporter stays an expression'
     );
     t.match(source, /globalThis\.__nativePatch = 4;/, 'native Patching blocks splice JavaScript');
     t.notMatch(source, /"globalThis\.__originPatch/, 'raw source is not emitted as a quoted statement');
