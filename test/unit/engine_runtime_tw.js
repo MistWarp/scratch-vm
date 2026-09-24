@@ -1,5 +1,4 @@
 const tap = require('tap');
-const {OrderedMap} = require('immutable');
 const Runtime = require('../../src/engine/runtime');
 const VirtualMachine = require('../../src/virtual-machine');
 const MonitorRecord = require('../../src/engine/monitor-record');
@@ -173,10 +172,12 @@ test('setStageSize preserves monitor position relative to center of stage', t =>
     t.end();
 });
 
-test('VM monitor updates remain compatible with the GUI', t => {
+test('VM monitor updates send the monitor state without copying it', t => {
     const vm = new VirtualMachine();
     vm.once(Runtime.MONITORS_UPDATE, monitors => {
-        t.equal(OrderedMap.isOrderedMap(monitors), true);
+        t.equal(typeof monitors.valueSeq, 'function');
+        t.equal(monitors.get('abc').get('id'), 'abc');
+        t.equal(monitors.valueSeq().length, 1);
         t.end();
     });
     vm.runtime.requestAddMonitor(new MonitorRecord({id: 'abc'}));

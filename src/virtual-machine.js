@@ -164,7 +164,7 @@ class VirtualMachine extends EventEmitter {
             this.emitTargetsUpdate(emitProjectChanged);
         });
         this.runtime.on(Runtime.MONITORS_UPDATE, monitorList => {
-            this.emit(Runtime.MONITORS_UPDATE, monitorList.toImmutable());
+            this.emit(Runtime.MONITORS_UPDATE, monitorList);
         });
         this.runtime.on(Runtime.BLOCK_DRAG_UPDATE, areBlocksOverGui => {
             this.emit(Runtime.BLOCK_DRAG_UPDATE, areBlocksOverGui);
