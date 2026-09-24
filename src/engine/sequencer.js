@@ -65,7 +65,7 @@ class Sequencer {
     }
 
     static get MAX_ITERATIONS_PER_TIME_CHECK () {
-        return 512;
+        return 64;
     }
 
     /**
