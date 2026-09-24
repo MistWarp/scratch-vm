@@ -8,7 +8,7 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = "";
 thread.procedures["Zdo something"]();
-if (!(b0.value.toLowerCase() === "".toLowerCase())) {
+if (!(b0.value.toLowerCase() === "")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

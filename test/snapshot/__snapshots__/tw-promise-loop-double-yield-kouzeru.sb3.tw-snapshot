@@ -8,8 +8,7 @@ const b1 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariab
 const b2 = runtime.getOpcodeFunction("sound_seteffectto");
 return function* genXYZ () {
 while (true) {
-if (compareEqual(b0.value, b1.value)) {
-} else {
+if (!compareEqual(b0.value, b1.value)) {
 runtime.ext_scratch3_looks._say("pass", target);
 b1.value = b0.value;
 yield* executeInCompatibilityLayer({"VALUE":b0.value,"EFFECT":"pitch",}, b2, false, true, "*=8r,g4Pzvxo?aSMcpfX", null);
@@ -28,7 +27,7 @@ return function* genXYZ () {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 15", target);
 for (var a0 = 15; a0 > 0; a0--) {
-if ((toNotNaN(+b1.value) === 200)) {
+if (toNotNaN(+b1.value) === 200) {
 b1.value = 50;
 } else {
 b1.value = 200;

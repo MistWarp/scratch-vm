@@ -5,18 +5,10 @@
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 4", target);
-if (compareGreaterThan(("something".toLowerCase() === "something".toLowerCase()), ("0" + ""))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (compareLessThan(("something".toLowerCase() === "else".toLowerCase()), ("1" + ""))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (((+("something".toLowerCase() === "something".toLowerCase())) > (0 + 0))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
-if (((+("something".toLowerCase() === "else".toLowerCase())) < (1 + 0))) {
 runtime.ext_scratch3_looks._say("pass", target);
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

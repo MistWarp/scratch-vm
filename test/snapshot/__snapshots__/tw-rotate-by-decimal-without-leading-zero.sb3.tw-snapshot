@@ -6,9 +6,9 @@
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 target.setDirection(90);
-target.setDirection((target.direction + 0.25));
-target.setDirection((target.direction + 0.25));
-if ((target.direction === 90.5)) {
+target.setDirection(target.direction + 0.25);
+target.setDirection(target.direction + 0.25);
+if (target.direction === 90.5) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
