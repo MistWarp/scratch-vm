@@ -196,6 +196,8 @@ const cloudDataManager = cloudOptions => {
  */
 let stepProfilerId = -1;
 
+let rendererDrawProfilerId = -1;
+
 /**
  * Numeric ID for Sequencer.stepThreads in Profiler instances.
  * @type {number}
@@ -468,6 +470,8 @@ class Runtime extends EventEmitter {
          * @type {!number}
          */
         this.screenRefreshTime = 0;
+
+        this._lastDrawTime = 0;
 
         this._initScratchLink();
 
@@ -2670,7 +2674,26 @@ class Runtime extends EventEmitter {
         interpolate.interpolate(this, progressInFrame);
 
         if (this.renderer) {
-            this.renderer.draw();
+            this._drawFrame();
+        }
+    }
+
+    _drawFrame () {
+        const drawTime = this.frameLoop.now();
+        if (this._lastDrawTime !== 0) {
+            this.screenRefreshTime = drawTime - this._lastDrawTime;
+        }
+        this._lastDrawTime = drawTime;
+        if (typeof document === 'object' && document.hidden) return;
+        if (this.profiler !== null) {
+            if (rendererDrawProfilerId === -1) {
+                rendererDrawProfilerId = this.profiler.idByName('RenderWebGL.draw');
+            }
+            this.profiler.start(rendererDrawProfilerId);
+        }
+        this.renderer.draw();
+        if (this.profiler !== null) {
+            this.profiler.stop();
         }
     }
 
@@ -2752,6 +2775,10 @@ class Runtime extends EventEmitter {
         // Store threads that completed this iteration for testing and other
         // internal purposes.
         this._lastStepDoneThreads = doneThreads;
+
+        if (this.renderer && !this.frameLoop._interpolationAnimation && !this.frameLoop.deferDraw) {
+            this._drawFrame();
+        }
 
         if (this._refreshTargets) {
             this.emit(Runtime.TARGETS_UPDATE, false /* Don't emit project changed */);
