@@ -588,7 +588,8 @@ runtimeFunctions.modP2 = `const modP2 = (n, modulus) => n - (Math.floor(n / modu
  * @returns {number} value of tangent or Infinity or -Infinity
  */
 runtimeFunctions.tan = `const tan = (angle) => {
-    switch (angle % 360) {
+    angle = angle % 360;
+    switch (angle) {
     case -270: case 90: return Infinity;
     case -90: case 270: return -Infinity;
     }

@@ -5,8 +5,8 @@
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
-thread.procedures["Znumber or text %s %s"]("bad","ok");
-thread.procedures["Zboolean %b %b"]("false",!false);
+thread.procedures["Znumber or text %s %s"]("bad", "ok");
+thread.procedures["Zboolean %b %b"]("false", true);
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
@@ -14,7 +14,7 @@ retire(); return;
 // Sprite1 Znumber or text %s %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_number_or_text__ (p0,p1) {
-if ((("" + p1).toLowerCase() === "ok".toLowerCase())) {
+if (("" + p1).toLowerCase() === "ok") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";

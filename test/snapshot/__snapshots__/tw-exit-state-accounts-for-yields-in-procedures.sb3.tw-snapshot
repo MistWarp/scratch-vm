@@ -7,9 +7,9 @@ const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 const b1 = stage.variables["FpLI$ida6)qR,q~y`1|*"] || stage.lookupOrCreateList("FpLI$ida6)qR,q~y`1|*", "a");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-b0.value = (1 + 2);
+b0.value = 3;
 yield* thread.procedures["Zsomething that yields"]();
-if ((("" + listGet(b1.value, b0.value)).toLowerCase() === "the only thing".toLowerCase())) {
+if (("" + listGet(b1.value, b0.value)).toLowerCase() === "the only thing") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

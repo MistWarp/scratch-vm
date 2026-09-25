@@ -6,7 +6,7 @@
 const b0 = stage.variables["sl-id"] || stage.lookupOrCreateList("sl-id", "vals");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
-switch (("" + (b0.value[1 - 1] ?? ""))) {
+switch ("" + (b0.value[1 - 1] ?? "")) {
 case "hello": {
 runtime.ext_scratch3_looks._say("fail-wrong-case", target);
 break;
@@ -22,7 +22,7 @@ break; }
 default:
 runtime.ext_scratch3_looks._say("fail-default", target);
 }
-switch (("" + (b0.value[2 - 1] ?? ""))) {
+switch ("" + (b0.value[2 - 1] ?? "")) {
 case "0": {
 runtime.ext_scratch3_looks._say("fail", target);
 break;
@@ -38,7 +38,7 @@ break; }
 default:
 runtime.ext_scratch3_looks._say("pass s1-default", target);
 }
-switch (("" + (b0.value[3 - 1] ?? ""))) {
+switch ("" + (b0.value[3 - 1] ?? "")) {
 case "1": {
 runtime.ext_scratch3_looks._say("fail", target);
 break;

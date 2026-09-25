@@ -6,20 +6,20 @@
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
-if ((("" + thread.procedures["Zsimplest"]()).toLowerCase() === "It works!".toLowerCase())) {
+if (("" + thread.procedures["Zsimplest"]()).toLowerCase() === "it works!") {
 runtime.ext_scratch3_looks._say("pass simplest", target);
 }
-if ((("" + thread.procedures["Znesting 1"]()).toLowerCase() === "42-54".toLowerCase())) {
+if (("" + thread.procedures["Znesting 1"]()).toLowerCase() === "42-54") {
 runtime.ext_scratch3_looks._say("pass nesting1", target);
 }
-if ((toNotNaN(+thread.procedures["Wwarp fib %s"](12)) === 144)) {
+if (toNotNaN(+thread.procedures["Wwarp fib %s"](12)) === 144) {
 runtime.ext_scratch3_looks._say("pass fib 12", target);
 }
-if ((toNotNaN(+thread.procedures["Wfactorial %s"](12)) === 479001600)) {
+if (toNotNaN(+thread.procedures["Wfactorial %s"](12)) === 479001600) {
 runtime.ext_scratch3_looks._say("pass factorial 12", target);
 }
-b0.value = thread.procedures["Zno shadowing 1 %s %s"]("f","g");
-if ((("" + b0.value).toLowerCase() === "".toLowerCase())) {
+b0.value = thread.procedures["Zno shadowing 1 %s %s"]("f", "g");
+if (("" + b0.value).toLowerCase() === "") {
 runtime.ext_scratch3_looks._say("pass default return value", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -37,7 +37,7 @@ return "";
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_nesting_1 () {
 thread.procedures["Znesting 2"]();
-return (("" + thread.procedures["Znesting 3 %s %s"](6,7)) + ("" + thread.procedures["Znesting 3 %s %s"](-1,54)));
+return "" + thread.procedures["Znesting 3 %s %s"](6, 7) + thread.procedures["Znesting 3 %s %s"](-1, 54);
 return "";
 }; })
 
@@ -52,7 +52,7 @@ return "";
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_factorial_ (p0) {
 if (compareGreaterThan(p0, 1)) {
-return (toNotNaN(+p0) * toNotNaN(+thread.procedures["Wfactorial %s"]((toNotNaN(+p0) - 1))));
+return toNotNaN(+p0) * toNotNaN(+thread.procedures["Wfactorial %s"](toNotNaN(+p0) - 1));
 }
 return 1;
 return "";
@@ -62,15 +62,15 @@ return "";
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "temporary return value");
 return function funXYZ_no_shadowing_1__ (p0,p1) {
-if (((("" + p0).toLowerCase() === "f".toLowerCase()) && (("" + p1).toLowerCase() === "g".toLowerCase()))) {
+if (("" + p0).toLowerCase() === "f" && ("" + p1).toLowerCase() === "g") {
 runtime.ext_scratch3_looks._say("pass shadow check 1", target);
 }
-b0.value = thread.procedures["Zno shadowing 2 %s %s"](1,2);
-if (((("" + p0).toLowerCase() === "f".toLowerCase()) && (("" + p1).toLowerCase() === "g".toLowerCase()))) {
+b0.value = thread.procedures["Zno shadowing 2 %s %s"](1, 2);
+if (("" + p0).toLowerCase() === "f" && ("" + p1).toLowerCase() === "g") {
 runtime.ext_scratch3_looks._say("pass shadow check 2", target);
 }
-b0.value = thread.procedures["Zno shadowing 2 %s %s"](3,4);
-if (((("" + p0).toLowerCase() === "f".toLowerCase()) && (("" + p1).toLowerCase() === "g".toLowerCase()))) {
+b0.value = thread.procedures["Zno shadowing 2 %s %s"](3, 4);
+if (("" + p0).toLowerCase() === "f" && ("" + p1).toLowerCase() === "g") {
 runtime.ext_scratch3_looks._say("pass shadow check 3", target);
 }
 return "";
@@ -86,7 +86,7 @@ return "";
 // Sprite1 Znesting 3 %s %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_nesting_3__ (p0,p1) {
-return (toNotNaN(+p0) * toNotNaN(+p1));
+return toNotNaN(+p0) * toNotNaN(+p1);
 return "";
 }; })
 
@@ -96,7 +96,7 @@ return function funXYZ_fib_ (p0) {
 if (compareLessThan(p0, 2)) {
 return p0;
 } else {
-return (toNotNaN(+thread.procedures["Wfib %s"]((toNotNaN(+p0) - 1))) + toNotNaN(+thread.procedures["Wfib %s"]((toNotNaN(+p0) - 2))));
+return toNotNaN(+thread.procedures["Wfib %s"](toNotNaN(+p0) - 1)) + toNotNaN(+thread.procedures["Wfib %s"](toNotNaN(+p0) - 2));
 }
 return "";
 }; })

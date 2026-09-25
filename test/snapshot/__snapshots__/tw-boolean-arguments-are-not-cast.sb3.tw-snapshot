@@ -13,7 +13,7 @@ retire(); return;
 // Sprite1 ZBlock A %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_Block_A_ (p0) {
-if ((("" + p0).toLowerCase() === "Hai!!!".toLowerCase())) {
+if (("" + p0).toLowerCase() === "hai!!!") {
 runtime.ext_scratch3_looks._say("pass did not cast", target);
 } else {
 runtime.ext_scratch3_looks._say("fail was casted", target);

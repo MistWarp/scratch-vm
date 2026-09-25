@@ -12,17 +12,17 @@ b0.value = [];
 b0.value.push("thing");
 b0._monitorUpToDate = false;
 b1.value = 1;
-b2.value = (b0.value[b1.value - 1] ?? "");
-if ((("" + b2.value).toLowerCase() === "thing".toLowerCase())) {
+b2.value = b0.value[b1.value - 1] ?? "";
+if (("" + b2.value).toLowerCase() === "thing") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-b2.value = (b0.value[(b1.value + 1) - 1] ?? "");
-if ((("" + b2.value).toLowerCase() === "".toLowerCase())) {
+b2.value = b0.value[b1.value + 1 - 1] ?? "";
+if (("" + b2.value).toLowerCase() === "") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 thread.procedures["Zdo funny"]();
-b2.value = (b0.value[(b1.value - 1) - 1] ?? "");
-if ((("" + b2.value).toLowerCase() === "thing".toLowerCase())) {
+b2.value = b0.value[b1.value - 1 - 1] ?? "";
+if (("" + b2.value).toLowerCase() === "thing") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

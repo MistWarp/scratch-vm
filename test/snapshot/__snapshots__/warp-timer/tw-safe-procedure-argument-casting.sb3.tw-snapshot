@@ -6,11 +6,11 @@
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 thread.procedures["Zswitch %s"]("1");
-if ((((target.currentCostume + 1) === 2) && (toNotNaN(+target.getCostumes()[target.currentCostume].name) === 1))) {
+if (target.currentCostume + 1 === 2 && toNotNaN(+target.getCostumes()[target.currentCostume].name) === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 thread.procedures["Zswitch %s"]("2");
-if ((((target.currentCostume + 1) === 1) && (toNotNaN(+target.getCostumes()[target.currentCostume].name) === 2))) {
+if (target.currentCostume + 1 === 1 && toNotNaN(+target.getCostumes()[target.currentCostume].name) === 2) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

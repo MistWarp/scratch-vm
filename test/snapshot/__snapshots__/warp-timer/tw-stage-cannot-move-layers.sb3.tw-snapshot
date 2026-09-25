@@ -24,7 +24,7 @@ retire(); return;
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function* genXYZ () {
-if ((("" + b0.value).toLowerCase() === "Initial".toLowerCase())) {
+if (("" + b0.value).toLowerCase() === "initial") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 retire(); return;

@@ -8,16 +8,16 @@ const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
-b0.value.push(("fal" + "se"));
+b0.value.push("false");
 b0._monitorUpToDate = false;
-b0.value.push((1 === 1));
+b0.value.push(true);
 b0._monitorUpToDate = false;
 b1.value = 1;
 while (!toBoolean(listGet(b0.value, b1.value))) {
-b1.value = (toNotNaN(+b1.value) + 1);
+b1.value = toNotNaN(+b1.value) + 1;
 yield;
 }
-if ((toNotNaN(+b1.value) === 2)) {
+if (toNotNaN(+b1.value) === 2) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

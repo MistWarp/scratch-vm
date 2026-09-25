@@ -27,7 +27,7 @@ yield;
 }
 b1.value = 2;
 } else {
-if ((toNotNaN(+b1.value) === 1)) {
+if (toNotNaN(+b1.value) === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

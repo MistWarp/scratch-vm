@@ -8,7 +8,7 @@ const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 thread.procedures["Wtest"]();
-if ((("" + listGet(b0.value, b1.value)).toLowerCase() === "thing".toLowerCase())) {
+if (("" + listGet(b0.value, b1.value)).toLowerCase() === "thing") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -20,10 +20,10 @@ retire(); return;
 const b0 = stage.variables["yz}9Y:gLL0ZWEs}l)s+Q"] || stage.lookupOrCreateVariable("yz}9Y:gLL0ZWEs}l)s+Q", "always true");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function funXYZ_test () {
-if ((("" + b0.value).toLowerCase() === "true".toLowerCase())) {
+if (("" + b0.value).toLowerCase() === "true") {
 b1.value = "last";
 return "";
 }
-b1.value = (1 + 2);
+b1.value = 3;
 return "";
 }; })
