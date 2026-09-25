@@ -16,12 +16,12 @@ retire(); return;
 const b0 = stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("switchsubj-id", "subj");
 const b1 = stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals");
 return function* genXYZ () {
-b0.value = (b1.value[1 - 1] ?? "");
-if ((("" + b0.value).toLowerCase() === "hello".toLowerCase())) {
+b0.value = b1.value[1 - 1] ?? "";
+if (("" + b0.value).toLowerCase() === "hello") {
 runtime.ext_scratch3_looks._say("pass string", target);
 retire(); return;
 }
-if ((("" + b0.value).toLowerCase() === "world".toLowerCase())) {
+if (("" + b0.value).toLowerCase() === "world") {
 runtime.ext_scratch3_looks._say("fail string-wrong-branch", target);
 retire(); return;
 }
@@ -34,12 +34,12 @@ retire(); return;
 const b0 = stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("switchsubj-id", "subj");
 const b1 = stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals");
 return function* genXYZ () {
-b0.value = (b1.value[2 - 1] ?? "");
+b0.value = b1.value[2 - 1] ?? "";
 if (compareEqual(b0.value, 0)) {
 runtime.ext_scratch3_looks._say("fail numeric-matched-0", target);
 retire(); return;
 }
-if ((toNotNaN(+b0.value) === 1)) {
+if (toNotNaN(+b0.value) === 1) {
 runtime.ext_scratch3_looks._say("fail numeric-matched-1", target);
 retire(); return;
 }

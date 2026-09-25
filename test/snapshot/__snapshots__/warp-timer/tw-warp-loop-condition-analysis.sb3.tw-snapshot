@@ -8,14 +8,14 @@ const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariab
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
-b0.value.push((1 + 2));
+b0.value.push(3);
 b0._monitorUpToDate = false;
-b0.value.push((3 + 4));
+b0.value.push(7);
 b0._monitorUpToDate = false;
 b0.value.push("final");
 b0._monitorUpToDate = false;
 yield* thread.procedures["Wtest"]();
-if ((toNotNaN(+b1.value) === 4)) {
+if (toNotNaN(+b1.value) === 4) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -30,9 +30,9 @@ const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList("
 return function* genXYZ_test () {
 b0.value = "";
 b1.value = 1;
-while (!(("" + b0.value).toLowerCase() === "final".toLowerCase())) {
+while (!(("" + b0.value).toLowerCase() === "final")) {
 b0.value = listGet(b2.value, b1.value);
-b1.value = (toNotNaN(+b1.value) + 1);
+b1.value = toNotNaN(+b1.value) + 1;
 if (isStuck()) yield;
 }
 return "";

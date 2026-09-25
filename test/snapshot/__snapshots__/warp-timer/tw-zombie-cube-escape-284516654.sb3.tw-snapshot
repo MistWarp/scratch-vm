@@ -9,7 +9,7 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
 b1.value = "";
-while (!(("" + b1.value).toLowerCase() > "".toLowerCase())) {
+while (!(("" + b1.value).toLowerCase() > "")) {
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "step" });
 yield;
 }
@@ -23,8 +23,8 @@ retire(); return;
 const b0 = stage.variables["7qur6!bGgvC9I(Nd5.HP"] || stage.lookupOrCreateVariable("7qur6!bGgvC9I(Nd5.HP", "steps");
 const b1 = stage.variables["sUOp@-6J4y0PqwiXit4!"] || stage.lookupOrCreateVariable("sUOp@-6J4y0PqwiXit4!", "END?");
 return function* genXYZ () {
-b0.value = (toNotNaN(+b0.value) + 1);
-if ((b0.value === 5)) {
+b0.value = toNotNaN(+b0.value) + 1;
+if (b0.value === 5) {
 b1.value = "end";
 }
 retire(); return;

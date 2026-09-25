@@ -8,10 +8,10 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
 for (var a0 = toNotNaN(+thread.procedures["Zblock name"]()); a0 >= 0.5; a0--) {
-b0.value = (toNotNaN(+b0.value) + 1);
+b0.value = toNotNaN(+b0.value) + 1;
 yield;
 }
-if ((toNotNaN(+b0.value) === 40)) {
+if (toNotNaN(+b0.value) === 40) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

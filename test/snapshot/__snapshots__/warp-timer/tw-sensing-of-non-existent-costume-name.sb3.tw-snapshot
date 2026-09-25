@@ -3,11 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = runtime.getSpriteTargetByName("Sprite2");
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 0", target);
-if ((("" + (b0 ? b0.getCostumes()[b0.currentCostume].name : 0)).toLowerCase() === "a".toLowerCase())) {
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
