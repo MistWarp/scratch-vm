@@ -68,7 +68,7 @@ class Scratch3PenBlocks {
          * @type {HTMLCanvasElement}
          * @private
          */
-        this.bitmapCanvas = document.createElement('canvas');
+        this.bitmapCanvas = null;
 
         /**
          * The ID of the bitmap skin for canvas operations.
@@ -1118,35 +1118,83 @@ class Scratch3PenBlocks {
      * @param {object} util - utility object provided by the runtime.
      */
     printText (args, util) {
-        const penState = this._getPenState(util.target);
-        const context = this._getBitmapCanvas();
-        
-        // Build font string
-        let fontString = '';
-        if (penState.printTextAttribute.italic) {
-            fontString += 'italic ';
-        }
-        fontString += `${penState.printTextAttribute.weight} `;
-        fontString += `${penState.printTextAttribute.size}px `;
-        fontString += penState.printTextAttribute.font;
-        
-        context.font = fontString;
-        context.strokeStyle = penState.printTextAttribute.strokeWidth > 0 ?
-            penState.printTextAttribute.strokeColor : penState.printTextAttribute.color;
-        context.lineWidth = penState.printTextAttribute.strokeWidth;
-        context.fillStyle = penState.printTextAttribute.color;
-        
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId < 0) return;
+        const renderer = this.runtime.renderer;
+        const penSkin = renderer._allSkins[penSkinId];
+        const quality = penSkin.renderQuality;
+        const layerWidth = penSkin._size[0];
+        const layerHeight = penSkin._size[1];
+        const pixelWidth = Math.trunc(layerWidth);
+        const pixelHeight = Math.trunc(layerHeight);
+
+        const attributes = this._getPenState(util.target).printTextAttribute;
         const x = Cast.toNumber(args.X);
         const y = Cast.toNumber(args.Y);
         const text = Cast.toString(args.TEXT);
-        
-        // Draw stroke if stroke width > 0
-        if (penState.printTextAttribute.strokeWidth > 0) {
+
+        const context = this._getBitmapContext();
+        this._setTextStyle(context, attributes);
+
+        let left = 0;
+        let top = 0;
+        let right = pixelWidth;
+        let bottom = pixelHeight;
+        const metrics = context.measureText(text);
+        if (typeof metrics.actualBoundingBoxLeft === 'number') {
+            const margin = attributes.strokeWidth > 0 ? context.lineWidth * context.miterLimit / 2 : 0;
+            const originX = (layerWidth / 2) + (x * quality);
+            const originY = (layerHeight / 2) - (y * quality);
+            left = Math.max(left, Math.floor(originX - ((metrics.actualBoundingBoxLeft + margin) * quality)) - 2);
+            right = Math.min(right, Math.ceil(originX + ((metrics.actualBoundingBoxRight + margin) * quality)) + 2);
+            top = Math.max(top, Math.floor(originY - ((metrics.actualBoundingBoxAscent + margin) * quality)) - 2);
+            bottom = Math.min(bottom, Math.ceil(originY + ((metrics.actualBoundingBoxDescent + margin) * quality)) + 2);
+        }
+        if (!(right > left && bottom > top)) return;
+
+        const canvas = this.bitmapCanvas;
+        if (this._fitBitmapCanvas(right - left, bottom - top)) {
+            this._setTextStyle(context, attributes);
+        } else {
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        context.setTransform(quality, 0, 0, quality, (layerWidth / 2) - left, (layerHeight / 2) - top);
+        if (attributes.strokeWidth > 0) {
             context.strokeText(text, x, -y);
         }
         context.fillText(text, x, -y);
-        
-        this._drawContextToPen(context);
+
+        const rotationCenter = [((pixelWidth / 2) - left) / quality, ((pixelHeight / 2) - top) / quality];
+        if (this.bitmapSkinID < 0) {
+            this.bitmapSkinID = renderer.createBitmapSkin(canvas, quality, rotationCenter);
+            this.bitmapDrawableID = renderer.createDrawable(StageLayering.PEN_LAYER);
+            renderer.updateDrawableSkinId(this.bitmapDrawableID, this.bitmapSkinID);
+            renderer.updateDrawableVisible(this.bitmapDrawableID, false);
+        } else {
+            renderer.updateBitmapSkin(this.bitmapSkinID, canvas, quality, rotationCenter);
+        }
+        renderer.penStamp(penSkinId, this.bitmapDrawableID);
+        this.runtime.requestRedraw();
+    }
+
+    /**
+     * Apply a target's text attributes to a context.
+     * @param {CanvasRenderingContext2D} context - the context to style.
+     * @param {object} attributes - the target's print text attributes.
+     * @private
+     */
+    _setTextStyle (context, attributes) {
+        let font = attributes.italic ? 'italic ' : '';
+        font += `${attributes.weight} ${attributes.size}px ${attributes.font}`;
+        context.font = '10px sans-serif';
+        context.font = font;
+        context.lineWidth = 1;
+        context.lineWidth = attributes.strokeWidth;
+        context.strokeStyle = '#000000';
+        context.strokeStyle = attributes.strokeWidth > 0 ? attributes.strokeColor : attributes.color;
+        context.fillStyle = '#000000';
+        context.fillStyle = attributes.color;
     }
 
     drawTriangle (args, util) {
@@ -1170,69 +1218,39 @@ class Scratch3PenBlocks {
     }
 
     /**
-     * Get a bitmap canvas for drawing operations.
+     * Get the 2D context of the reusable bitmap canvas, creating the canvas if needed.
      * @returns {CanvasRenderingContext2D} the 2D context of the bitmap canvas.
      * @private
      */
-    _getBitmapCanvas () {
-        const penLayerID = this._getPenLayerID();
-        if (penLayerID < 0) {
-            // If pen layer doesn't exist, create a default canvas
-            this.bitmapCanvas.width = 480;
-            this.bitmapCanvas.height = 360;
-            const context = this.bitmapCanvas.getContext('2d');
-            context.clearRect(0, 0, 480, 360);
-            context.translate(240, 180);
-            return context;
+    _getBitmapContext () {
+        if (!this.bitmapCanvas) {
+            this.bitmapCanvas = document.createElement('canvas');
+            this.bitmapCanvas.reusable = false;
         }
-        
-        const penSkin = this.runtime.renderer._allSkins[penLayerID];
-        const width = penSkin._size[0];
-        const height = penSkin._size[1];
-        
-        this.bitmapCanvas.width = width;
-        this.bitmapCanvas.height = height;
-        
-        const context = this.bitmapCanvas.getContext('2d');
-        context.clearRect(0, 0, width, height);
-        context.translate(width / 2, height / 2);
-        context.scale(penSkin.renderQuality, penSkin.renderQuality);
-        
-        return context;
+        return this.bitmapCanvas.getContext('2d');
     }
 
     /**
-     * Draw the bitmap context to the pen layer.
-     * @param {CanvasRenderingContext2D} context - the context to draw from.
+     * Make sure the bitmap canvas can hold an area of the given size.
+     * @param {number} width - the width needed, in pixels.
+     * @param {number} height - the height needed, in pixels.
+     * @returns {boolean} true if the canvas was resized, which also clears it and resets its context state.
      * @private
      */
-    _drawContextToPen (context) {
-        const penLayerID = this._getPenLayerID();
-        if (penLayerID < 0) return;
-        
-        const renderer = this.runtime.renderer;
-        if (!renderer) return;
-
-        const width = this.bitmapCanvas.width;
-        const height = this.bitmapCanvas.height;
-
-        context.restore();
-
-        const imageData = context.getImageData(0, 0, width, height);
-        const resolution = renderer._allSkins[penLayerID].renderQuality;
-
-        if (this.bitmapSkinID < 0) {
-            this.bitmapSkinID = renderer.createBitmapSkin(imageData, resolution);
-            this.bitmapDrawableID = renderer.createDrawable(StageLayering.PEN_LAYER);
-            renderer.updateDrawableSkinId(this.bitmapDrawableID, this.bitmapSkinID);
-            // This drawable only exists to be stamped; penStamp ignores visibility.
-            renderer.updateDrawableVisible(this.bitmapDrawableID, false);
-        } else {
-            renderer.updateBitmapSkin(this.bitmapSkinID, imageData, resolution);
+    _fitBitmapCanvas (width, height) {
+        const canvas = this.bitmapCanvas;
+        const newWidth = Math.ceil(width / 64) * 64;
+        const newHeight = Math.ceil(height / 64) * 64;
+        if (
+            canvas.width >= width &&
+            canvas.height >= height &&
+            canvas.width * canvas.height <= 4 * newWidth * newHeight
+        ) {
+            return false;
         }
-
-        renderer.penStamp(penLayerID, this.bitmapDrawableID);
-        this.runtime.requestRedraw();
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        return true;
     }
 
     _printText (text, x, y, target) { // used by compiler
