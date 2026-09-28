@@ -165,6 +165,9 @@ class FontManager extends EventEmitter {
         if (!this.isValidCustomFont(family)) {
             throw new Error('Invalid custom font family');
         }
+        if (!asset) {
+            throw new Error('Custom font asset is missing');
+        }
         addOrUpdateFont(this.fonts, {
             system: false,
             family,
@@ -305,6 +308,10 @@ class FontManager extends EventEmitter {
                         this.runtime.storage.AssetType.Font,
                         md5ext
                     );
+                    if (!asset) {
+                        log.warn(`could not load font asset: ${md5ext}`);
+                        continue;
+                    }
                     this.addCustomFont(family, fallback, asset);
                 }
             } catch (e) {
