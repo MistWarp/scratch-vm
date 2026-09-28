@@ -179,6 +179,32 @@ test('system font validation', t => {
     t.end();
 });
 
+test('missing custom font asset does not prevent project or sprite export', async t => {
+    const vm = new VirtualMachine();
+    const storage = makeTestStorage();
+    vm.attachStorage(storage);
+    await vm.loadProject(fs.readFileSync(emptyProjectFixture));
+
+    const {fontManager} = vm.runtime;
+    t.throws(() => fontManager.addCustomFont('Missing', 'sans-serif', null),
+        'a missing asset cannot leave a font in the manager');
+    t.notOk(fontManager.hasFont('Missing'));
+
+    storage.load = () => Promise.resolve(null);
+    await fontManager.deserialize([{
+        system: false,
+        family: 'Missing',
+        fallback: 'sans-serif',
+        md5ext: 'missing.ttf'
+    }]);
+    t.notOk(fontManager.hasFont('Missing'), 'missing font is skipped on load');
+    t.same(fontManager.serializeAssets(), []);
+
+    await vm.exportSprite(vm.runtime.targets[0].id, 'uint8array');
+    await vm.saveProjectSb3('uint8array');
+    t.pass('sprite and project export succeed');
+});
+
 test('clear', t => {
     const setCustomFontsCalls = [];
     const mockRenderer = {
