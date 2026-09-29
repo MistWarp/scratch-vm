@@ -153,3 +153,26 @@ test('Can store and load products and testEntitlements', async t => {
     t.end();
 });
 
+
+test('category order is stored in the project and survives other settings changes', t => {
+    const project = readFileToBuffer(path.resolve(__dirname, `../fixtures/tw-stored-settings/no-comment.sb3`));
+    const vm = makeVM();
+    vm.loadProject(project).then(() => {
+        t.same(vm.runtime.getCategoryOrder(), []);
+        vm.runtime.setCategoryOrder(['looks', 'motion', 'pen']);
+        vm.setFramerate(45);
+        vm.storeProjectOptions();
+
+        const newVM = makeVM();
+        newVM.loadProject(vm.toJSON())
+            .then(() => {
+                t.same(newVM.runtime.getCategoryOrder(), ['looks', 'motion', 'pen']);
+                t.equal(newVM.runtime.frameLoop.framerate, 45);
+                newVM.runtime.setCategoryOrder([]);
+                t.same(newVM.runtime.getCategoryOrder(), []);
+                const comment = newVM.runtime.findProjectOptionsComment();
+                t.notOk(comment.text.includes('categoryOrder'));
+                t.end();
+            });
+    });
+});

@@ -3168,6 +3168,11 @@ class Runtime extends EventEmitter {
             options.testEntitlements = currentTestEntitlements;
         }
 
+        const currentCategoryOrder = this.getCategoryOrder();
+        if (currentCategoryOrder.length > 0) {
+            options.categoryOrder = currentCategoryOrder;
+        }
+
         if (extraOptions && typeof extraOptions === 'object') {
             if (Object.prototype.hasOwnProperty.call(extraOptions, 'mistwarpTheme')) {
                 options.mistwarpTheme = extraOptions.mistwarpTheme;
@@ -3184,8 +3189,19 @@ class Runtime extends EventEmitter {
                 options.testEntitlements = extraOptions.testEntitlements;
                 this._testEntitlements = extraOptions.testEntitlements;
             }
+            if (Object.prototype.hasOwnProperty.call(extraOptions, 'categoryOrder')) {
+                const categoryOrder = extraOptions.categoryOrder;
+                if (Array.isArray(categoryOrder) && categoryOrder.length > 0) {
+                    options.categoryOrder = categoryOrder;
+                } else {
+                    delete options.categoryOrder;
+                }
+            }
         }
         this._storedProjectOptions = {...(this._storedProjectOptions || {}), ...options};
+        if (!options.categoryOrder) {
+            delete this._storedProjectOptions.categoryOrder;
+        }
         // TODO: translate
         const text = `Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n${ExtendedJSON.stringify(options)}${COMMENT_CONFIG_MAGIC}`;
         const existingComment = this.findProjectOptionsComment();
@@ -3199,6 +3215,16 @@ class Runtime extends EventEmitter {
             }
         }
         this.emitProjectChanged();
+    }
+
+    getCategoryOrder () {
+        const stored = this._storedProjectOptions;
+        if (!stored || !Array.isArray(stored.categoryOrder)) return [];
+        return stored.categoryOrder.filter(id => typeof id === 'string');
+    }
+
+    setCategoryOrder (categoryOrder) {
+        this.storeProjectOptions({categoryOrder: Array.isArray(categoryOrder) ? categoryOrder : []});
     }
 
     getProducts () {
