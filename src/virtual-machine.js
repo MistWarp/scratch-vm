@@ -1556,6 +1556,7 @@ class VirtualMachine extends EventEmitter {
      */
     addBackdrop (md5ext, backdropObject) {
         return loadCostume(md5ext, backdropObject, this.runtime).then(() => {
+            if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
             const stage = this.runtime.getTargetForStage();
             stage.addCostume(backdropObject);
             stage.setCostume(stage.getCostumes().length - 1);

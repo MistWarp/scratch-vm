@@ -10,7 +10,8 @@ const METHODS = [
     'addCostume', 'addCostumeFromLibrary', 'duplicateCostume', 'deleteCostume', 'renameCostume',
     'reorderCostume', 'shareCostumeToTarget', 'updateSvg', 'updateBitmap',
     'addSound', 'duplicateSound', 'deleteSound', 'renameSound', 'reorderSound',
-    'shareSoundToTarget', 'updateSoundBuffer', 'shareBlocksToTarget', 'postSpriteInfo'
+    'shareSoundToTarget', 'updateSoundBuffer', 'shareBlocksToTarget', 'postSpriteInfo', 'addBackdrop',
+    'setVariableValue'
 ];
 const EXTENSIONS = ['loadExtensionURL', 'removeExtension', 'reorderExtension'];
 const INDEXED = {
@@ -29,6 +30,9 @@ const INDEXED = {
     shareSoundToTarget: ['sounds', 0],
     reorderSound: ['sounds', 1]
 };
+const SPRITE_INFO = ['x', 'y', 'direction', 'size', 'visible', 'rotationStyle', 'draggable'];
+const CODE_METHODS = ['blockEvent', 'shareBlocksToTarget', 'addSprite', 'duplicateSprite', 'deleteSprite',
+    'renameSprite', 'renameCostume', 'renameSound', 'setVariableValue', ...EXTENSIONS];
 const clone = value => JSON.parse(JSON.stringify(value));
 const fields = (value, keys) => Object.fromEntries(keys.filter(key => typeof value[key] !== 'undefined')
     .map(key => [key, value[key]]));
@@ -51,13 +55,29 @@ class EditingCommands {
     constructor (vm) {
         this.vm = vm;
         this.handler = null;
+        this.canLoadExtension = () => Promise.resolve(true);
         this.originals = {};
         for (const method of METHODS) {
             if (typeof vm[method] !== 'function') continue;
             this.originals[method] = vm[method];
             vm[method] = (...args) => {
                 if (!this.handler) return this.originals[method].apply(vm, args);
+                if (method === 'postSpriteInfo' && vm._dragTarget) {
+                    this.trackDrag(vm._dragTarget, args[0]);
+                    return this.originals[method].apply(vm, args);
+                }
                 return this.request(method, args);
+            };
+        }
+        this.drag = null;
+        if (typeof vm.stopDrag === 'function') {
+            const stopDrag = vm.stopDrag;
+            vm.stopDrag = (...args) => {
+                const drag = this.drag;
+                this.drag = null;
+                const result = stopDrag.apply(vm, args);
+                if (this.handler && drag) this.finishDrag(drag);
+                return result;
             };
         }
         this.extensions = {};
@@ -69,12 +89,35 @@ class EditingCommands {
         }
     }
 
+    trackDrag (target, data) {
+        if (!target.isOriginal || !data) return;
+        if (!this.drag || this.drag.targetId !== target.id) this.drag = {targetId: target.id, keys: new Set()};
+        for (const key of SPRITE_INFO) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) this.drag.keys.add(key);
+        }
+    }
+
+    finishDrag (drag) {
+        const target = this.vm.runtime.getTargetById(drag.targetId);
+        if (!target || !drag.keys.size) return;
+        this.request('postSpriteInfo', [fields(target, Array.from(drag.keys))], target.id);
+    }
+
     request (method, args, targetId) {
         const vm = this.vm;
         let target = targetId ? vm.runtime.getTargetById(targetId) : vm.editingTarget;
         if (method === 'postSpriteInfo' && vm._dragTarget) target = vm._dragTarget;
         if (method === 'reorderTarget') target = vm.runtime.targets[args[0]];
         if (['reorderCostume', 'reorderSound'].includes(method)) target = vm.runtime.getTargetById(args[0]);
+        if (method === 'addBackdrop') target = vm.runtime.getTargetForStage();
+        if (method === 'setVariableValue') {
+            const owner = vm.runtime.getTargetById(args[0]);
+            const stage = vm.runtime.getTargetForStage();
+            target = owner && owner.variables[args[1]] ? owner :
+                stage && stage.variables[args[1]] ? stage : null;
+            if (!target || !target.isOriginal) return this.originals[method].apply(vm, args);
+            args = [target.id, ...args.slice(1)];
+        }
         const command = {method, args, targetId: target ? target.id : null};
         if (method === 'reorderTarget') {
             const without = vm.runtime.targets.filter(item => item !== target);
@@ -160,12 +203,14 @@ class EditingCommands {
         if (!METHODS.includes(method) && !EXTENSIONS.includes(method) &&
             method !== 'blockEvent' && method !== 'selectCostume') throw new Error('Unknown editing command');
         const vm = this.vm;
-        const includeCode = ['blockEvent', 'shareBlocksToTarget', 'addSprite', 'duplicateSprite',
-            'deleteSprite', 'renameSprite', ...EXTENSIONS].includes(method);
-        const onlyTarget = method === 'blockEvent' && !command.args[0].type.startsWith('var_') ?
-            command.targetId : null;
-        const before = this.snapshot(includeCode, onlyTarget);
+        const includeCode = CODE_METHODS.includes(method);
         const target = command.targetId ? vm.runtime.getTargetById(command.targetId) : null;
+        const onlyTarget = (method === 'blockEvent' && !command.args[0].type.startsWith('var_')) ||
+            method === 'setVariableValue' ||
+            (['renameCostume', 'renameSound'].includes(method) && !(target && target.isStage)) ?
+            command.targetId : null;
+        const knownAssets = this.assetIds();
+        const before = this.snapshot(includeCode, onlyTarget);
         const args = command.args.slice();
         if (method === 'reorderTarget') {
             args[0] = vm.runtime.targets.findIndex(item => item.id === command.targetId);
@@ -188,60 +233,113 @@ class EditingCommands {
         }
         const context = this.context(target);
         context._editCommandActive = active;
-        if (method === 'blockEvent') {
-            if (!target) throw new Error('The sprite was deleted by another editor.');
-            const event = args[0];
-            if (typeof event.xml === 'string') event.xml = {outerHTML: event.xml};
-            if (event.type === 'move') {
-                const block = target.blocks.getBlock(event.blockId);
-                if (!block) throw new Error('The block was deleted by another editor.');
-                delete event.oldParentId;
-                delete event.oldInputName;
-                if (block.parent) {
-                    event.oldParentId = block.parent;
-                    const parent = target.blocks.getBlock(block.parent);
-                    const input = parent && Object.values(parent.inputs).find(item => item.block === block.id);
-                    if (input) event.oldInputName = input.name;
-                }
-                if (event.newParentId) {
-                    const parent = target.blocks.getBlock(event.newParentId);
-                    if (!parent) throw new Error('The destination block was deleted by another editor.');
-                    // The destination may have been occupied since this request
-                    // was made. Preserve that script by detaching it first.
-                    const input = event.newInputName && parent.inputs[event.newInputName];
-                    const occupiedId = event.newInputName ? input && input.block : parent.next;
-                    const occupied = occupiedId && target.blocks.getBlock(occupiedId);
-                    if (occupied && occupied.id !== block.id && !occupied.shadow) {
-                        target.blocks.moveBlock({id: occupied.id,
-                            oldParent: parent.id,
-                            oldInput: event.newInputName,
-                            newCoordinate: {x: 0, y: 0}});
+        let failure = null;
+        try {
+            if (method === 'blockEvent') {
+                if (!target) throw new Error('The sprite was deleted by another editor.');
+                const event = args[0];
+                if (typeof event.xml === 'string') event.xml = {outerHTML: event.xml};
+                if (event.type === 'move') {
+                    const block = target.blocks.getBlock(event.blockId);
+                    if (!block) throw new Error('The block was deleted by another editor.');
+                    delete event.oldParentId;
+                    delete event.oldInputName;
+                    if (block.parent) {
+                        event.oldParentId = block.parent;
+                        const parent = target.blocks.getBlock(block.parent);
+                        const input = parent && Object.values(parent.inputs).find(item => item.block === block.id);
+                        if (input) event.oldInputName = input.name;
+                    }
+                    if (event.newParentId) {
+                        const parent = target.blocks.getBlock(event.newParentId);
+                        if (!parent) throw new Error('The destination block was deleted by another editor.');
+                        // The destination may have been occupied since this request
+                        // was made. Preserve that script by detaching it first.
+                        const input = event.newInputName && parent.inputs[event.newInputName];
+                        const occupiedId = event.newInputName ? input && input.block : parent.next;
+                        const occupied = occupiedId && target.blocks.getBlock(occupiedId);
+                        if (occupied && occupied.id !== block.id && !occupied.shadow) {
+                            target.blocks.moveBlock({id: occupied.id,
+                                oldParent: parent.id,
+                                oldInput: event.newInputName,
+                                newCoordinate: {x: 0, y: 0}});
+                        }
                     }
                 }
-            }
-            // blocks.blocklyListen consumes a plain VM event, not a Blockly instance.
-            const getTarget = vm.runtime.getEditingTarget;
-            vm.runtime.getEditingTarget = () => target;
-            try {
-                target.blocks.blocklyListen(event);
-            } finally {
-                vm.runtime.getEditingTarget = getTarget;
-            }
-        } else if (method === 'selectCostume') {
-            target.setCostume(args[0]);
-        } else if (EXTENSIONS.includes(method)) {
-            await this.extensions[method](...args);
-        } else {
-            await context[method](...args);
-            const seen = new Set();
-            for (const itemTarget of vm.runtime.targets.filter(item => item.isOriginal)) {
-                for (const item of [...itemTarget.getCostumes(), ...itemTarget.getSounds()]) {
-                    if (!item.mwEditId || seen.has(item.mwEditId)) item.mwEditId = uid();
-                    seen.add(item.mwEditId);
+                // blocks.blocklyListen consumes a plain VM event, not a Blockly instance.
+                const getTarget = vm.runtime.getEditingTarget;
+                vm.runtime.getEditingTarget = () => target;
+                try {
+                    target.blocks.blocklyListen(event);
+                } finally {
+                    vm.runtime.getEditingTarget = getTarget;
                 }
+            } else if (method === 'selectCostume') {
+                target.setCostume(args[0]);
+            } else if (EXTENSIONS.includes(method)) {
+                if (!await this.allowExtension(method, args)) throw new Error('The extension was not allowed.');
+                if (!active()) throw new Error('Editing session ended');
+                await this.extensions[method](...args);
+            } else {
+                await context[method](...args);
+            }
+        } catch (error) {
+            failure = error;
+        }
+        if (method !== 'blockEvent') this.assignEditIds();
+        if (!active()) throw failure || new Error('Editing session ended');
+        const result = this.commit(before, includeCode, onlyTarget, knownAssets);
+        if (method === 'postSpriteInfo' && target && target.isOriginal) this.forceProps(result, target, args[0]);
+        if (failure) {
+            if (!result.patches.length) throw failure;
+            result.error = String((failure && failure.message) || failure);
+        } else if (EXTENSIONS.includes(method)) {
+            result.extension = {method, args};
+        }
+        this.refresh(result.patches);
+        return result;
+    }
+
+    async allowExtension (method, args) {
+        if (method !== 'loadExtensionURL') return true;
+        const manager = this.vm.extensionManager;
+        if (manager.isBuiltinExtension && manager.isBuiltinExtension(args[0])) return true;
+        return Boolean(await this.canLoadExtension(args[0]));
+    }
+
+    assetIds () {
+        const ids = new Set();
+        for (const target of this.vm.runtime.targets.filter(item => item.isOriginal)) {
+            for (const item of [...target.getCostumes(), ...target.getSounds()]) if (item.md5) ids.add(item.md5);
+        }
+        return ids;
+    }
+
+    assignEditIds () {
+        const seen = new Set();
+        for (const target of this.vm.runtime.targets.filter(item => item.isOriginal)) {
+            for (const item of [...target.getCostumes(), ...target.getSounds()]) {
+                if (!item.mwEditId || seen.has(item.mwEditId)) item.mwEditId = uid();
+                seen.add(item.mwEditId);
             }
         }
-        if (!active()) throw new Error('Editing session ended');
+    }
+
+    forceProps (result, target, data) {
+        const state = this.targetState(target, false);
+        const keys = Object.keys(data || {}).filter(key => SPRITE_INFO.includes(key) && key in state.props);
+        if (!keys.length) return;
+        let patch = result.patches.find(item => item.id === target.id);
+        if (patch && (patch.create || patch.deleted)) return;
+        if (!patch) {
+            patch = {id: target.id};
+            result.patches.push(patch);
+        }
+        patch.props = Object.assign(fields(state.props, keys), patch.props);
+    }
+
+    commit (before, includeCode, onlyTarget, knownAssets) {
+        const vm = this.vm;
         const after = this.snapshot(includeCode, onlyTarget);
         const patches = [];
         for (const state of after) {
@@ -269,15 +367,12 @@ class EditingCommands {
         for (const patch of patches) {
             const state = patch.state || patch;
             for (const item of [...(state.costumes || []), ...(state.sounds || [])]) {
-                if (item.md5) assetRefs.add(item.md5);
+                if (item.md5 && !knownAssets.has(item.md5)) assetRefs.add(item.md5);
             }
         }
-        const result = {patches,
+        return {patches,
             order: vm.runtime.targets.filter(item => item.isOriginal).map(item => item.id),
             assetRefs: Array.from(assetRefs)};
-        if (EXTENSIONS.includes(method)) result.extension = {method, args};
-        this.refresh(patches);
-        return result;
     }
 
     refresh (patches) {
@@ -327,15 +422,37 @@ class EditingCommands {
             if (!target) throw new Error(`Missing target ${patch.id}`);
             await this.applyState(target, patch.state || patch, getAsset, active);
         }
-        if (result.extension) {
+        if (result.extension && await this.allowExtension(result.extension.method, result.extension.args)) {
             if (!active()) throw new Error('Editing session ended');
             await this.extensions[result.extension.method](...result.extension.args);
         }
         if (!active()) throw new Error('Editing session ended');
-        const order = new Map(result.order.map((id, index) => [id, index]));
-        vm.runtime.targets.sort((a, b) => (order.get(a.id) || 0) - (order.get(b.id) || 0));
-        vm.runtime.invalidateTargetCaches();
+        this.reorder(result.order);
         this.refresh(result.patches);
+    }
+
+    reorder (ids) {
+        const vm = this.vm;
+        const order = new Map(ids.map((id, index) => [id, index]));
+        const rank = target => (order.has(target.id) ? order.get(target.id) : order.size);
+        const targets = vm.runtime.targets;
+        const originals = targets.filter(target => target.isOriginal).sort((a, b) => rank(a) - rank(b));
+        const clones = new Map();
+        for (const target of targets) {
+            if (target.isOriginal) continue;
+            if (!clones.has(target.sprite)) clones.set(target.sprite, []);
+            clones.get(target.sprite).push(target);
+        }
+        const next = [];
+        for (const original of originals) {
+            next.push(original, ...(clones.get(original.sprite) || []));
+            clones.delete(original.sprite);
+        }
+        for (const rest of clones.values()) next.push(...rest);
+        next.forEach((target, index) => {
+            targets[index] = target;
+        });
+        vm.runtime.invalidateTargetCaches();
     }
 
     // Session commands own the mutation queue for the duration of asset decoding.
@@ -365,9 +482,11 @@ class EditingCommands {
         }
         if (!active()) throw new Error('Editing session ended');
         const oldCloudVariables = target.isStage && state.variables ?
-            new Map(Object.entries(target.variables).filter(([, variable]) => variable.isCloud)) : null;
+            new Map(Object.entries(target.variables).filter(([, variable]) => variable.isCloud)
+                .map(([id, variable]) => [id, {name: variable.name}])) : null;
         for (const key of ['variables', 'comments', 'frames']) {
             if (!state[key]) continue;
+            const previous = target[key] || Object.create(null);
             if (!target[key] || typeof state.isStage !== 'undefined') target[key] = Object.create(null);
             for (const [id, value] of Object.entries(state[key])) {
                 if (value === null) {
@@ -375,7 +494,9 @@ class EditingCommands {
                 }
                 const prototype = key === 'variables' ? Variable.prototype :
                     key === 'comments' ? Comment.prototype : Frame.prototype;
-                target[key][id] = Object.assign(Object.create(prototype), value);
+                const existing = key === 'variables' && previous[id];
+                target[key][id] = existing && existing.type === value.type ? Object.assign(existing, value) :
+                    Object.assign(Object.create(prototype), value);
             }
         }
         if (oldCloudVariables) {
