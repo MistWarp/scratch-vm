@@ -22,11 +22,11 @@ const account = ext('rotur', 'Rotur Account', [
     {opcode: 'myId', blockType: R, text: 'my user id', local: 'id'},
     {label: 'Permissions'},
     {opcode: 'myPermissions', blockType: R, text: 'permissions I have', local: 'permissions'},
-    {opcode: 'allows', blockType: B, text: 'does my login allow [SCOPE]?', args: {SCOPE: 'credits:transfer'}, local: 'allows'},
-    {opcode: 'request', blockType: C, text: 'ask to allow [SCOPES]', args: {SCOPES: 'credits:transfer, posts:create'}, local: 'request'},
+    {opcode: 'allows', blockType: B, text: 'does my login allow [SCOPE]?', args: {SCOPE: 'posts:create'}, local: 'allows'},
+    {opcode: 'request', blockType: C, text: 'ask to allow [SCOPES]', args: {SCOPES: 'account:view, posts:create'}, local: 'request'},
     {label: 'Account'},
     {opcode: 'accountInfo', blockType: R, text: 'my account info', method: 'me.get', scope: 'account:view', map: () => [], result: r => r},
-    {opcode: 'accountField', blockType: R, text: 'my account [FIELD]', args: {FIELD: 'sys.currency'}, method: 'me.get', scope: 'account:view', map: () => [], result: (r, a) => (r && typeof r === 'object' ? r[a.FIELD] : '')},
+    {opcode: 'accountField', blockType: R, text: 'my account [FIELD]', args: {FIELD: 'username'}, method: 'me.get', scope: 'account:view', map: () => [], result: (r, a) => (r && typeof r === 'object' ? r[a.FIELD] : '')},
     {opcode: 'checkAuth', blockType: B, text: 'is my login valid?', method: 'me.checkAuth', map: () => [], result: r => Boolean(r && r.username)},
     {opcode: 'myBadges', blockType: R, text: 'my badges', method: 'me.badges', scope: 'account:view', map: () => [], result: r => JSON.stringify((r && r.badge_names) || [])},
     {opcode: 'mySubscription', blockType: R, text: 'my subscription', method: 'me.subscription', scope: 'account:view', map: () => []},
@@ -44,10 +44,12 @@ const account = ext('rotur', 'Rotur Account', [
 ]);
 
 const economy = ext('roturEconomy', 'Rotur Economy', [
-    {opcode: 'balance', blockType: R, text: 'my credits', method: 'me.get', scope: 'credits:view', map: () => [], result: r => (r && typeof r['sys.currency'] === 'number' ? r['sys.currency'] : 0)},
-    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, method: 'me.transfer', scope: 'credits:transfer', sensitive: true, confirm: a => ({type: 'payment', amount: Number(a.AMOUNT) || 0, recipient: String(a.USER || '')}), map: a => [a.USER, Number(a.AMOUNT) || 0, a.NOTE]},
-    {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', method: 'me.claimTime', scope: 'credits:view', map: () => [], result: r => (r && typeof r.wait_time === 'number' ? r.wait_time : 0)},
-    {opcode: 'transactions', blockType: R, text: 'my transaction history', method: 'me.transactions', scope: 'credits:view', map: () => []},
+    // MistWarp no longer reads or sends anyone's credits. These stay, hidden, so
+    // projects that use them still load; they do nothing and ask for nothing.
+    {opcode: 'balance', blockType: R, text: 'my credits', removed: 0},
+    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, removed: ''},
+    {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', removed: 0},
+    {opcode: 'transactions', blockType: R, text: 'my transaction history', removed: ''},
     {label: 'Gifts'},
     {opcode: 'createGift', blockType: R, text: 'create a gift of [AMOUNT] credits', args: {AMOUNT: num(10)}, method: 'gifts.create', scope: 'gifts:create', sensitive: true, confirm: 'create a credit gift', map: a => [Number(a.AMOUNT) || 0]},
     {opcode: 'giftInfo', blockType: R, text: 'gift info for code [CODE]', args: {CODE: 'code'}, method: 'gifts.get', map: a => [a.CODE]},

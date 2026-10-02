@@ -35,6 +35,9 @@ const buildBlocks = (extensionId, specs) => specs.map(spec => {
     if (spec.isEdgeActivated) {
         block.isEdgeActivated = true;
     }
+    if (Object.prototype.hasOwnProperty.call(spec, 'removed')) {
+        block.hideFromPalette = true;
+    }
     return block;
 });
 
@@ -362,6 +365,10 @@ const scrub = value => {
 };
 
 const run = async (extension, spec, args) => {
+    // A removed block answers its fixed value without reaching Rotur.
+    if (Object.prototype.hasOwnProperty.call(spec, 'removed')) {
+        return spec.removed;
+    }
     const runtime = extension.runtime;
     const host = getHost(runtime);
 
