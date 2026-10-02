@@ -3,6 +3,38 @@ const BlockType = require('../../extension-support/block-type');
 
 const scopeByOpcode = new Map();
 
+// The SDK methods the built-in Rotur blocks call, filled in from their specs
+// by defineExtension. The fallback host only dispatches these, so code that
+// reaches the host through the runtime cannot walk to private SDK internals
+// such as the token. Confirmed methods ask before every call.
+const projectMethods = new Set([
+    'me.abilities',
+    'storage.get', 'storage.set', 'storage.delete',
+    'socket.addActivity', 'socket.removeActivity', 'socket.setStatus'
+]);
+const confirmedMethods = new Map();
+const projectScopes = new Set();
+
+const registerSpec = spec => {
+    if (spec.scope) {
+        projectScopes.add(spec.scope);
+    }
+    if (spec.method) {
+        projectMethods.add(spec.method);
+        if (spec.sensitive) {
+            confirmedMethods.set(spec.method, spec);
+        }
+    }
+};
+
+const confirmLabel = (method, args) => {
+    if (method === 'me.transfer') {
+        return `send ${Number(args[1]) || 0} credits to @${String(args[0])}`;
+    }
+    const spec = confirmedMethods.get(method);
+    return typeof spec.confirm === 'string' ? spec.confirm : method;
+};
+
 const registerScope = (fullOpcode, scope) => {
     if (scope) {
         scopeByOpcode.set(fullOpcode, scope);
@@ -24,6 +56,7 @@ const buildBlocks = (extensionId, specs) => specs.map(spec => {
         return {blockType: BlockType.LABEL, text: spec.label};
     }
     registerScope(`${extensionId}_${spec.opcode}`, spec.scope);
+    registerSpec(spec);
     const block = {
         opcode: spec.opcode,
         blockType: spec.blockType || BlockType.REPORTER,
@@ -144,15 +177,16 @@ const createSdkHost = runtime => {
         }
         return clientPromise;
     };
-    const resolveMethod = (rotur, method) => {
-        const parts = method.split('.');
-        let ctx = rotur;
-        let fn = rotur;
-        for (const part of parts) {
-            ctx = fn;
-            fn = fn && fn[part];
+    const checkMethod = method => {
+        if (typeof method !== 'string' || !projectMethods.has(method)) {
+            throw new Error(`Projects cannot call Rotur method: ${String(method).slice(0, 80)}`);
         }
-        return {fn, ctx};
+    };
+    const resolveMethod = (rotur, method) => {
+        checkMethod(method);
+        const [namespace, name] = method.split('.');
+        const ctx = rotur[namespace];
+        return {fn: ctx && ctx[name], ctx};
     };
     const resolveProjectId = () => {
         try {
@@ -180,6 +214,9 @@ const createSdkHost = runtime => {
             return '';
         },
         async ensureConsent (scopes) {
+            if (!Array.isArray(scopes) || !scopes.every(scope => projectScopes.has(scope))) {
+                throw new Error('Projects cannot ask for that Rotur permission');
+            }
             const known = wantedScopes();
             const missing = (scopes || []).filter(scope => !known.includes(scope));
             if (missing.length) {
@@ -190,12 +227,20 @@ const createSdkHost = runtime => {
             return true;
         },
         async call (method, args) {
+            checkMethod(method);
+            const list = Array.isArray(args) ? args : [];
             const rotur = await getClient();
             const {fn, ctx} = resolveMethod(rotur, method);
             if (typeof fn !== 'function') {
                 throw new Error(`Unknown Rotur method: ${method}`);
             }
-            return fn.apply(ctx, args);
+            if (confirmedMethods.has(method) &&
+                !(typeof window !== 'undefined' && typeof window.confirm === 'function' &&
+                    // eslint-disable-next-line no-alert
+                    window.confirm(`Allow ${projectLabel() || 'this project'} to ${confirmLabel(method, list)}?`))) {
+                throw new Error('You cancelled this Rotur action');
+            }
+            return fn.apply(ctx, list);
         }
     };
 };
