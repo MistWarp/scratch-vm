@@ -43,7 +43,7 @@ require.cache[require.resolve('rotur-sdk')] = {
     exports: {Rotur: FakeRotur}
 };
 
-const {RoturAccount, RoturEconomy, RoturKeys, RoturGroups} = require('../../src/extensions/rotur');
+const {RoturAccount, RoturEconomy, RoturKeys, RoturShop, RoturGroups} = require('../../src/extensions/rotur');
 
 new RoturAccount({}).getInfo();
 new RoturEconomy({}).getInfo();
@@ -120,12 +120,14 @@ test('the request block widens the token to cover the extra scope', async t => {
 test('the removed money blocks load hidden, ask for nothing, and do nothing', async t => {
     const runtime = makeRuntime([
         'roturEconomy_balance', 'roturEconomy_pay', 'roturEconomy_dailyWait', 'roturEconomy_transactions',
-        'roturEconomy_createGift', 'roturKeys_buyKey', 'roturGroups_tipGroup', 'roturGroups_buyGroupProduct'
+        'roturEconomy_createGift', 'roturKeys_buyKey', 'roturGroups_tipGroup', 'roturGroups_buyGroupProduct',
+        'roturShop_buyItem', 'roturShop_buyCosmetic'
     ]);
     const removed = [
         [new RoturEconomy(runtime), {balance: 0, pay: '', dailyWait: 0, transactions: '', createGift: ''}],
         [new RoturKeys(runtime), {buyKey: ''}],
-        [new RoturGroups(runtime), {tipGroup: '', buyGroupProduct: ''}]
+        [new RoturGroups(runtime), {tipGroup: '', buyGroupProduct: ''}],
+        [new RoturShop(runtime), {buyItem: '', buyCosmetic: ''}]
     ];
     const before = logins.length;
     for (const [extension, answers] of removed) {
@@ -133,7 +135,7 @@ test('the removed money blocks load hidden, ask for nothing, and do nothing', as
         t.equal(blocks.length, Object.keys(answers).length);
         t.ok(blocks.every(block => block.hideFromPalette === true));
         for (const [opcode, answer] of Object.entries(answers)) {
-            t.equal(await extension[opcode]({AMOUNT: 5, USER: 'thief', TAG: 'tag', ID: 'id', PRODUCT: 'id'}), answer, opcode);
+            t.equal(await extension[opcode]({AMOUNT: 5, USER: 'thief', TAG: 'tag', ID: 'id', PRODUCT: 'id', NAME: 'name'}), answer, opcode);
         }
     }
     t.equal(logins.length, before);
