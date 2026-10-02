@@ -43,7 +43,7 @@ require.cache[require.resolve('rotur-sdk')] = {
     exports: {Rotur: FakeRotur}
 };
 
-const {RoturAccount, RoturEconomy} = require('../../src/extensions/rotur');
+const {RoturAccount, RoturEconomy, RoturKeys, RoturGroups} = require('../../src/extensions/rotur');
 
 new RoturAccount({}).getInfo();
 new RoturEconomy({}).getInfo();
@@ -57,8 +57,8 @@ test('logs in once with only the scopes the project uses', async t => {
     const runtime = makeRuntime(['rotur_accountField']);
     const account = new RoturAccount(runtime);
 
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view']]);
     t.same(systems, ['MistWarp: test']);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
@@ -72,7 +72,7 @@ test('logs in once with only the scopes the project uses', async t => {
 test('reuses a stored token with a matching scope set', async t => {
     const account = new RoturAccount(makeRuntime(['rotur_accountField']));
 
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view']]);
     t.end();
 });
@@ -81,7 +81,7 @@ test('logs in again when the stored token no longer validates', async t => {
     authValid = false;
     const account = new RoturAccount(makeRuntime(['rotur_accountField']));
 
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view'], ['account:view']]);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
         token: 'token-2',
@@ -96,7 +96,7 @@ test('does not hand another project on the same origin the stored token', async 
     const account = new RoturAccount(makeRuntime(['rotur_accountField'], 'other'));
     const before = logins.length;
 
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.equal(logins.length, before + 1);
     t.equal(systems[systems.length - 1], 'MistWarp: other');
     t.end();
@@ -106,7 +106,7 @@ test('the request block widens the token to cover the extra scope', async t => {
     const runtime = makeRuntime(['rotur_accountField', 'rotur_request']);
     const account = new RoturAccount(runtime);
 
-    t.equal(await account.accountField({FIELD: 'sys.currency'}), 42);
+    t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     const before = logins.length;
 
     t.equal(await account.request({SCOPES: 'posts:create'}), true);
@@ -118,16 +118,24 @@ test('the request block widens the token to cover the extra scope', async t => {
 });
 
 test('the removed money blocks load hidden, ask for nothing, and do nothing', async t => {
-    const runtime = makeRuntime(['roturEconomy_balance', 'roturEconomy_pay', 'roturEconomy_dailyWait', 'roturEconomy_transactions']);
-    const economy = new RoturEconomy(runtime);
-    const blocks = economy.getInfo().blocks.filter(block => ['balance', 'pay', 'dailyWait', 'transactions'].includes(block.opcode));
-    t.equal(blocks.length, 4);
-    t.ok(blocks.every(block => block.hideFromPalette === true));
+    const runtime = makeRuntime([
+        'roturEconomy_balance', 'roturEconomy_pay', 'roturEconomy_dailyWait', 'roturEconomy_transactions',
+        'roturEconomy_createGift', 'roturKeys_buyKey', 'roturGroups_tipGroup', 'roturGroups_buyGroupProduct'
+    ]);
+    const removed = [
+        [new RoturEconomy(runtime), {balance: 0, pay: '', dailyWait: 0, transactions: '', createGift: ''}],
+        [new RoturKeys(runtime), {buyKey: ''}],
+        [new RoturGroups(runtime), {tipGroup: '', buyGroupProduct: ''}]
+    ];
     const before = logins.length;
-    t.equal(await economy.balance({}), 0);
-    t.equal(await economy.pay({AMOUNT: 5, USER: 'thief', NOTE: ''}), '');
-    t.equal(await economy.dailyWait({}), 0);
-    t.equal(await economy.transactions({}), '');
+    for (const [extension, answers] of removed) {
+        const blocks = extension.getInfo().blocks.filter(block => block.opcode in answers);
+        t.equal(blocks.length, Object.keys(answers).length);
+        t.ok(blocks.every(block => block.hideFromPalette === true));
+        for (const [opcode, answer] of Object.entries(answers)) {
+            t.equal(await extension[opcode]({AMOUNT: 5, USER: 'thief', TAG: 'tag', ID: 'id', PRODUCT: 'id'}), answer, opcode);
+        }
+    }
     t.equal(logins.length, before);
     t.end();
 });
