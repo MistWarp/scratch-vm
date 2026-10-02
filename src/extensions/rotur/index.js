@@ -44,10 +44,11 @@ const account = ext('rotur', 'Rotur Account', [
 ]);
 
 const economy = ext('roturEconomy', 'Rotur Economy', [
-    // Blocks marked removed read or moved credits, which projects can no longer
-    // do through MistWarp: its own payments go through Rotur payment requests.
-    // They stay, hidden, so projects that use them still load, but they do
-    // nothing and ask for no permission.
+    // Blocks marked removed, here and in the other Rotur extensions, read or
+    // spent credits, which projects can no longer do through MistWarp: its
+    // own payments go through Rotur payment requests. They stay, hidden, so
+    // projects that use them still load, but they do nothing and ask for no
+    // permission.
     {opcode: 'balance', blockType: R, text: 'my credits', removed: 0},
     {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, removed: ''},
     {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', removed: 0},
@@ -124,7 +125,7 @@ const shop = ext('roturShop', 'Rotur Shop', [
     {opcode: 'item', blockType: R, text: 'item [NAME]', args: {NAME: 'name'}, method: 'items.get', map: a => [a.NAME]},
     {opcode: 'itemsForSale', blockType: R, text: 'items for sale', method: 'items.selling', map: () => []},
     {opcode: 'userItems', blockType: R, text: "[USER]'s items", args: {USER: 'username'}, method: 'items.list', map: a => [a.USER]},
-    {opcode: 'buyItem', blockType: C, text: 'buy item [NAME]', args: {NAME: 'name'}, method: 'items.buy', scope: 'items:buy', sensitive: true, confirm: 'buy this item', map: a => [a.NAME]},
+    {opcode: 'buyItem', blockType: C, text: 'buy item [NAME]', args: {NAME: 'name'}, removed: ''},
     {opcode: 'sellItem', blockType: C, text: 'put item [NAME] up for sale', args: {NAME: 'name'}, method: 'items.sell', scope: 'items:sell', map: a => [a.NAME]},
     {opcode: 'stopSelling', blockType: C, text: 'stop selling item [NAME]', args: {NAME: 'name'}, method: 'items.stopSelling', scope: 'items:sell', map: a => [a.NAME]},
     {opcode: 'setItemPrice', blockType: C, text: 'set price of item [NAME] to [PRICE]', args: {NAME: 'name', PRICE: num(1)}, method: 'items.setPrice', scope: 'items:sell', map: a => [a.NAME, Number(a.PRICE) || 0]},
@@ -132,7 +133,7 @@ const shop = ext('roturShop', 'Rotur Shop', [
     {label: 'Cosmetics'},
     {opcode: 'cosmeticShop', blockType: R, text: 'cosmetics shop', method: 'cosmetics.shop', map: () => []},
     {opcode: 'myCosmetics', blockType: R, text: 'my cosmetics', method: 'cosmetics.mine', scope: 'cosmetics:view', map: () => []},
-    {opcode: 'buyCosmetic', blockType: C, text: 'buy cosmetic [ID]', args: {ID: 'id'}, method: 'cosmetics.purchase', scope: 'cosmetics:buy', sensitive: true, confirm: 'buy this cosmetic', map: a => [a.ID]},
+    {opcode: 'buyCosmetic', blockType: C, text: 'buy cosmetic [ID]', args: {ID: 'id'}, removed: ''},
     {opcode: 'equipCosmetic', blockType: C, text: 'equip cosmetic [ID]', args: {ID: 'id'}, method: 'cosmetics.equip', scope: 'cosmetics:equip', map: a => [a.ID]},
     {opcode: 'unequipCosmetic', blockType: C, text: 'unequip cosmetic type [TYPE]', args: {TYPE: 'hat'}, method: 'cosmetics.unequip', scope: 'cosmetics:equip', map: a => [a.TYPE]},
     {opcode: 'cosmeticsOf', blockType: R, text: "[USER]'s cosmetics", args: {USER: 'username'}, method: 'cosmetics.forUser', map: a => [a.USER]}
