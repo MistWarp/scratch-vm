@@ -22,11 +22,11 @@ const account = ext('rotur', 'Rotur Account', [
     {opcode: 'myId', blockType: R, text: 'my user id', local: 'id'},
     {label: 'Permissions'},
     {opcode: 'myPermissions', blockType: R, text: 'permissions I have', local: 'permissions'},
-    {opcode: 'allows', blockType: B, text: 'does my login allow [SCOPE]?', args: {SCOPE: 'credits:transfer'}, local: 'allows'},
-    {opcode: 'request', blockType: C, text: 'ask to allow [SCOPES]', args: {SCOPES: 'credits:transfer, posts:create'}, local: 'request'},
+    {opcode: 'allows', blockType: B, text: 'does my login allow [SCOPE]?', args: {SCOPE: 'posts:create'}, local: 'allows'},
+    {opcode: 'request', blockType: C, text: 'ask to allow [SCOPES]', args: {SCOPES: 'account:view, posts:create'}, local: 'request'},
     {label: 'Account'},
     {opcode: 'accountInfo', blockType: R, text: 'my account info', method: 'me.get', scope: 'account:view', map: () => [], result: r => r},
-    {opcode: 'accountField', blockType: R, text: 'my account [FIELD]', args: {FIELD: 'sys.currency'}, method: 'me.get', scope: 'account:view', map: () => [], result: (r, a) => (r && typeof r === 'object' ? r[a.FIELD] : '')},
+    {opcode: 'accountField', blockType: R, text: 'my account [FIELD]', args: {FIELD: 'username'}, method: 'me.get', scope: 'account:view', map: () => [], result: (r, a) => (r && typeof r === 'object' ? r[a.FIELD] : '')},
     {opcode: 'checkAuth', blockType: B, text: 'is my login valid?', method: 'me.checkAuth', map: () => [], result: r => Boolean(r && r.username)},
     {opcode: 'myBadges', blockType: R, text: 'my badges', method: 'me.badges', scope: 'account:view', map: () => [], result: r => JSON.stringify((r && r.badge_names) || [])},
     {opcode: 'mySubscription', blockType: R, text: 'my subscription', method: 'me.subscription', scope: 'account:view', map: () => []},
@@ -44,12 +44,17 @@ const account = ext('rotur', 'Rotur Account', [
 ]);
 
 const economy = ext('roturEconomy', 'Rotur Economy', [
-    {opcode: 'balance', blockType: R, text: 'my credits', method: 'me.get', scope: 'credits:view', map: () => [], result: r => (r && typeof r['sys.currency'] === 'number' ? r['sys.currency'] : 0)},
-    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, method: 'me.transfer', scope: 'credits:transfer', sensitive: true, confirm: a => ({type: 'payment', amount: Number(a.AMOUNT) || 0, recipient: String(a.USER || '')}), map: a => [a.USER, Number(a.AMOUNT) || 0, a.NOTE]},
-    {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', method: 'me.claimTime', scope: 'credits:view', map: () => [], result: r => (r && typeof r.wait_time === 'number' ? r.wait_time : 0)},
-    {opcode: 'transactions', blockType: R, text: 'my transaction history', method: 'me.transactions', scope: 'credits:view', map: () => []},
+    // Blocks marked removed, here and in the other Rotur extensions, read or
+    // spent credits, which projects can no longer do through MistWarp: its
+    // own payments go through Rotur payment requests. They stay, hidden, so
+    // projects that use them still load, but they do nothing and ask for no
+    // permission.
+    {opcode: 'balance', blockType: R, text: 'my credits', removed: 0},
+    {opcode: 'pay', blockType: C, text: 'send [AMOUNT] credits to [USER] with message [NOTE]', args: {AMOUNT: num(1), USER: 'username', NOTE: ''}, removed: ''},
+    {opcode: 'dailyWait', blockType: R, text: 'seconds until daily claim', removed: 0},
+    {opcode: 'transactions', blockType: R, text: 'my transaction history', removed: ''},
     {label: 'Gifts'},
-    {opcode: 'createGift', blockType: R, text: 'create a gift of [AMOUNT] credits', args: {AMOUNT: num(10)}, method: 'gifts.create', scope: 'gifts:create', sensitive: true, confirm: 'create a credit gift', map: a => [Number(a.AMOUNT) || 0]},
+    {opcode: 'createGift', blockType: R, text: 'create a gift of [AMOUNT] credits', args: {AMOUNT: num(10)}, removed: ''},
     {opcode: 'giftInfo', blockType: R, text: 'gift info for code [CODE]', args: {CODE: 'code'}, method: 'gifts.get', map: a => [a.CODE]},
     {opcode: 'claimGift', blockType: C, text: 'claim gift code [CODE]', args: {CODE: 'code'}, method: 'gifts.claim', scope: 'gifts:claim', sensitive: true, confirm: 'claim this gift', map: a => [a.CODE]},
     {opcode: 'cancelGift', blockType: C, text: 'cancel gift [ID]', args: {ID: 'id'}, method: 'gifts.cancel', scope: 'gifts:cancel', map: a => [a.ID]},
@@ -63,7 +68,7 @@ const keys = ext('roturKeys', 'Rotur Keys', [
     {opcode: 'myKeys', blockType: R, text: 'my keys', method: 'keys.mine', scope: 'keys:view', map: () => []},
     {opcode: 'keyInfo', blockType: R, text: 'details of key [ID]', args: {ID: 'id'}, method: 'keys.get', map: a => [a.ID]},
     {opcode: 'userHasKey', blockType: B, text: 'does [USER] own key [KEY]?', args: {USER: 'username', KEY: 'key'}, method: 'keys.check', map: a => [a.USER, a.KEY], result: r => Boolean(r && (r.owns || r.owned || r.has))},
-    {opcode: 'buyKey', blockType: C, text: 'buy key [ID]', args: {ID: 'id'}, method: 'keys.buy', sensitive: true, confirm: 'buy this key', map: a => [a.ID]},
+    {opcode: 'buyKey', blockType: C, text: 'buy key [ID]', args: {ID: 'id'}, removed: ''},
     {opcode: 'cancelKey', blockType: C, text: 'cancel key [ID]', args: {ID: 'id'}, method: 'keys.cancel', sensitive: true, confirm: 'cancel this key', map: a => [a.ID]},
     {label: 'Manage my keys'},
     {opcode: 'renameKey', blockType: C, text: 'rename key [ID] to [NAME]', args: {ID: 'id', NAME: 'name'}, method: 'keys.rename', scope: 'keys:manage', map: a => [a.ID, a.NAME]},
@@ -120,7 +125,7 @@ const shop = ext('roturShop', 'Rotur Shop', [
     {opcode: 'item', blockType: R, text: 'item [NAME]', args: {NAME: 'name'}, method: 'items.get', map: a => [a.NAME]},
     {opcode: 'itemsForSale', blockType: R, text: 'items for sale', method: 'items.selling', map: () => []},
     {opcode: 'userItems', blockType: R, text: "[USER]'s items", args: {USER: 'username'}, method: 'items.list', map: a => [a.USER]},
-    {opcode: 'buyItem', blockType: C, text: 'buy item [NAME]', args: {NAME: 'name'}, method: 'items.buy', scope: 'items:buy', sensitive: true, confirm: 'buy this item', map: a => [a.NAME]},
+    {opcode: 'buyItem', blockType: C, text: 'buy item [NAME]', args: {NAME: 'name'}, removed: ''},
     {opcode: 'sellItem', blockType: C, text: 'put item [NAME] up for sale', args: {NAME: 'name'}, method: 'items.sell', scope: 'items:sell', map: a => [a.NAME]},
     {opcode: 'stopSelling', blockType: C, text: 'stop selling item [NAME]', args: {NAME: 'name'}, method: 'items.stopSelling', scope: 'items:sell', map: a => [a.NAME]},
     {opcode: 'setItemPrice', blockType: C, text: 'set price of item [NAME] to [PRICE]', args: {NAME: 'name', PRICE: num(1)}, method: 'items.setPrice', scope: 'items:sell', map: a => [a.NAME, Number(a.PRICE) || 0]},
@@ -128,7 +133,7 @@ const shop = ext('roturShop', 'Rotur Shop', [
     {label: 'Cosmetics'},
     {opcode: 'cosmeticShop', blockType: R, text: 'cosmetics shop', method: 'cosmetics.shop', map: () => []},
     {opcode: 'myCosmetics', blockType: R, text: 'my cosmetics', method: 'cosmetics.mine', scope: 'cosmetics:view', map: () => []},
-    {opcode: 'buyCosmetic', blockType: C, text: 'buy cosmetic [ID]', args: {ID: 'id'}, method: 'cosmetics.purchase', scope: 'cosmetics:buy', sensitive: true, confirm: 'buy this cosmetic', map: a => [a.ID]},
+    {opcode: 'buyCosmetic', blockType: C, text: 'buy cosmetic [ID]', args: {ID: 'id'}, removed: ''},
     {opcode: 'equipCosmetic', blockType: C, text: 'equip cosmetic [ID]', args: {ID: 'id'}, method: 'cosmetics.equip', scope: 'cosmetics:equip', map: a => [a.ID]},
     {opcode: 'unequipCosmetic', blockType: C, text: 'unequip cosmetic type [TYPE]', args: {TYPE: 'hat'}, method: 'cosmetics.unequip', scope: 'cosmetics:equip', map: a => [a.TYPE]},
     {opcode: 'cosmeticsOf', blockType: R, text: "[USER]'s cosmetics", args: {USER: 'username'}, method: 'cosmetics.forUser', map: a => [a.USER]}
@@ -148,8 +153,8 @@ const groups = ext('roturGroups', 'Rotur Groups', [
     {opcode: 'groupEvents', blockType: R, text: 'events in group [TAG]', args: {TAG: 'tag'}, method: 'groups.events', scope: 'groups:view', map: a => [a.TAG]},
     {label: 'Group economy'},
     {opcode: 'groupProducts', blockType: R, text: 'products in group [TAG]', args: {TAG: 'tag'}, method: 'groups.products', scope: 'groups:view', map: a => [a.TAG]},
-    {opcode: 'tipGroup', blockType: C, text: 'tip [AMOUNT] credits to group [TAG]', args: {AMOUNT: num(1), TAG: 'tag'}, method: 'groups.sendTip', scope: 'credits:manage', sensitive: true, confirm: 'tip this group', map: a => [a.TAG, Number(a.AMOUNT) || 0]},
-    {opcode: 'buyGroupProduct', blockType: C, text: 'buy product [PRODUCT] in group [TAG]', args: {PRODUCT: 'id', TAG: 'tag'}, method: 'groups.purchaseProduct', scope: 'credits:manage', sensitive: true, confirm: 'buy this product', map: a => [a.TAG, a.PRODUCT]}
+    {opcode: 'tipGroup', blockType: C, text: 'tip [AMOUNT] credits to group [TAG]', args: {AMOUNT: num(1), TAG: 'tag'}, removed: ''},
+    {opcode: 'buyGroupProduct', blockType: C, text: 'buy product [PRODUCT] in group [TAG]', args: {PRODUCT: 'id', TAG: 'tag'}, removed: ''}
 ]);
 
 const files = ext('roturFiles', 'Rotur Files', [
