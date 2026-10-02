@@ -15,6 +15,7 @@ global.localStorage = {
 };
 
 const logins = [];
+const transfers = [];
 let authValid = true;
 
 const systems = [];
@@ -25,8 +26,13 @@ class FakeRotur {
         this.socket = {username: 'sophie', userId: '7'};
         this.me = {
             get: () => Promise.resolve({username: 'sophie', id: '7', 'sys.currency': 42}),
-            checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'})
+            checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'}),
+            transfer: (...args) => {
+                transfers.push(args);
+                return Promise.resolve({});
+            }
         };
+        this._http = {getToken: () => this.token};
     }
     login (options) {
         logins.push(options.requires);
@@ -115,5 +121,34 @@ test('the request block widens the token to cover the extra scope', async t => {
 
     t.equal(await account.request({SCOPES: 'credits:transfer'}), true);
     t.equal(logins.length, before + 1);
+    t.end();
+});
+
+test('the fallback host only dispatches the methods the blocks use', async t => {
+    const runtime = makeRuntime(['roturEconomy_balance']);
+    await new RoturEconomy(runtime).balance({});
+    const host = runtime._roturHostResolved;
+    for (const method of ['_http.getToken', 'setToken', 'tokens.create', 'constructor.constructor', 'me.get.call']) {
+        await t.rejects(host.call(method, []), /Projects cannot call/, method);
+    }
+    await t.rejects(host.ensureConsent(['tokens:manage']), /cannot ask/);
+    t.end();
+});
+
+test('the fallback host confirms payments with the real amount', async t => {
+    const runtime = makeRuntime(['roturEconomy_balance']);
+    await new RoturEconomy(runtime).balance({});
+    const host = runtime._roturHostResolved;
+    const prompts = [];
+    global.window.confirm = message => {
+        prompts.push(message);
+        return prompts.length > 1;
+    };
+    await t.rejects(host.call('me.transfer', ['thief', 500, ''], {sensitive: false}), /cancelled/);
+    t.same(transfers, []);
+    await host.call('me.transfer', ['friend', 5, 'thanks'], {});
+    t.same(prompts, ['Allow test to send 500 credits to @thief?', 'Allow test to send 5 credits to @friend?']);
+    t.same(transfers, [['friend', 5, 'thanks']]);
+    delete global.window.confirm;
     t.end();
 });
