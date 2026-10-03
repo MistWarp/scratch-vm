@@ -609,7 +609,8 @@ class IROptimizer {
             modified = state.or(trueState) || modified;
             break;
         }
-        case StackOpcode.CONTROL_STOP_SCRIPT: {
+        case StackOpcode.CONTROL_STOP_SCRIPT:
+        case StackOpcode.PROCEDURE_RETURN: {
             modified = this.analyzeInputs(inputs, state) || modified;
             this.addPossibleExitState(state);
             break;
