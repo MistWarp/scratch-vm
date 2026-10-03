@@ -344,8 +344,8 @@ class JSGenerator {
         case InputOpcode.CAST_BOOLEAN:
             return primary(`toBoolean(${argument(node.target)})`);
         case InputOpcode.CAST_NUMBER:
-            if (node.target.isAlwaysType(InputType.BOOLEAN_INTERPRETABLE)) {
-                return unaryPlus(at(node.target.toType(InputType.BOOLEAN), Precedence.UNARY));
+            if (node.target.isAlwaysType(InputType.BOOLEAN)) {
+                return unaryPlus(at(node.target, Precedence.UNARY));
             }
             if (node.target.isAlwaysType(InputType.NUMBER_OR_NAN)) {
                 return primary(`toNotNaN(${argument(node.target)})`);
