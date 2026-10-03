@@ -15,6 +15,8 @@ global.localStorage = {
 };
 
 const logins = [];
+const transfers = [];
+const cancelledKeys = [];
 let authValid = true;
 
 const systems = [];
@@ -25,8 +27,19 @@ class FakeRotur {
         this.socket = {username: 'sophie', userId: '7'};
         this.me = {
             get: () => Promise.resolve({username: 'sophie', id: '7', 'sys.currency': 42}),
-            checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'})
+            checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'}),
+            transfer: (...args) => {
+                transfers.push(args);
+                return Promise.resolve({});
+            }
         };
+        this.keys = {
+            cancel: (...args) => {
+                cancelledKeys.push(args);
+                return Promise.resolve({});
+            }
+        };
+        this._http = {getToken: () => this.token};
     }
     login (options) {
         logins.push(options.requires);
@@ -43,10 +56,12 @@ require.cache[require.resolve('rotur-sdk')] = {
     exports: {Rotur: FakeRotur}
 };
 
-const {RoturAccount, RoturEconomy, RoturKeys, RoturShop, RoturGroups} = require('../../src/extensions/rotur');
+const {RoturAccount, RoturEconomy, RoturKeys, RoturShop, RoturGroups, RoturSocial} = require('../../src/extensions/rotur');
 
 new RoturAccount({}).getInfo();
 new RoturEconomy({}).getInfo();
+new RoturKeys({}).getInfo();
+new RoturSocial({}).getInfo();
 
 const makeRuntime = (opcodes, projectName = 'test') => ({
     projectName,
@@ -139,5 +154,43 @@ test('the removed money blocks load hidden, ask for nothing, and do nothing', as
         }
     }
     t.equal(logins.length, before);
+    t.end();
+});
+
+test('the fallback host only dispatches the methods the blocks use', async t => {
+    const runtime = makeRuntime(['rotur_accountField']);
+    await new RoturAccount(runtime).accountField({FIELD: 'username'});
+    const host = runtime._roturHostResolved;
+    for (const method of ['_http.getToken', 'setToken', 'tokens.create', 'constructor.constructor', 'me.get.call']) {
+        await t.rejects(host.call(method, []), /Projects cannot call/, method);
+    }
+    for (const method of [
+        'me.transfer', 'me.currency', 'me.transactions', 'me.dailyWait', 'gifts.create',
+        'keys.buy', 'groups.tip', 'groups.buyProduct', 'items.buy', 'cosmetics.buy'
+    ]) {
+        await t.rejects(host.call(method, ['thief', 500, ''], {sensitive: false}), /Projects cannot call/, method);
+    }
+    t.same(transfers, []);
+    for (const scope of ['tokens:manage', 'credits:view', 'credits:transfer']) {
+        await t.rejects(host.ensureConsent([scope]), /cannot ask/, scope);
+    }
+    t.end();
+});
+
+test('the fallback host confirms sensitive methods even when the caller opts out', async t => {
+    const runtime = makeRuntime(['rotur_accountField']);
+    await new RoturAccount(runtime).accountField({FIELD: 'username'});
+    const host = runtime._roturHostResolved;
+    const prompts = [];
+    global.window.confirm = message => {
+        prompts.push(message);
+        return prompts.length > 1;
+    };
+    await t.rejects(host.call('keys.cancel', ['first-key'], {sensitive: false}), /cancelled/);
+    t.same(cancelledKeys, []);
+    await host.call('keys.cancel', ['second-key'], {});
+    t.same(prompts, ['Allow test to cancel this key?', 'Allow test to cancel this key?']);
+    t.same(cancelledKeys, [['second-key']]);
+    delete global.window.confirm;
     t.end();
 });
