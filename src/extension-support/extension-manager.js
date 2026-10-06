@@ -491,12 +491,7 @@ class ExtensionManager {
     }
 
     _failedLoadingExtensionScript (error) {
-        // Don't set the current extension counter to 0, otherwise it will go negative if another
-        // extension finishes or fails to load.
-        this.loadingAsyncExtensions--;
-        this.asyncExtensionsLoadedCallbacks.forEach(i => i.reject(error));
-        this.asyncExtensionsLoadedCallbacks = [];
-        // Re-throw error so the promise still rejects.
+        this._finishedLoadingExtensionScript();
         throw error;
     }
 
