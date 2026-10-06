@@ -162,3 +162,15 @@ test('dynamic extension menus tolerate missing methods and empty results', t => 
     vm.quit();
     t.end();
 });
+
+test('a failed extension load does not reject other loads waiting for extensions', async t => {
+    const manager = new ExtensionManager({});
+    manager.loadingAsyncExtensions = 2;
+    const waiting = manager.allAsyncExtensionsLoaded();
+    t.throws(() => manager._failedLoadingExtensionScript(new Error('failed')), /failed/);
+    t.equal(manager.loadingAsyncExtensions, 1);
+    manager._finishedLoadingExtensionScript();
+    await waiting;
+    t.equal(manager.loadingAsyncExtensions, 0);
+    t.end();
+});

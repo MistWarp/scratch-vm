@@ -59,6 +59,40 @@ test('Allow both extensions', async t => {
     t.end();
 });
 
+test('Extension that fails to load does not stop the project', async t => {
+    const vm = new VirtualMachine();
+    const loadErrors = [];
+    vm.on('EXTENSION_LOAD_ERROR', data => loadErrors.push(data));
+    vm.extensionManager.loadExtensionURL = url => {
+        if (url === FETCH_EXTENSION) {
+            return Promise.reject(new Error('Error: Uncaught Error: This extension must run unsandboxed.'));
+        }
+        return Promise.resolve();
+    };
+    vm.securityManager.canLoadExtensionFromProject = () => true;
+    await vm.loadProject(testProject);
+    t.equal(vm.runtime.targets.length, 2);
+    t.equal(loadErrors.length, 1);
+    t.equal(loadErrors[0].url, FETCH_EXTENSION);
+    t.equal(loadErrors[0].extensionID, 'fetch');
+    t.end();
+});
+
+test('Extension that fails while the next prompt is open is not an unhandled rejection', async t => {
+    const vm = new VirtualMachine();
+    const unhandled = [];
+    const onUnhandled = reason => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    vm.extensionManager.loadExtensionURL = () => Promise.reject(new Error('load failed'));
+    vm.securityManager.canLoadExtensionFromProject = () => new Promise(resolve => setTimeout(() => resolve(true), 10));
+    await vm.loadProject(testProject);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    process.off('unhandledRejection', onUnhandled);
+    t.same(unhandled, []);
+    t.equal(vm.runtime.targets.length, 2);
+    t.end();
+});
+
 test('canFetch', async t => {
     const vm = new VirtualMachine();
     setupUnsandboxedExtensionAPI(vm);
