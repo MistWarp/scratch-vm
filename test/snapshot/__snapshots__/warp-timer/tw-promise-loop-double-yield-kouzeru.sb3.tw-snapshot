@@ -24,19 +24,20 @@ retire(); return;
 const b0 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch");
 const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch");
 return function* genXYZ () {
+var a1;
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 15", target);
 for (var a0 = 15; a0 > 0; a0--) {
-if (toNotNaN(+b1.value) === 200) {
+if (((a1 = +b1.value) === a1 ? a1 : 0) === 200) {
 b1.value = 50;
 } else {
 b1.value = 200;
 }
 thread.timer = timer();
-var a1 = Math.max(0, 1000 * 0);
+var a2 = Math.max(0, 1000 * 0);
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a1) {
+while (thread.timer.timeElapsed() < a2) {
 yield;
 }
 thread.timer = null;

@@ -343,14 +343,19 @@ class JSGenerator {
 
         case InputOpcode.CAST_BOOLEAN:
             return primary(`toBoolean(${argument(node.target)})`);
-        case InputOpcode.CAST_NUMBER:
+        case InputOpcode.CAST_NUMBER: {
             if (node.target.isAlwaysType(InputType.BOOLEAN)) {
                 return unaryPlus(at(node.target, Precedence.UNARY));
             }
+            const temp = this.localVariables.next();
+            this.expressionTempVariables.push(temp);
             if (node.target.isAlwaysType(InputType.NUMBER_OR_NAN)) {
-                return primary(`toNotNaN(${argument(node.target)})`);
+                const value = at(node.target, Precedence.LOWEST);
+                return expression(`(${temp} = ${value}) === ${temp} ? ${temp} : 0`, Precedence.CONDITIONAL);
             }
-            return primary(`toNotNaN(${unaryPlus(at(node.target, Precedence.UNARY)).js})`);
+            const value = unaryPlus(at(node.target, Precedence.UNARY)).js;
+            return expression(`(${temp} = ${value}) === ${temp} ? ${temp} : 0`, Precedence.CONDITIONAL);
+        }
         case InputOpcode.CAST_NUMBER_OR_NAN:
             return unaryPlus(at(node.target, Precedence.UNARY));
         case InputOpcode.CAST_NUMBER_INDEX:

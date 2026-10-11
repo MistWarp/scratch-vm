@@ -6,6 +6,7 @@
 const b0 = stage.variables["aN^sIH)1L`YhdGV*_C5P"] || stage.lookupOrCreateList("aN^sIH)1L`YhdGV*_C5P", "list");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i");
 return function* genXYZ () {
+var a0, a1;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
 b0.value.push("false");
@@ -14,10 +15,10 @@ b0.value.push(true);
 b0._monitorUpToDate = false;
 b1.value = 1;
 while (!toBoolean(listGet(b0.value, b1.value))) {
-b1.value = toNotNaN(+b1.value) + 1;
+b1.value = ((a0 = +b1.value) === a0 ? a0 : 0) + 1;
 yield;
 }
-if (toNotNaN(+b1.value) === 2) {
+if (((a1 = +b1.value) === a1 ? a1 : 0) === 2) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

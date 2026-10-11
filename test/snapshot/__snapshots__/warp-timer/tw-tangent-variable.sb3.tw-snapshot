@@ -4,27 +4,28 @@
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
+var a0, a1, a2, a3;
 runtime.ext_scratch3_looks._say("plan 4", target);
 target.setXY(45, 0);
-if (toNotNaN(tan(limitPrecision(target.x))) === 1) {
+if (((a0 = tan(limitPrecision(target.x))) === a0 ? a0 : 0) === 1) {
 runtime.ext_scratch3_looks._say("pass tan 45", target);
 } else {
 runtime.ext_scratch3_looks._say("fail tan 45 (expected 1)", target);
 }
 target.setXY(90, 0);
-if (toNotNaN(tan(limitPrecision(target.x))) === Infinity) {
+if (((a1 = tan(limitPrecision(target.x))) === a1 ? a1 : 0) === Infinity) {
 runtime.ext_scratch3_looks._say("pass tan 90", target);
 } else {
 runtime.ext_scratch3_looks._say("fail tan 90 (expected Infinity)", target);
 }
 target.setXY(30, 0);
-if (toNotNaN(tan(limitPrecision(target.x))) === 0.5773502692) {
+if (((a2 = tan(limitPrecision(target.x))) === a2 ? a2 : 0) === 0.5773502692) {
 runtime.ext_scratch3_looks._say("pass tan 30", target);
 } else {
 runtime.ext_scratch3_looks._say("fail tan 30 (expected 0.5773502692)", target);
 }
 target.setXY(-45, 0);
-if (toNotNaN(tan(limitPrecision(target.x))) === -1) {
+if (((a3 = tan(limitPrecision(target.x))) === a3 ? a3 : 0) === -1) {
 runtime.ext_scratch3_looks._say("pass tan -45", target);
 } else {
 runtime.ext_scratch3_looks._say("fail tan -45 (expected -1)", target);

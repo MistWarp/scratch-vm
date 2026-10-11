@@ -409,8 +409,9 @@ test('generated expressions only use the parentheses they need', async t => {
         v1d: variable('v1')
     }));
 
-    t.match(source, /b0\.value = toNotNaN\(toNotNaN\(\+b0\.value\) \* \(toNotNaN\(\+b1\.value\) - 3\)\) \+ toNotNaN\(\+b0\.value\);/, 'nested arithmetic');
-    t.match(source, /b0\.value = toNotNaN\(b0\.value\) - 1;/, 'adding a negative literal subtracts');
+    // toNotNaN is inlined as ((aN = x) === aN ? aN : 0), so the temporaries are numbered.
+    t.match(source, /b0\.value = \(\(\w+ = \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\) \* \(\(\(\w+ = \+b1\.value\) === \w+ \? \w+ : 0\) - 3\)\) === \w+ \? \w+ : 0\) \+ \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\);/, 'nested arithmetic');
+    t.match(source, /b0\.value = \(\(\w+ = b0\.value\) === \w+ \? \w+ : 0\) - 1;/, 'adding a negative literal subtracts');
     t.match(source, /if \(b0\.value \+ 1 < 10\) \{/, 'conditions are not double wrapped');
     t.match(source, /_say\("x=" \+ b0\.value, target\)/, 'joining onto a string needs no cast');
     t.end();

@@ -5,13 +5,14 @@
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function* genXYZ () {
+var a1, a2, a3;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
-for (var a0 = toNotNaN(+thread.procedures["Zblock name"]()); a0 >= 0.5; a0--) {
-b0.value = toNotNaN(+b0.value) + 1;
+for (var a0 = (a1 = +thread.procedures["Zblock name"]()) === a1 ? a1 : 0; a0 >= 0.5; a0--) {
+b0.value = ((a2 = +b0.value) === a2 ? a2 : 0) + 1;
 yield;
 }
-if (toNotNaN(+b0.value) === 40) {
+if (((a3 = +b0.value) === a3 ? a3 : 0) === 40) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

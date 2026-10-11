@@ -5,14 +5,15 @@
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ () {
+var a0;
 b0.value = 0;
 while (true) {
-b0.value = toNotNaN(+b0.value) + 1;
+b0.value = ((a0 = +b0.value) === a0 ? a0 : 0) + 1;
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * -1);
+var a1 = Math.max(0, 1000 * -1);
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a0) {
+while (thread.timer.timeElapsed() < a1) {
 yield;
 }
 thread.timer = null;
@@ -35,6 +36,7 @@ retire(); return;
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["Go=PJS7BFXYo_qi2S:kQ"] || stage.lookupOrCreateVariable("Go=PJS7BFXYo_qi2S:kQ", "external frame counter");
 return function* genXYZ_non_warp () {
+var a2, a5;
 b0.value = 0;
 for (var a0 = 5; a0 > 0; a0--) {
 thread.timer = timer();
@@ -47,25 +49,25 @@ yield;
 thread.timer = null;
 yield;
 }
-if (toNotNaN(+b0.value) === 5) {
+if (((a2 = +b0.value) === a2 ? a2 : 0) === 5) {
 runtime.ext_scratch3_looks._say("pass non warp 1", target);
 }
 if (("" + (yield* thread.procedures["Wverify runs warp %s"](yield* thread.procedures["Zverify runs non warp %s"](yield* thread.procedures["Wverify runs warp %s"]("abc"))))).toLowerCase() === "warp: non warp: warp: abc") {
 runtime.ext_scratch3_looks._say("pass non warp and warp mix", target);
 }
 b0.value = 0;
-for (var a2 = 5; a2 > 0; a2--) {
+for (var a3 = 5; a3 > 0; a3--) {
 thread.timer = timer();
-var a3 = Math.max(0, 1000 * 0);
+var a4 = Math.max(0, 1000 * 0);
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a3) {
+while (thread.timer.timeElapsed() < a4) {
 yield;
 }
 thread.timer = null;
 yield;
 }
-if (toNotNaN(+b0.value) === 5) {
+if (((a5 = +b0.value) === a5 ? a5 : 0) === 5) {
 runtime.ext_scratch3_looks._say("pass non warp 2", target);
 }
 return "";

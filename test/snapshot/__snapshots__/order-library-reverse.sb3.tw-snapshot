@@ -6,16 +6,17 @@
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
 const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
+var a1, a2;
 b0.value = 0;
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * toNotNaN(+b1.value));
+var a0 = Math.max(0, 1000 * ((a1 = +b1.value) === a1 ? a1 : 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = toNotNaN(+b0.value) + 1;
+b0.value = ((a2 = +b0.value) === a2 ? a2 : 0) + 1;
 if (b0.value === 1) {
 runtime.ext_scratch3_looks._say("pass order is correct (1)", target);
 } else {
@@ -28,9 +29,10 @@ retire(); return;
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
+var a1, a3, a5;
 runtime.ext_scratch3_looks._say("plan 2", target);
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * toNotNaN(+b0.value));
+var a0 = Math.max(0, 1000 * ((a1 = +b0.value) === a1 ? a1 : 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
@@ -38,18 +40,18 @@ yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a1 = Math.max(0, 1000 * toNotNaN(+b0.value));
+var a2 = Math.max(0, 1000 * ((a3 = +b0.value) === a3 ? a3 : 0));
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a1) {
+while (thread.timer.timeElapsed() < a2) {
 yield;
 }
 thread.timer = null;
 thread.timer = timer();
-var a2 = Math.max(0, 1000 * toNotNaN(+b0.value));
+var a4 = Math.max(0, 1000 * ((a5 = +b0.value) === a5 ? a5 : 0));
 runtime.requestRedraw();
 yield;
-while (thread.timer.timeElapsed() < a2) {
+while (thread.timer.timeElapsed() < a4) {
 yield;
 }
 thread.timer = null;
@@ -62,16 +64,17 @@ retire(); return;
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
 const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
 return function* genXYZ () {
+var a1, a2;
 b0.value = 0;
 thread.timer = timer();
-var a0 = Math.max(0, 1000 * toNotNaN(+b1.value));
+var a0 = Math.max(0, 1000 * ((a1 = +b1.value) === a1 ? a1 : 0));
 runtime.requestRedraw();
 yield;
 while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-b0.value = toNotNaN(+b0.value) + 1;
+b0.value = ((a2 = +b0.value) === a2 ? a2 : 0) + 1;
 if (b0.value === 2) {
 runtime.ext_scratch3_looks._say("pass order is correct (2)", target);
 } else {

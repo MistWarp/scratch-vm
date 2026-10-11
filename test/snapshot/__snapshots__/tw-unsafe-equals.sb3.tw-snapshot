@@ -6,6 +6,7 @@
 const b0 = stage.variables[",OktMIwz{~bdgWnPEa8u"] || stage.lookupOrCreateVariable(",OktMIwz{~bdgWnPEa8u", "10");
 const b1 = stage.variables["yfy(G`K5K^fJcXAfiN4i"] || stage.lookupOrCreateVariable("yfy(G`K5K^fJcXAfiN4i", "010");
 return function* genXYZ () {
+var a1, a2, a3, a4, a5, a6, a8, a9, a10;
 runtime.ext_scratch3_looks._say("plan 14", target);
 runtime.ext_scratch3_looks._say("pass 1", target);
 runtime.ext_scratch3_looks._say("pass 2", target);
@@ -20,35 +21,35 @@ if (b0.value === 10) {
 runtime.ext_scratch3_looks._say("pass 5", target);
 }
 for (var a0 = 1; a0 > 0; a0--) {
-if (toNotNaN(+b0.value) === 10) {
+if (((a1 = +b0.value) === a1 ? a1 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 6", target);
 }
-if (toNotNaN(+b0.value) === 10) {
+if (((a2 = +b0.value) === a2 ? a2 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 7", target);
 }
-if (toNotNaN(+b0.value) === 10) {
+if (((a3 = +b0.value) === a3 ? a3 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 8", target);
 }
 yield;
 }
 b1.value = "010";
-if (toNotNaN(+b1.value) === 10) {
+if (((a4 = +b1.value) === a4 ? a4 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 9", target);
 }
-if (toNotNaN(+b1.value) === 10) {
+if (((a5 = +b1.value) === a5 ? a5 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 10", target);
 }
-if (toNotNaN(+b1.value) === 10) {
+if (((a6 = +b1.value) === a6 ? a6 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 11", target);
 }
-for (var a1 = 1; a1 > 0; a1--) {
-if (toNotNaN(+b1.value) === 10) {
+for (var a7 = 1; a7 > 0; a7--) {
+if (((a8 = +b1.value) === a8 ? a8 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 12", target);
 }
-if (toNotNaN(+b1.value) === 10) {
+if (((a9 = +b1.value) === a9 ? a9 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 13", target);
 }
-if (toNotNaN(+b1.value) === 10) {
+if (((a10 = +b1.value) === a10 ? a10 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass 14", target);
 }
 yield;

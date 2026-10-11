@@ -4,15 +4,16 @@
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
+var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 3", target);
 target.setXY(0, 0);
-if (toNotNaN(toNotNaN(0 / limitPrecision(target.x)) / 0) / 3 === 0) {
+if (((a0 = ((a1 = 0 / limitPrecision(target.x)) === a1 ? a1 : 0) / 0) === a0 ? a0 : 0) / 3 === 0) {
 runtime.ext_scratch3_looks._say("pass div 0", target);
 } else {
 runtime.ext_scratch3_looks._say("fail div 0 (want 0)", target);
 }
 target.setXY(6, 0);
-if (toNotNaN(12 / limitPrecision(target.x) / 0) / 2 === Infinity) {
+if (((a2 = 12 / limitPrecision(target.x) / 0) === a2 ? a2 : 0) / 2 === Infinity) {
 runtime.ext_scratch3_looks._say("pass div 1", target);
 } else {
 runtime.ext_scratch3_looks._say("fail div 1 (want Infinity)", target);

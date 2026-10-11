@@ -59,17 +59,18 @@ const b6 = target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrC
 const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min");
 const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i");
 return function funXYZ_qsort__ (p0,p1) {
+var a0, a1, a2, a3, a4, a5, a6, a7, a8, a10, a11, a12, a13, a15, a16, a17, a18;
 if (compareLessThan(p0, p1)) {
-if (!(toNotNaN(+p1) - toNotNaN(+p0) <= 7)) {
-b0.value = b1.value[(toNotNaN(toNotNaN(+p1) + toNotNaN(+p0)) / 2 | 0) - 1] ?? "";
+if (!(((a0 = +p1) === a0 ? a0 : 0) - ((a1 = +p0) === a1 ? a1 : 0) <= 7)) {
+b0.value = b1.value[(((a2 = ((a3 = +p1) === a3 ? a3 : 0) + ((a4 = +p0) === a4 ? a4 : 0)) === a2 ? a2 : 0) / 2 | 0) - 1] ?? "";
 b2.value = p0;
 b3.value = p1;
 while (true) {
 while (compareLessThan(listGet(b1.value, b2.value), b0.value)) {
-b2.value = toNotNaN(+b2.value) + 1;
+b2.value = ((a5 = +b2.value) === a5 ? a5 : 0) + 1;
 }
 while (compareGreaterThan(listGet(b1.value, b3.value), b0.value)) {
-b3.value = toNotNaN(+b3.value) - 1;
+b3.value = ((a6 = +b3.value) === a6 ? a6 : 0) - 1;
 }
 if (compareGreaterThan(b2.value, b3.value)) {
 thread.procedures["Wqsort %s %s"](p0, b3.value);
@@ -79,17 +80,17 @@ return "";
 b4.value = listGet(b1.value, b2.value);
 listReplace(b1, b2.value, listGet(b1.value, b3.value));
 listReplace(b1, b3.value, b4.value);
-b2.value = toNotNaN(+b2.value) + 1;
-b3.value = toNotNaN(+b3.value) - 1;
+b2.value = ((a7 = +b2.value) === a7 ? a7 : 0) + 1;
+b3.value = ((a8 = +b3.value) === a8 ? a8 : 0) - 1;
 }
 }
 } else {
 b5.value = p0;
-for (var a0 = toNotNaN(toNotNaN(+p1) - toNotNaN(+p0)); a0 >= 0.5; a0--) {
+for (var a9 = (a10 = ((a11 = +p1) === a11 ? a11 : 0) - ((a12 = +p0) === a12 ? a12 : 0)) === a10 ? a10 : 0; a9 >= 0.5; a9--) {
 b6.value = b5.value;
 b7.value = listGet(b1.value, b5.value);
-b8.value = toNotNaN(+b5.value) + 1;
-for (var a1 = toNotNaN(toNotNaN(+p1) - toNotNaN(+b5.value)); a1 >= 0.5; a1--) {
+b8.value = ((a13 = +b5.value) === a13 ? a13 : 0) + 1;
+for (var a14 = (a15 = ((a16 = +p1) === a16 ? a16 : 0) - ((a17 = +b5.value) === a17 ? a17 : 0)) === a15 ? a15 : 0; a14 >= 0.5; a14--) {
 if (compareLessThan(b1.value[(b8.value | 0) - 1] ?? "", b7.value)) {
 b7.value = b1.value[(b8.value | 0) - 1] ?? "";
 b6.value = b8.value;
@@ -101,7 +102,7 @@ b4.value = listGet(b1.value, b5.value);
 listReplace(b1, b5.value, b7.value);
 listReplace(b1, b6.value, b4.value);
 }
-b5.value = toNotNaN(+b5.value) + 1;
+b5.value = ((a18 = +b5.value) === a18 ? a18 : 0) + 1;
 }
 }
 }
