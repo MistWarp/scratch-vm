@@ -260,6 +260,9 @@ class Sprite {
         if (this.clones.length === 0) {
             this.dispose();
         }
+        if (this.clones.length === 0) {
+            this.dispose();
+        }
     }
 
     duplicate (blockIds = {}) {
