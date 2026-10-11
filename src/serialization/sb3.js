@@ -44,6 +44,7 @@ const getOrderedExtensionIDs = (extensions, runtime) => {
  * @typedef {object} ImportedProject
  * @property {Array.<Target>} targets - the imported Scratch 3.0 target objects.
  * @property {ImportedExtensionsInfo} extensions - the ID of each extension actually used by this project.
+ * @property {number[]} layerOrder the layer order of each target, in the same order as targets.
  */
 
 /**
@@ -1691,12 +1692,6 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
     if (Object.prototype.hasOwnProperty.call(object, 'isStage')) {
         target.isStage = object.isStage;
     }
-    if (Object.prototype.hasOwnProperty.call(object, 'targetPaneOrder')) {
-        // Temporarily store the 'targetPaneOrder' property
-        // so that we can correctly order sprites in the target pane.
-        // This will be deleted after we are done parsing and ordering the targets list.
-        target.targetPaneOrder = object.targetPaneOrder;
-    }
     if (Object.prototype.hasOwnProperty.call(object, 'draggable')) {
         target.draggable = object.draggable;
     }
@@ -1966,6 +1961,8 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
     const monitorObjects = json.monitors || [];
 
     const assetLoad = new ProjectAssetLoad(runtime);
+    let layerOrder;
+
     return fontPromise.then(() => {
         const assets = targetObjects.map(target => parseScratchAssets(target, runtime, zip, assetLoad));
         assetLoad.finishDiscovery();
@@ -1977,21 +1974,18 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
         .then(assets => Promise.all(targetObjects
             .map((target, index) =>
                 parseScratchObject(target, runtime, extensions, zip, assets[index]))))
-        .then(targets => targets // Re-sort targets back into original sprite-pane ordering
-            .map((t, i) => {
-                // Add layer order property to deserialized targets.
-                // This property is used to initialize executable targets in
-                // the correct order and is deleted in VM's installTargets function
-                t.layerOrder = i;
-                return t;
-            })
-            .sort((a, b) => a.targetPaneOrder - b.targetPaneOrder)
-            .map(t => {
-                // Delete the temporary properties used for
-                // sprite pane ordering and stage layer ordering
-                delete t.targetPaneOrder;
-                return t;
-            }))
+        .then(targets => {
+            // Re-sort targets back into original sprite-pane ordering.
+            const reordered = targets
+                .map((target, index) => ({
+                    target,
+                    layerOrder: index,
+                    targetPaneOrder: targetObjects[index].targetPaneOrder
+                }))
+                .sort((a, b) => a.targetPaneOrder - b.targetPaneOrder);
+            layerOrder = reordered.map(i => i.layerOrder);
+            return reordered.map(i => i.target);
+        })
         .then(targets => replaceUnsafeCharsInVariableIds(targets))
         .then(targets => {
             monitorObjects.map(monitorDesc => deserializeMonitor(monitorDesc, runtime, targets, extensions));
@@ -2002,7 +1996,8 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
         })
         .then(targets => ({
             targets,
-            extensions
+            extensions,
+            layerOrder
         }));
 };
 

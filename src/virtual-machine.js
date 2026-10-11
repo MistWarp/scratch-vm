@@ -908,7 +908,7 @@ class VirtualMachine extends EventEmitter {
             return Promise.reject('Unable to verify Scratch Project version.');
         };
         return deserializePromise()
-            .then(({targets, extensions}) => {
+            .then(({targets, extensions, layerOrder}) => {
                 safePerformanceMark('scratch-vm-deserialize-end');
                 safePerformanceMeasure(
                     'scratch-vm-deserialize',
@@ -919,7 +919,7 @@ class VirtualMachine extends EventEmitter {
                 if (!active()) throw new Error('Project load cancelled');
                 this.emitLoadProgress('installing');
                 safePerformanceMark('scratch-vm-installTargets-start');
-                return this.installTargets(targets, extensions, true, active).then(result => {
+                return this.installTargets(targets, extensions, true, layerOrder, active).then(result => {
                     safePerformanceMark('scratch-vm-installTargets-end');
                     safePerformanceMeasure(
                         'scratch-vm-installTargets',
@@ -975,9 +975,11 @@ class VirtualMachine extends EventEmitter {
      * @param {Array.<Target>} targets - the targets to be installed
      * @param {ImportedExtensionsInfo} extensions - metadata about extensions used by these targets
      * @param {boolean} wholeProject - set to true if installing a whole project, as opposed to a single sprite.
+     * @param {number[]} [layerOrder] - layer order of each target, same order as targets.
+     * @param {function} [active] - returns false if the install was cancelled.
      * @returns {Promise} resolved once targets have been installed
      */
-    async installTargets (targets, extensions, wholeProject, active = () => true) {
+    async installTargets (targets, extensions, wholeProject, layerOrder, active = () => true) {
         safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-start');
         await this.extensionManager.allAsyncExtensionsLoaded();
         safePerformanceMark('scratch-vm-installTargets-waitAsyncExtensions-end');
@@ -986,6 +988,16 @@ class VirtualMachine extends EventEmitter {
             'scratch-vm-installTargets-waitAsyncExtensions-start',
             'scratch-vm-installTargets-waitAsyncExtensions-end'
         );
+
+        let layerOrders = null;
+        if (layerOrder) {
+            layerOrders = new Map();
+            targets.forEach((target, index) => {
+                if (target) {
+                    layerOrders.set(target, layerOrder[index]);
+                }
+            });
+        }
 
         if (!active() || (this._editCommandActive && !this._editCommandActive())) {
             throw new Error('Editing session ended');
@@ -1045,12 +1057,10 @@ class VirtualMachine extends EventEmitter {
         );
 
         safePerformanceMark('scratch-vm-installTargets-finalize-start');
-        // Sort the executable targets by layerOrder.
-        // Remove layerOrder property after use.
-        this.runtime.executableTargets.sort((a, b) => a.layerOrder - b.layerOrder);
-        targets.forEach(target => {
-            delete target.layerOrder;
-        });
+        if (layerOrders) {
+            // Sort the executable targets by layer order.
+            this.runtime.executableTargets.sort((a, b) => layerOrders.get(a) - layerOrders.get(b));
+        }
 
         // Select the first target for editing, e.g., the first sprite.
         if (wholeProject && (targets.length > 1)) {
@@ -1147,8 +1157,8 @@ class VirtualMachine extends EventEmitter {
 
         const sb2 = require('./serialization/sb2');
         return sb2.deserialize(sprite, this.runtime, true, zip)
-            .then(({targets, extensions}) =>
-                this.installTargets(targets, extensions, false));
+            .then(({targets, extensions, layerOrder}) =>
+                this.installTargets(targets, extensions, false, layerOrder));
     }
 
     /**
@@ -1162,7 +1172,7 @@ class VirtualMachine extends EventEmitter {
         const sb3 = require('./serialization/sb3');
         return sb3
             .deserialize(sprite, this.runtime, zip, true)
-            .then(({targets, extensions}) => this.installTargets(targets, extensions, false));
+            .then(({targets, extensions, layerOrder}) => this.installTargets(targets, extensions, false, layerOrder));
     }
 
     /**
