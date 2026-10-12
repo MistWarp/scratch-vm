@@ -5,7 +5,8 @@ const BlockType = require('../extension-support/block-type');
 const VariablePool = require('./variable-pool');
 const jsexecute = require('./jsexecute');
 const environment = require('./environment');
-const {StackOpcode, InputOpcode, InputType} = require('./enums.js');
+const {StackOpcode, InputOpcode, InputType, COMPILER_INPUT_TYPES} = require('./enums.js');
+const {buildCompFuncHelpers} = require('./extension-compiler');
 const oldCompilerCompatibility = require('./old-compiler-compatibility.js');
 
 // These imports are used by jsdoc comments but eslint doesn't know that
@@ -1462,12 +1463,7 @@ class JSGenerator {
             const value = node.inputs[name];
             if (!value) return '""';
             if (type === 'raw' && value.opcode === InputOpcode.CONSTANT) return `${value.inputs.value}`;
-            const inputType = {
-                number: InputType.NUMBER,
-                numberOrNaN: InputType.NUMBER_OR_NAN,
-                string: InputType.STRING,
-                boolean: InputType.BOOLEAN
-            }[type];
+            const inputType = COMPILER_INPUT_TYPES[type];
             return this.descendInput(inputType ? value.toType(inputType) : value);
         };
         const input = name => getInput(name);
@@ -1476,9 +1472,29 @@ class JSGenerator {
         input.numberOrNaN = name => getInput(name, 'numberOrNaN');
         input.string = name => getInput(name, 'string');
         input.boolean = name => getInput(name, 'boolean');
-        const source = node.compiler.compile({
+        const field = name => JSON.stringify(node.fields[name] ?? '');
+
+        const compiler = node.compiler;
+        if (typeof compiler.compFunc === 'function') {
+            const {args, cast} = buildCompFuncHelpers(Object.keys(node.inputs), node.fields, input, field);
+            const source = compiler.compFunc(args, {
+                input,
+                field,
+                cast,
+                mutation: node.mutation,
+                runtime: 'runtime',
+                target: 'target',
+                stage: 'stage'
+            });
+            if (typeof source !== 'string') {
+                throw new TypeError('Extension compFunc must return JavaScript source');
+            }
+            return source;
+        }
+
+        const source = compiler.compile({
             input,
-            field: name => JSON.stringify(node.fields[name] ?? ''),
+            field,
             mutation: node.mutation,
             runtime: 'runtime',
             target: 'target',

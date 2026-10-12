@@ -92,6 +92,59 @@ const InputType = {
 };
 
 /**
+ * Value types a compiled extension block can produce, exposed to extensions as
+ * `vm.exports.compiler.types`. `COMMAND` produces no value; every other type
+ * maps onto an InputType in COMPILER_INPUT_TYPES below.
+ * @readonly
+ * @enum {string}
+ */
+const COMPILER_TYPES = Object.freeze({
+    ANY: 'any',
+    NUMBER: 'number',
+    NUMBER_OR_NAN: 'numberOrNaN',
+    STRING: 'string',
+    BOOLEAN: 'boolean',
+    COMMAND: 'command'
+});
+
+/**
+ * Maps a compiler type to the InputType its result is stored as. `command` has
+ * no entry because a command produces no value.
+ * @readonly
+ * @type {Readonly<Object.<string, number>>}
+ */
+const COMPILER_INPUT_TYPES = Object.freeze({
+    [COMPILER_TYPES.ANY]: InputType.ANY,
+    [COMPILER_TYPES.NUMBER]: InputType.NUMBER,
+    [COMPILER_TYPES.NUMBER_OR_NAN]: InputType.NUMBER_OR_NAN,
+    [COMPILER_TYPES.STRING]: InputType.STRING,
+    [COMPILER_TYPES.BOOLEAN]: InputType.BOOLEAN
+});
+
+/**
+ * @param {*} value A value to test.
+ * @returns {boolean} Whether value is one of the COMPILER_TYPES values.
+ */
+const isCompilerType = value => Object.values(COMPILER_TYPES).includes(value);
+
+/**
+ * The result type an extension block declares with `returnType`, exposed as
+ * `Scratch.ReturnType` and `vm.exports.compiler.types`. `NUMBER` is the safe
+ * default for a Scratch number, which can be `NaN`; reach for `NUMBER_NEVER_NAN`
+ * only when the value is guaranteed to be a real number.
+ * @readonly
+ * @enum {string}
+ */
+const ReturnType = Object.freeze({
+    ANY: COMPILER_TYPES.ANY,
+    NUMBER: COMPILER_TYPES.NUMBER_OR_NAN,
+    NUMBER_NEVER_NAN: COMPILER_TYPES.NUMBER,
+    STRING: COMPILER_TYPES.STRING,
+    BOOLEAN: COMPILER_TYPES.BOOLEAN,
+    COMMAND: COMPILER_TYPES.COMMAND
+});
+
+/**
  * Enum for the opcodes of the stackable blocks used in the IR AST.
  * @readonly
  * @enum {string}
@@ -320,5 +373,9 @@ const InputOpcode = {
 module.exports = {
     StackOpcode,
     InputOpcode,
-    InputType
+    InputType,
+    COMPILER_TYPES,
+    COMPILER_INPUT_TYPES,
+    ReturnType,
+    isCompilerType
 };

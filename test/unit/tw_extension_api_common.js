@@ -16,6 +16,16 @@ test('TargetType', t => {
     t.end();
 });
 
+test('ReturnType', t => {
+    t.equal(ScratchCommon.ReturnType.ANY, 'any');
+    t.equal(ScratchCommon.ReturnType.NUMBER, 'numberOrNaN', 'NUMBER is the safe Scratch number');
+    t.equal(ScratchCommon.ReturnType.NUMBER_NEVER_NAN, 'number', 'NUMBER_NEVER_NAN opts into a strict number');
+    t.equal(ScratchCommon.ReturnType.STRING, 'string');
+    t.equal(ScratchCommon.ReturnType.BOOLEAN, 'boolean');
+    t.equal(ScratchCommon.ReturnType.COMMAND, 'command');
+    t.end();
+});
+
 test('Cast', t => {
     // Cast is thoroughly tested elsewhere. We just want to make sure that the public methods
     // don't get deleted unexpectedly.

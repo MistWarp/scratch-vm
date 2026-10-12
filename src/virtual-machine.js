@@ -22,6 +22,7 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
+const {ReturnType, isCompilerType} = require('./compiler/enums.js');
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -31,14 +32,6 @@ const {exportCostume} = require('./serialization/tw-costume-import-export');
 const Base64Util = require('./util/base64-util');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
-const COMPILER_TYPES = Object.freeze({
-    ANY: 'any',
-    NUMBER: 'number',
-    NUMBER_OR_NAN: 'numberOrNaN',
-    STRING: 'string',
-    BOOLEAN: 'boolean',
-    COMMAND: 'command'
-});
 
 if (typeof document === 'undefined') {
     global.document = {
@@ -280,7 +273,7 @@ class VirtualMachine extends EventEmitter {
             Variable,
 
             compiler: Object.freeze({
-                types: COMPILER_TYPES,
+                types: ReturnType,
                 register: (extensionId, blocks) => {
                     if (typeof extensionId !== 'string' || !extensionId || !blocks || typeof blocks !== 'object') {
                         throw new TypeError('compiler.register expects an extension ID and block descriptor object');
@@ -288,7 +281,7 @@ class VirtualMachine extends EventEmitter {
                     for (const opcode of Object.keys(blocks)) {
                         const descriptor = blocks[opcode];
                         if (!descriptor || typeof descriptor.compile !== 'function' ||
-                            !Object.values(COMPILER_TYPES).includes(descriptor.type)) {
+                            !isCompilerType(descriptor.type)) {
                             throw new TypeError(`Invalid compiler descriptor for ${extensionId}_${opcode}`);
                         }
                         this.runtime.compilerExtensions.set(`${extensionId}_${opcode}`, Object.freeze({

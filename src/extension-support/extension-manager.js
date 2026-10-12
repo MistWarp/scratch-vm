@@ -304,7 +304,7 @@ class ExtensionManager {
                 const serviceName = `unsandboxed.${fakeWorkerId}.${extensionInfo.id}`;
                 dispatch.setServiceSync(serviceName, extensionObject);
                 dispatch.callSync('extensions', 'registerExtensionServiceSync', serviceName);
-                this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject);
+                this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject, extensionInfo);
                 this._loadedExtensions.set(extensionInfo.id, serviceName);
             }
 
@@ -521,7 +521,7 @@ class ExtensionManager {
         const serviceName = `extension_${fakeWorkerId}_${extensionInfo.id}`;
         dispatch.setServiceSync(serviceName, extensionObject);
         dispatch.callSync('extensions', 'registerExtensionServiceSync', serviceName);
-        this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject);
+        this.runtime.compilerRegisterExtension(extensionInfo.id, extensionObject, extensionInfo);
         return serviceName;
     }
 

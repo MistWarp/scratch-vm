@@ -6,7 +6,7 @@ const BlockType = require('../extension-support/block-type');
 const Variable = require('../engine/variable');
 const log = require('../util/log');
 const compatBlocks = require('./compat-blocks');
-const {StackOpcode, InputOpcode, InputType} = require('./enums.js');
+const {StackOpcode, InputOpcode, InputType, COMPILER_INPUT_TYPES} = require('./enums.js');
 const {
     IntermediateStackBlock,
     IntermediateInput,
@@ -24,13 +24,6 @@ const oldCompilerCompatiblity = require('./old-compiler-compatibility.js');
 
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
-const COMPILER_INPUT_TYPES = {
-    any: InputType.ANY,
-    number: InputType.NUMBER,
-    numberOrNaN: InputType.NUMBER_OR_NAN,
-    string: InputType.STRING,
-    boolean: InputType.BOOLEAN
-};
 const RAW_SOURCE_COMMANDS = new Set([
     'mistsutils_patchcommand',
     'mistsutils_patchcommand2',
@@ -1483,7 +1476,7 @@ class ScriptTreeGenerator {
         });
     }
 
-    descendCompilerExtensionInput (block, compiler) {
+    descendCompilerExtensionInput (block, compiler, inputType = compiler.type) {
         const inputs = {};
         for (const name of Object.keys(block.inputs)) {
             inputs[name] = this.descendInputOfBlock(block, name, true);
@@ -1492,7 +1485,7 @@ class ScriptTreeGenerator {
         for (const name of Object.keys(block.fields)) {
             fields[name] = block.fields[name].value;
         }
-        return new IntermediateInput(InputOpcode.EXTENSION, COMPILER_INPUT_TYPES[compiler.type], {
+        return new IntermediateInput(InputOpcode.EXTENSION, COMPILER_INPUT_TYPES[inputType], {
             compiler,
             inputs,
             fields,
@@ -1501,7 +1494,9 @@ class ScriptTreeGenerator {
     }
 
     descendCompilerExtensionStack (block, compiler) {
-        const input = this.descendCompilerExtensionInput(block, Object.assign({}, compiler, {type: 'any'}));
+        // The input type is irrelevant for a command; keep the real descriptor
+        // so its declared type stays available to the generator.
+        const input = this.descendCompilerExtensionInput(block, compiler, 'any');
         return new IntermediateStackBlock(StackOpcode.EXTENSION, input.inputs);
     }
 

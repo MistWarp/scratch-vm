@@ -15,6 +15,7 @@ const {
     core: mistWarpCompiler,
     gallery: galleryCompiler
 } = require('../compiler/mists-utils');
+const {resolveCompilerType} = require('../compiler/extension-compiler');
 const ScratchBlocksConstants = require('./scratch-blocks-constants');
 const TargetType = require('../extension-support/target-type');
 const Thread = require('./thread');
@@ -1092,8 +1093,62 @@ class Runtime extends EventEmitter {
         }
     }
 
-    compilerRegisterExtension (name, extensionObject) {
+    compilerRegisterExtension (name, extensionObject, extensionInfo) {
         this[`ext_${name}`] = extensionObject;
+
+        // Core block packages register before the compiler-extension map exists.
+        if (!extensionObject || !this.compilerExtensions) return;
+
+        let info = extensionInfo;
+        if (!info && typeof extensionObject.getInfo === 'function') {
+            try {
+                info = extensionObject.getInfo();
+            } catch (e) {
+                log.warn(`Could not read extension info for compiler registration: ${e.message}`);
+                return;
+            }
+        }
+        if (!info || !Array.isArray(info.blocks)) return;
+
+        const extensionId = info.id || name;
+        let registered = false;
+        for (const blockInfo of info.blocks) {
+            if (!blockInfo || typeof blockInfo !== 'object' || !blockInfo.opcode || !blockInfo.compFunc) {
+                continue;
+            }
+
+            const opcode = `${extensionId}_${blockInfo.opcode}`;
+            // An explicit compiler.register entry always wins.
+            if (this.compilerExtensions.has(opcode)) continue;
+
+            let type;
+            try {
+                type = resolveCompilerType(blockInfo.blockType, blockInfo.returnType || blockInfo.type);
+            } catch (e) {
+                log.warn(`Invalid compiler returnType for ${opcode}: ${e.message}`);
+                continue;
+            }
+            if (!type) {
+                log.warn(`Cannot compile block ${opcode}: unsupported block type "${blockInfo.blockType}"`);
+                continue;
+            }
+
+            const compFunc = typeof blockInfo.compFunc === 'string' ?
+                extensionObject[blockInfo.compFunc] :
+                blockInfo.compFunc;
+            if (typeof compFunc !== 'function') {
+                log.warn(`Could not find compiler function "${blockInfo.compFunc}" for block ${opcode}`);
+                continue;
+            }
+
+            this.compilerExtensions.set(opcode, Object.freeze({
+                type,
+                compFunc: compFunc.bind(extensionObject)
+            }));
+            registered = true;
+        }
+
+        if (registered) this.resetAllCaches();
     }
 
     getMonitorState () {
