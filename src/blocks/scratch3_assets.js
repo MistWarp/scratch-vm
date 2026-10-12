@@ -186,12 +186,8 @@ class Scratch3AssetsBlocks {
 
         const costumeIndex = target.getCostumeIndexByName(name);
         if (costumeIndex !== -1) {
-            const costume = target.getCostumes()[costumeIndex];
-            if (target.deleteCostume(costumeIndex)) {
-                if (this.runtime.renderer && typeof costume.skinId === 'number') {
-                    this.runtime.renderer.destroySkin(costume.skinId);
-                }
-            }
+            // Deleting the costume destroys its render skin for us.
+            target.deleteCostume(costumeIndex);
         }
 
         const soundIndex = this._findSoundIndex(target, name);
