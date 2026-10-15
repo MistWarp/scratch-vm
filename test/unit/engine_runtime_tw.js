@@ -172,6 +172,22 @@ test('setStageSize preserves monitor position relative to center of stage', t =>
     t.end();
 });
 
+test('clampMonitorsToStage keeps monitors inside the current stage', t => {
+    const rt = new Runtime();
+    rt.setStageSize(800, 450);
+    rt.requestAddMonitor(new MonitorRecord({id: 'inside', x: 700, y: 400}));
+    rt.requestAddMonitor(new MonitorRecord({id: 'right', x: 900, y: 500}));
+    rt.requestAddMonitor(new MonitorRecord({id: 'left', x: -20, y: -5}));
+    rt.requestAddMonitor(new MonitorRecord({id: 'auto'}));
+    rt.clampMonitorsToStage();
+    const state = rt.getMonitorState();
+    t.same([state.get('inside').get('x'), state.get('inside').get('y')], [700, 400]);
+    t.same([state.get('right').get('x'), state.get('right').get('y')], [800, 450]);
+    t.same([state.get('left').get('x'), state.get('left').get('y')], [0, 0]);
+    t.same([state.get('auto').get('x'), state.get('auto').get('y')], [null, null]);
+    t.end();
+});
+
 test('VM monitor updates send the monitor state without copying it', t => {
     const vm = new VirtualMachine();
     vm.once(Runtime.MONITORS_UPDATE, monitors => {

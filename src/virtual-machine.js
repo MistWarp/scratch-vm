@@ -1075,6 +1075,7 @@ class VirtualMachine extends EventEmitter {
 
         if (wholeProject) {
             this.runtime.parseProjectOptions();
+            this.runtime.clampMonitorsToStage();
         }
 
         this._broadcastCleanupNeeded = true;
