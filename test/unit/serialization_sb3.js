@@ -526,3 +526,112 @@ test('pi and newline round trip through stage variables', t => {
         t.end();
     })();
 });
+
+const operatorProject = blocks => ({
+    targets: [
+        {isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {},
+            comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 0,
+            tempo: 60, videoTransparency: 50, videoState: 'off', textToSpeechLanguage: null},
+        {isStage: false, name: 'Sprite1', variables: {v: ['dir', 0]}, lists: {}, broadcasts: {},
+            blocks: Object.assign({
+                hat: {opcode: 'event_whenflagclicked', next: 'say', parent: null, inputs: {},
+                    fields: {}, shadow: false, topLevel: true, x: 0, y: 0}
+            }, blocks),
+            comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 1,
+            visible: true, x: 0, y: 0, size: 100, direction: 90, draggable: false,
+            rotationStyle: 'all around'}
+    ], monitors: [], extensions: [], meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+});
+
+const roundTrip = async project => {
+    const runtime = new Runtime();
+    runtime.extendableOperators = true;
+    const {targets} = await sb3.deserialize(JSON.parse(JSON.stringify(project)), runtime);
+    for (const target of targets) runtime.addTarget(target);
+    const sprite = targets.find(target => !target.isStage);
+    const saved = sb3.serialize(runtime).targets.find(target => !target.isStage).blocks;
+    return {sprite, saved, runtime};
+};
+
+test('empty extendable operator inputs get a shadow back on load and save', async t => {
+    const {sprite, saved} = await roundTrip(operatorProject({
+        say: {opcode: 'looks_say', next: 'say2', parent: 'hat', inputs: {MESSAGE: [3, 'add', [10, '']]},
+            fields: {}, shadow: false, topLevel: false},
+        add: {opcode: 'operator_add', next: null, parent: 'say',
+            inputs: {NUM1: [3, [12, 'dir', 'v'], [4, '']], NUM2: [1, null]},
+            fields: {}, shadow: false, topLevel: false},
+        say2: {opcode: 'looks_say', next: null, parent: 'say', inputs: {MESSAGE: [3, 'join', [10, '']]},
+            fields: {}, shadow: false, topLevel: false},
+        join: {opcode: 'operator_join', next: null, parent: 'say2', inputs: {STRING1: [1, [10, 'a']]},
+            fields: {}, shadow: false, topLevel: false}
+    }));
+    const add = sprite.blocks.getBlock('add');
+    const num2 = sprite.blocks.getBlock(add.inputs.NUM2.block);
+    t.equal(num2.opcode, 'math_number');
+    t.ok(num2.shadow);
+    t.equal(add.inputs.NUM2.shadow, add.inputs.NUM2.block);
+    const join = sprite.blocks.getBlock('join');
+    t.equal(sprite.blocks.getBlock(join.inputs.STRING2.block).opcode, 'text');
+    const savedAdd = Object.values(saved).find(block => block.opcode === 'operator_add');
+    t.same(savedAdd.inputs.NUM2, [1, [4, '']]);
+    const savedJoin = Object.values(saved).find(block => block.opcode === 'operator_join');
+    t.same(savedJoin.inputs.STRING2, [1, [10, '']]);
+    t.end();
+});
+
+test('inputs left past the item count are not saved', async t => {
+    const {sprite, saved, runtime} = await roundTrip(operatorProject({
+        say: {opcode: 'looks_say', next: null, parent: 'hat', inputs: {MESSAGE: [3, 'mul', [10, '']]},
+            fields: {}, shadow: false, topLevel: false},
+        mul: {opcode: 'operator_multiply', next: null, parent: 'say',
+            inputs: {NUM1: [1, [4, '2']], NUM2: [1, [4, '3']]},
+            fields: {}, shadow: false, topLevel: false}
+    }));
+    const mul = sprite.blocks.getBlock('mul');
+    sprite.blocks.createBlock({id: 'stale', opcode: 'math_number', inputs: {},
+        fields: {NUM: {name: 'NUM', value: '9'}}, next: null, topLevel: false, parent: null, shadow: true});
+    mul.inputs.NUM3 = {name: 'NUM3', block: null, shadow: 'stale'};
+    const savedMul = Object.values(sb3.serialize(runtime).targets[1].blocks)
+        .find(block => block.opcode === 'operator_multiply');
+    t.same(Object.keys(savedMul.inputs).sort(), ['NUM1', 'NUM2']);
+    t.ok(sprite.blocks.getBlock('stale'), 'saving does not change the running project');
+    t.ok(Object.values(saved).every(block => !Array.isArray(block) || block[0] !== 4));
+    t.end();
+});
+
+test('an input whose block went missing falls back to its shadow', async t => {
+    const {sprite, runtime} = await roundTrip(operatorProject({
+        say: {opcode: 'looks_say', next: null, parent: 'hat', inputs: {MESSAGE: [3, 'add', [10, '']]},
+            fields: {}, shadow: false, topLevel: false},
+        add: {opcode: 'operator_add', next: null, parent: 'say',
+            inputs: {NUM1: [1, [4, '1']], NUM2: [1, [4, '2']]},
+            mutation: {tagName: 'mutation', children: [], itemcount: '3'},
+            fields: {}, shadow: false, topLevel: false}
+    }));
+    const add = sprite.blocks.getBlock('add');
+    t.equal(sprite.blocks.getBlock(add.inputs.NUM3.block).opcode, 'math_number', 'missing third input is filled');
+    add.inputs.NUM3 = {name: 'NUM3', block: null, shadow: add.inputs.NUM3.shadow};
+    const saved = sb3.serialize(runtime).targets[1].blocks;
+    const adds = Object.values(saved).filter(block => block.opcode === 'operator_add');
+    t.equal(adds.length, 2, 'three items are saved as two nested blocks');
+    for (const block of adds) {
+        for (const name of ['NUM1', 'NUM2']) {
+            const input = block.inputs[name];
+            t.ok(input && (input[0] !== 1 || input[1] !== null), `${name} is not empty`);
+            t.notOk(input[0] === 3 && input[1] === null, `${name} has a block`);
+        }
+    }
+    t.end();
+});
+
+test('empty boolean operands stay empty', async t => {
+    const {sprite, saved} = await roundTrip(operatorProject({
+        if: {opcode: 'control_if', next: null, parent: 'hat', inputs: {CONDITION: [2, 'and']},
+            fields: {}, shadow: false, topLevel: false},
+        and: {opcode: 'operator_and', next: null, parent: 'if', inputs: {},
+            fields: {}, shadow: false, topLevel: false}
+    }));
+    t.same(sprite.blocks.getBlock('and').inputs, {});
+    t.same(Object.values(saved).find(block => block.opcode === 'operator_and').inputs, {});
+    t.end();
+});
