@@ -42,6 +42,7 @@ const UserData = require('../io/userData');
 const Video = require('../io/video');
 
 const StringUtil = require('../util/string-util');
+const MathUtil = require('../util/math-util');
 const uid = require('../util/uid');
 
 const defaultBlockPackages = {
@@ -3162,6 +3163,18 @@ class Runtime extends EventEmitter {
         const storedHeight = +parsed.height || this.stageHeight;
         if (storedWidth !== this.stageWidth || storedHeight !== this.stageHeight) {
             this.setStageSize(storedWidth, storedHeight);
+        }
+    }
+
+    clampMonitorsToStage () {
+        const isNum = n => typeof n === 'number' && !isNaN(n);
+        for (const monitor of this._monitorState.values()) {
+            if (!isNum(monitor.x) || !isNum(monitor.y)) continue;
+            const x = MathUtil.clamp(monitor.x, 0, this.stageWidth);
+            const y = MathUtil.clamp(monitor.y, 0, this.stageHeight);
+            if (x !== monitor.x || y !== monitor.y) {
+                this.requestUpdateMonitor({id: monitor.id, x, y});
+            }
         }
     }
 
