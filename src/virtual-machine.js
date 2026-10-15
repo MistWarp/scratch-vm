@@ -8,6 +8,7 @@ const EventEmitter = require('events');
 const EditingCommands = require('./editing/commands');
 const JSZip = require('@turbowarp/jszip');
 const normalizeAssetData = require('./util/normalize-asset-data');
+const isUncompressedWav = require('./util/is-uncompressed-wav');
 
 const Buffer = require('buffer').Buffer;
 const centralDispatch = require('./dispatch/central-dispatch');
@@ -683,10 +684,11 @@ class VirtualMachine extends EventEmitter {
         // TODO want to eventually move zip creation out of here, and perhaps
         // into scratch-storage
         const zip = new JSZip();
+        const fileDescs = this.serializeAssets();
 
         // Put everything in a zip file
-        zip.file('project.json', projectJson);
-        this._addFileDescsToZip(this.serializeAssets(), zip);
+        zip.file('project.json', new _TextEncoder().encode(projectJson));
+        this._addFileDescsToZip(fileDescs, zip);
 
         // Use a fixed modification date for the files in the zip instead of letting JSZip use the
         // current time to avoid a very small metadata leak and make zipping deterministic. The magic
@@ -701,12 +703,19 @@ class VirtualMachine extends EventEmitter {
         const COMPRESSABLE_FORMATS = [
             '.json',
             '.svg',
-            '.wav',
             '.ttf',
             '.otf'
         ];
+        const fileContents = new Map(fileDescs.map(desc => [desc.fileName, desc.fileContent]));
         for (const file of Object.values(zip.files)) {
-            if (COMPRESSABLE_FORMATS.some(ext => file.name.endsWith(ext))) {
+            if (file.name.endsWith('.wav')) {
+                if (isUncompressedWav(fileContents.get(file.name))) {
+                    file.options.compression = 'DEFLATE';
+                    file.options.compressionOptions = {level: 1};
+                } else {
+                    file.options.compression = 'STORE';
+                }
+            } else if (COMPRESSABLE_FORMATS.some(ext => file.name.endsWith(ext))) {
                 file.options.compression = 'DEFLATE';
             } else {
                 file.options.compression = 'STORE';
