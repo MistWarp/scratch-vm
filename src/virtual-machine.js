@@ -31,6 +31,8 @@ const {serializeSounds, serializeCostumes} = require('./serialization/serialize-
 require('canvas-toBlob');
 const {exportCostume} = require('./serialization/tw-costume-import-export');
 const Base64Util = require('./util/base64-util');
+const fractchContext = require('./serialization/fractch-context');
+const {replaceTargetScripts} = require('./engine/replace-target-scripts');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
 
@@ -943,17 +945,60 @@ class VirtualMachine extends EventEmitter {
     /**
      * @param {string[]} extensionIDs The IDs of the extensions
      * @param {Map<string, string>} extensionURLs A map of extension ID to URL
+     * @param {function(): boolean} active Whether the load that asked for these extensions is still current
+     * @param {boolean} wholeProject Whether these are the extensions of a whole project being opened
      */
-    async _loadExtensions (extensionIDs, extensionURLs = new Map()) {
+    async _loadExtensions (extensionIDs, extensionURLs = new Map(), active = () => true, wholeProject = false) {
+        const checkOptions = {wholeProject: wholeProject === true};
         const defaultExtensionURLs = require('./extension-support/tw-default-extension-urls');
         const extensionPromises = [];
+        const pendingLoads = new Map();
+        const reportedURLs = new Set();
+        const ensureActive = () => {
+            if (!active()) throw new Error('Project load cancelled');
+        };
+        const loadFromProject = async (extensionID, url) => {
+            ensureActive();
+            const allowed = await this.securityManager.canLoadExtensionFromProject(url, checkOptions);
+            ensureActive();
+            if (!allowed) {
+                this.extensionManager.recordUnloadedExtension(extensionID, url, {denied: true});
+                return;
+            }
+            const failed = error => {
+                if (!active()) return;
+                this.extensionManager.recordUnloadedExtension(extensionID, url, {error});
+                if (reportedURLs.has(url)) return;
+                reportedURLs.add(url);
+                log.error(`Could not load extension ${extensionID} from ${url}`, error);
+                this.emit('EXTENSION_LOAD_ERROR', {extensionID, url, error});
+            };
+            let load = pendingLoads.get(url);
+            if (!load) {
+                load = this.extensionManager.loadExtensionURL(url, extensionID);
+                pendingLoads.set(url, load);
+            }
+            extensionPromises.push(load.then(() => {
+                if (active() && !this.extensionManager.isExtensionLoaded(extensionID)) {
+                    log.warn(`${url} did not register the extension ${extensionID}`);
+                    this.extensionManager.recordUnloadedExtension(extensionID, url, {
+                        error: new Error(`The script did not register the extension ${extensionID}.`)
+                    });
+                }
+            }, failed));
+        };
+        if (wholeProject === true) {
+            this._unloadOutdatedExtensions(extensionIDs, extensionURLs);
+        }
         for (const extensionID of extensionIDs) {
+            ensureActive();
             if (
                 extensionID === 'patching' &&
-                !await this.securityManager.canLoadExtensionFromProject('builtin:patching')
+                !await this.securityManager.canLoadExtensionFromProject('builtin:patching', checkOptions)
             ) {
                 continue;
             }
+            ensureActive();
             if (this.extensionManager.isExtensionLoaded(extensionID)) {
                 // Already loaded
             } else if (this.extensionManager.isBuiltinExtension(extensionID)) {
@@ -968,15 +1013,39 @@ class VirtualMachine extends EventEmitter {
                 if (!url) {
                     throw new Error(`Unknown extension: ${extensionID}`);
                 }
-                if (await this.securityManager.canLoadExtensionFromProject(url)) {
-                    extensionPromises.push(this.extensionManager.loadExtensionURL(url).catch(error => {
-                        log.error(`Could not load extension ${extensionID} from ${url}`, error);
-                        this.emit('EXTENSION_LOAD_ERROR', {extensionID, url, error});
-                    }));
-                }
+                await loadFromProject(extensionID, url);
             }
         }
         return Promise.all(extensionPromises);
+    }
+
+    /**
+     * Unload custom extensions that the project being opened stores with different code, along with
+     * every other extension registered by the same script, so the project runs its own version.
+     * @param {string[]} extensionIDs The IDs of the extensions the project uses.
+     * @param {Map<string, string>} extensionURLs A map of extension ID to URL from the project.
+     */
+    _unloadOutdatedExtensions (extensionIDs, extensionURLs) {
+        const loadedURLs = this.extensionManager.getExtensionURLs();
+        const outdatedURLs = new Set();
+        for (const extensionID of extensionIDs) {
+            const projectURL = extensionURLs.get(extensionID);
+            const loadedURL = loadedURLs[extensionID];
+            if (
+                projectURL &&
+                loadedURL &&
+                projectURL !== loadedURL &&
+                this.extensionManager.isExtensionLoaded(extensionID) &&
+                !this.extensionManager.isBuiltinExtension(extensionID)
+            ) {
+                outdatedURLs.add(loadedURL);
+            }
+        }
+        for (const [extensionID, loadedURL] of Object.entries(loadedURLs)) {
+            if (outdatedURLs.has(loadedURL) && this.extensionManager.isExtensionLoaded(extensionID)) {
+                this.extensionManager.removeExtension(extensionID);
+            }
+        }
     }
 
     /**
@@ -1017,11 +1086,19 @@ class VirtualMachine extends EventEmitter {
         // Flag for security policies (e.g. MistWarp's platform rewrite): only extensions
         // installed as part of a whole project were saved with that project. Sprites added
         // later may reference foreign extensions with no pinned server copy.
+        const installToken = {};
+        this._mwInstallToken = installToken;
         this._mwInstallingWholeProject = wholeProject;
+        if (wholeProject) {
+            this.extensionManager.resetProjectExtensions(extensions.extensionIDs);
+        }
         try {
-            await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs);
+            await this._loadExtensions(extensions.extensionIDs, extensions.extensionURLs, active, wholeProject);
         } finally {
-            this._mwInstallingWholeProject = null;
+            if (this._mwInstallToken === installToken) {
+                this._mwInstallToken = null;
+                this._mwInstallingWholeProject = null;
+            }
         }
         if (wholeProject && typeof this.extensionManager.setExtensionOrder === 'function') {
             await this.extensionManager.setExtensionOrder(extensions.extensionIDs);
@@ -1428,7 +1505,8 @@ class VirtualMachine extends EventEmitter {
      *     a dataURI if it's a PNG or JPG, or null if it couldn't be found or decoded.
      */
     getCostume (costumeIndex) {
-        const asset = this.editingTarget.getCostumes()[costumeIndex].asset;
+        const costume = this.editingTarget && this.editingTarget.getCostumes()[costumeIndex];
+        const asset = costume && costume.asset;
         if (!asset || !this.runtime || !this.runtime.storage) return null;
         const format = asset.dataFormat;
         if (format === this.runtime.storage.DataFormat.SVG) {
@@ -1637,6 +1715,59 @@ class VirtualMachine extends EventEmitter {
         } else {
             throw new Error('No target with the provided id.');
         }
+    }
+
+    renameVariable (variableId, newName) {
+        const name = typeof newName === 'string' ? newName.trim() : '';
+        const originals = this.runtime.targets.filter(target => target.isOriginal);
+        const owner = originals.find(target => Object.prototype.hasOwnProperty.call(target.variables, variableId));
+        if (!owner || !name) return false;
+        const variable = owner.variables[variableId];
+        if (variable.type === Variable.BROADCAST_MESSAGE_TYPE) return false;
+        if (variable.name === name) return true;
+        const scope = owner.isStage ? originals : [owner, this.runtime.getTargetForStage()];
+        const clash = scope.some(target => target && Object.values(target.variables).some(other =>
+            other.id !== variableId && other.type === variable.type && other.name === name));
+        if (clash) return false;
+        owner.renameVariable(variableId, name);
+        for (const target of this.runtime.targets) {
+            if (!target.isOriginal && target.variables[variableId]) target.variables[variableId].name = name;
+            if (target.isOriginal && (owner.isStage || target === owner)) {
+                target.blocks.updateBlocksAfterVarRename(variableId, name);
+            }
+        }
+        this.runtime.emitProjectChanged();
+        return true;
+    }
+
+    renameBroadcast (broadcastId, newName) {
+        const name = typeof newName === 'string' ? newName.trim() : '';
+        const stage = this.runtime.getTargetForStage();
+        const broadcast = stage && stage.variables[broadcastId];
+        if (!broadcast || broadcast.type !== Variable.BROADCAST_MESSAGE_TYPE || !name) return false;
+        if (broadcast.name === name) return true;
+        const folded = name.toLowerCase();
+        const clash = Object.values(stage.variables).some(other => other.id !== broadcastId &&
+            other.type === Variable.BROADCAST_MESSAGE_TYPE && other.name.toLowerCase() === folded);
+        if (clash) return false;
+        stage.renameVariable(broadcastId, name);
+        for (const target of this.runtime.targets) {
+            if (!target.isOriginal) continue;
+            let changed = false;
+            for (const block of Object.values(target.blocks._blocks)) {
+                const field = block.fields && block.fields.BROADCAST_OPTION;
+                if (field && field.id === broadcastId && field.value !== name) {
+                    field.value = name;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                target.blocks.revision++;
+                target.blocks.resetCache();
+            }
+        }
+        this.runtime.emitProjectChanged();
+        return true;
     }
 
     /**
@@ -1898,6 +2029,8 @@ class VirtualMachine extends EventEmitter {
             .map(b => sb3.getExtensionIdForOpcode(b.opcode))
             .filter(id => !!id) // Remove ids that do not exist
             .filter(id => !this.extensionManager.isExtensionLoaded(id)) // and remove loaded extensions
+            .filter(id => typeof this.extensionManager.isExtensionUnloaded !== 'function' ||
+                !this.extensionManager.isExtensionUnloaded(id))
         );
 
         return this._loadExtensions(extensionIDs, extensionURLs).then(() => {
@@ -2032,7 +2165,7 @@ class VirtualMachine extends EventEmitter {
                 }
             }
             for (const id of messageIds) {
-                delete stageVariables[id];
+                stage.deleteVariable(id);
             }
             this._broadcastCleanupNeeded = false;
         }
@@ -2045,7 +2178,14 @@ class VirtualMachine extends EventEmitter {
         const localVariables = Object.keys(localVarMap).map(k => localVarMap[k]);
         const workspaceComments = Object.keys(this.editingTarget.comments)
             .map(k => this.editingTarget.comments[k])
-            .filter(c => c.blockId === null);
+            .filter(c => c.blockId === null && !fractchContext.isMapComment(c));
+        let visibleComments = this.editingTarget.comments;
+        if (Object.keys(visibleComments).some(k => fractchContext.isMapComment(visibleComments[k]))) {
+            visibleComments = Object.assign({}, visibleComments);
+            for (const k of Object.keys(visibleComments)) {
+                if (fractchContext.isMapComment(visibleComments[k])) delete visibleComments[k];
+            }
+        }
 
         const targetFrames = this.editingTarget.frames || Object.create(null);
         const frames = Object.keys(targetFrames).map(k => targetFrames[k]);
@@ -2066,16 +2206,193 @@ class VirtualMachine extends EventEmitter {
             get xml () {
                 return `<xml xmlns="http://www.w3.org/1999/xhtml">
                             ${headerXml}
-                            ${target.blocks.toXML(target.comments)}
+                            ${target.blocks.toXML(visibleComments)}
                         </xml>`;
             },
             headerXml: `<xml xmlns="http://www.w3.org/1999/xhtml">${headerXml}</xml>`,
             blocks: {
                 blocks: target.blocks._blocks || Object.create(null),
                 scripts: typeof target.blocks.getScripts === 'function' ? target.blocks.getScripts() : [],
-                comments: target.comments
+                comments: visibleComments
             }
         });
+    }
+
+    getFractchContext (targetId) {
+        return fractchContext.getFractchContext(this, targetId);
+    }
+
+    getFractchChangeKey (targetId) {
+        const target = this.runtime.getTargetById(targetId);
+        if (!target) return null;
+        return fractchContext.getChangeKey(this.runtime, target);
+    }
+
+    getCodeStateHash (targetId) {
+        const target = this.runtime.getTargetById(targetId);
+        if (!target) return null;
+        return fractchContext.getCodeStateHash(this.runtime, target);
+    }
+
+    replaceTargetScripts (targetId, change) {
+        const result = replaceTargetScripts(this, targetId, change);
+        this.runtime.emit('TARGET_SCRIPTS_REPLACED', targetId);
+        return result;
+    }
+
+    _extensionOpcodeTest (ids) {
+        const sb3 = require('./serialization/sb3');
+        const idSet = new Set(ids);
+        return opcode => typeof opcode === 'string' && idSet.has(sb3.getExtensionIdForOpcode(opcode));
+    }
+
+    getExtensionUsage (id) {
+        const isExtensionOpcode = this._extensionOpcodeTest([id]);
+        const loaded = this.extensionManager.isExtensionLoaded(id);
+        const monitors = this.runtime.getMonitorState().values()
+            .filter(monitor => isExtensionOpcode(monitor.opcode));
+        const stage = this.runtime.getTargetForStage();
+        const countKeys = storage => {
+            if (!storage || typeof storage[id] === 'undefined' || storage[id] === null) return 0;
+            return typeof storage[id] === 'object' ? Object.keys(storage[id]).length : 1;
+        };
+        const usage = {id, targets: [], totalBlocks: 0, totalHatScripts: 0, totalMonitors: 0, storageKeys: 0};
+        usage.storageKeys += countKeys(this.runtime.extensionStorage);
+        for (const target of this.runtime.targets) {
+            if (!target.isOriginal) continue;
+            let blocks = 0;
+            let hatScripts = 0;
+            for (const block of Object.values(target.blocks._blocks)) {
+                if (block.shadow || !isExtensionOpcode(block.opcode)) continue;
+                blocks++;
+                if (block.topLevel && (loaded ? this.runtime.getIsHat(block.opcode) : block.next !== null)) {
+                    hatScripts++;
+                }
+            }
+            const targetMonitors = monitors.filter(monitor => (
+                monitor.targetId === target.id || (!monitor.targetId && target === stage)
+            )).length;
+            usage.storageKeys += countKeys(target.extensionStorage);
+            if (blocks === 0 && targetMonitors === 0) continue;
+            usage.targets.push({
+                targetId: target.id,
+                name: target.getName(),
+                isStage: target.isStage,
+                blocks,
+                hatScripts,
+                monitors: targetMonitors
+            });
+            usage.totalBlocks += blocks;
+            usage.totalHatScripts += hatScripts;
+            usage.totalMonitors += targetMonitors;
+        }
+        return usage;
+    }
+
+    _removeExtensionBlocks (target, isExtensionOpcode) {
+        const container = target.blocks;
+        const blocks = container._blocks;
+        const deleteShadowTree = blockId => {
+            const block = blocks[blockId];
+            if (!block) return;
+            for (const input of Object.values(block.inputs)) {
+                if (input.block) deleteShadowTree(input.block);
+                if (input.shadow && input.shadow !== input.block) deleteShadowTree(input.shadow);
+            }
+            container._deleteScript(blockId);
+            delete blocks[blockId];
+        };
+        const depth = blockId => {
+            let count = 0;
+            for (let block = blocks[blockId]; block && block.parent; block = blocks[block.parent]) count++;
+            return count;
+        };
+        const topOf = blockId => {
+            let block = blocks[blockId];
+            while (block && block.parent && blocks[block.parent]) block = blocks[block.parent];
+            return block;
+        };
+        const removed = Object.keys(blocks)
+            .filter(blockId => !blocks[blockId].shadow && isExtensionOpcode(blocks[blockId].opcode))
+            .sort((a, b) => depth(b) - depth(a));
+        if (removed.length === 0) return false;
+        const offsets = new Map();
+        const placeLoose = (blockId, top) => {
+            const child = blocks[blockId];
+            const key = top ? top.id : '';
+            const offset = (offsets.get(key) || 0) + 1;
+            offsets.set(key, offset);
+            child.parent = null;
+            child.x = ((top && top.x) || 0) + (offset * 40);
+            child.y = ((top && top.y) || 0) + (offset * 40);
+            container._addScript(blockId);
+        };
+        for (const blockId of removed) {
+            const block = blocks[blockId];
+            if (!block) continue;
+            const top = topOf(blockId);
+            for (const input of Object.values(block.inputs)) {
+                if (input.block && input.block !== input.shadow && blocks[input.block]) {
+                    placeLoose(input.block, top);
+                    input.block = input.shadow;
+                }
+                if (input.shadow) deleteShadowTree(input.shadow);
+            }
+            const next = block.next ? blocks[block.next] : null;
+            const parent = block.parent ? blocks[block.parent] : null;
+            if (parent) {
+                if (parent.next === blockId) {
+                    parent.next = next ? next.id : null;
+                } else {
+                    for (const input of Object.values(parent.inputs)) {
+                        if (input.block === blockId) input.block = next ? next.id : input.shadow;
+                    }
+                }
+                if (next) next.parent = parent.id;
+            } else if (next) {
+                next.parent = null;
+                next.x = block.x;
+                next.y = block.y;
+                container._addScript(next.id);
+            }
+            container._deleteScript(blockId);
+            delete blocks[blockId];
+            for (const comment of Object.values(target.comments || {})) {
+                if (comment.blockId === blockId) target.updateComment(comment.id, {blockId: null});
+            }
+        }
+        container.revision++;
+        container.resetCache();
+        return true;
+    }
+
+    removeExtensionFromProject (ids) {
+        ids = Array.isArray(ids) ? ids : [ids];
+        const isExtensionOpcode = this._extensionOpcodeTest(ids);
+        this.runtime.stopThreadsUsingOpcodes(isExtensionOpcode);
+        for (const target of this.runtime.targets) {
+            if (target.isOriginal) this._removeExtensionBlocks(target, isExtensionOpcode);
+        }
+        const monitorBlocks = this.runtime.monitorBlocks;
+        for (const blockId of Object.keys(monitorBlocks._blocks)) {
+            const block = monitorBlocks._blocks[blockId];
+            if (block && !block.shadow && isExtensionOpcode(block.opcode)) {
+                monitorBlocks.deleteBlock(blockId);
+                this.runtime.requestRemoveMonitor(blockId);
+            }
+        }
+        this.runtime.getMonitorState().filter(monitor => !isExtensionOpcode(monitor.opcode));
+        for (const id of ids) {
+            delete this.runtime.extensionStorage[id];
+            for (const target of this.runtime.targets) {
+                if (target.extensionStorage) delete target.extensionStorage[id];
+            }
+            if (this.extensionManager.isExtensionLoaded(id)) this.extensionManager.removeExtension(id);
+            this.extensionManager.forgetProjectExtension(id);
+        }
+        this.runtime.resetAllCaches();
+        this.runtime.emitProjectChanged();
+        this.emitWorkspaceUpdate();
     }
 
     /**

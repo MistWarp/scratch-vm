@@ -131,7 +131,7 @@ class SharedDispatch {
      */
     _remoteTransferCall (provider, service, method, transfer, ...args) {
         return new Promise((resolve, reject) => {
-            const responseId = this._storeCallbacks(resolve, reject);
+            const responseId = this._storeCallbacks(resolve, reject, provider);
 
             /** @TODO: remove this hack! this is just here so we don't try to send `util` to a worker */
             // tw: upstream's logic is broken
@@ -154,12 +154,13 @@ class SharedDispatch {
      * Store callback functions pending a response message.
      * @param {Function} resolve - function to call if the service method returns.
      * @param {Function} reject - function to call if the service method throws.
+     * @param {object} [provider] - the worker the call was posted to.
      * @returns {*} - a unique response ID for this set of callbacks. See {@link _deliverResponse}.
      * @protected
      */
-    _storeCallbacks (resolve, reject) {
+    _storeCallbacks (resolve, reject, provider) {
         const responseId = this.nextResponseId++;
-        this.callbacks[responseId] = [resolve, reject];
+        this.callbacks[responseId] = [resolve, reject, provider];
         return responseId;
     }
 
@@ -198,12 +199,12 @@ class SharedDispatch {
             if (message.service === 'dispatch') {
                 promise = this._onDispatchMessage(worker, message);
             } else {
-                promise = this.call(message.service, message.method, ...message.args);
+                promise = this._onWorkerCall(worker, message);
             }
         } else if (typeof message.responseId === 'undefined') {
             log.error(`Dispatch caught malformed message from a worker: ${JSON.stringify(event)}`);
         } else {
-            this._deliverResponse(message.responseId, message);
+            this._deliverResponse(message.responseId, message, worker);
         }
         if (promise) {
             if (typeof message.responseId === 'undefined') {
@@ -215,6 +216,10 @@ class SharedDispatch {
                 );
             }
         }
+    }
+
+    _onWorkerCall (worker, message) {
+        return this.call(message.service, message.method, ...message.args);
     }
 
     /**

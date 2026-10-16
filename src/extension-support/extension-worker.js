@@ -6,23 +6,48 @@ const dispatch = require('../dispatch/worker-dispatch');
 const log = require('../util/log');
 const {isWorker} = require('./tw-extension-worker-context');
 const createTranslate = require('./tw-l10n');
+const {CONSOLE_LEVELS, formatConsoleArgs, locateInStack} = require('./tw-console-capture');
 
 const translate = createTranslate(null);
 
+let scriptCounter = 0;
+let scriptNames = [];
+
+const readEmbeddedSource = url => {
+    if (!url.startsWith('data:') || typeof fetch !== 'function' || typeof Blob !== 'function') {
+        return Promise.resolve(null);
+    }
+    return fetch(url)
+        .then(response => response.text())
+        .catch(() => null);
+};
+
+const appendScript = src => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.onload = () => resolve();
+    script.onerror = () => {
+        reject(new Error(`Error in sandboxed script: ${src}. Check the console for more information.`));
+    };
+    script.src = src;
+    document.body.appendChild(script);
+});
+
 const loadScripts = url => {
     if (isWorker) {
+        scriptNames = [url];
         importScripts(url);
-    } else {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.onload = () => resolve();
-            script.onerror = () => {
-                reject(new Error(`Error in sandboxed script: ${url}. Check the console for more information.`));
-            };
-            script.src = url;
-            document.body.appendChild(script);
-        });
+        return;
     }
+    scriptNames = [url];
+    return readEmbeddedSource(url).then(source => {
+        if (source === null) return appendScript(url);
+        const name = `mistwarp-extension:///sandboxed-${++scriptCounter}.js`;
+        const blobURL = URL.createObjectURL(new Blob([`${source}\n//# sourceURL=${name}`], {
+            type: 'text/javascript'
+        }));
+        scriptNames = [blobURL, name];
+        return appendScript(blobURL).finally(() => URL.revokeObjectURL(blobURL));
+    });
 };
 
 class ExtensionWorker {
@@ -46,7 +71,14 @@ class ExtensionWorker {
                     timer = setTimeout(() => reject(new Error(
                         `Extension did not finish registering within 30 seconds: ${extension}`
                     )), 30000);
-                    onError = event => reject(new Error(event.message || `Extension failed to start: ${extension}`));
+                    onError = event => {
+                        const error = new Error(event.message || `Extension failed to start: ${extension}`);
+                        if (scriptNames.includes(event.filename)) {
+                            error.line = event.lineno || null;
+                            error.column = event.colno || null;
+                        }
+                        reject(error);
+                    };
                     if (typeof self.addEventListener === 'function') self.addEventListener('error', onError);
                 });
                 try {
@@ -61,7 +93,8 @@ class ExtensionWorker {
                 } catch (e) {
                     log.error(e);
                     this.failed = true;
-                    await dispatch.call('extensions', 'onWorkerInit', id, `${e}`);
+                    const location = e && e.line ? {line: e.line, column: e.column} : null;
+                    await dispatch.call('extensions', 'onWorkerInit', id, `${e}`, location);
                 } finally {
                     clearTimeout(timer);
                     if (typeof self.removeEventListener === 'function') self.removeEventListener('error', onError);
@@ -86,6 +119,32 @@ class ExtensionWorker {
         return promise;
     }
 }
+
+let forwardingConsole = false;
+
+const forwardConsoleLevel = (level, original) => function (...args) {
+    original.apply(console, args);
+    if (forwardingConsole) return;
+    forwardingConsole = true;
+    try {
+        const location = locateInStack(new Error().stack, scriptNames);
+        if (location) {
+            dispatch.call('extensions', 'reportConsole', level, formatConsoleArgs(args),
+                location.line, location.column).catch(() => {});
+        }
+    } finally {
+        forwardingConsole = false;
+    }
+};
+
+const forwardConsole = () => {
+    if (typeof console === 'undefined') return;
+    for (const level of CONSOLE_LEVELS) {
+        if (typeof console[level] === 'function') console[level] = forwardConsoleLevel(level, console[level]);
+    }
+};
+
+forwardConsole();
 
 global.Scratch = global.Scratch || {};
 Object.assign(global.Scratch, ScratchCommon, {

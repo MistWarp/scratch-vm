@@ -44,7 +44,8 @@ const startWorker = behavior => {
         '../dispatch/worker-dispatch': dispatch,
         '../util/log': {error: () => {}},
         './tw-extension-worker-context': {isWorker: false},
-        './tw-l10n': () => () => ''
+        './tw-l10n': () => () => '',
+        './tw-console-capture': require('../../src/extension-support/tw-console-capture')
     })[name];
     vm.runInNewContext(source, context);
     return {result, errors};

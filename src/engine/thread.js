@@ -204,6 +204,12 @@ class Thread {
 
         this.isCompiled = false;
 
+        this.breakpointBlock = null;
+
+        this.breakpointsRevision = -1;
+
+        this.hasBreakpoint = false;
+
         // compiler data
         // these values only make sense if isCompiled == true
         this.timer = null;
@@ -485,6 +491,10 @@ class Thread {
         const topBlock = this.topBlock;
         // Flyout blocks are stored in a special block container.
         const blocks = this.blockContainer.getBlock(topBlock) ? this.blockContainer : this.target.runtime.flyoutBlocks;
+        if (this.target.runtime.scriptHasBreakpoint(blocks, topBlock) &&
+            !this.target.runtime.scriptNeedsCompiler(blocks, topBlock)) {
+            return;
+        }
         const cachedResult = canCache && blocks.getCachedCompileResult(topBlock);
         // If there is a cached error, do not attempt to recompile.
         if (cachedResult && !cachedResult.success) {

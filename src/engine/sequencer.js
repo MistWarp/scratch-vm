@@ -135,7 +135,11 @@ class Sequencer {
                         // Increment the number of times stepThread is called.
                         this.runtime.profiler.increment(stepThreadProfilerId);
                     }
-                    this.stepThread(activeThread);
+                    try {
+                        this.stepThread(activeThread);
+                    } catch (error) {
+                        this.handleThreadError(activeThread, error);
+                    }
                     activeThread.warpTimer = null;
                 }
                 if (activeThread.status === Thread.STATUS_RUNNING) {
@@ -209,6 +213,10 @@ class Sequencer {
      */
     stepThread (thread) {
         if (thread.isCompiled) {
+            if (this.runtime.breakpoints !== null && this.runtime.compiledThreadHasBreakpoint(thread) &&
+                this.hitBreakpoint(thread, thread.topBlock)) {
+                return;
+            }
             compilerExecute(thread);
             return;
         }
@@ -242,6 +250,10 @@ class Sequencer {
 
                 // Increment the number of times execute is called.
                 this.runtime.profiler.increment(executeProfilerId);
+            }
+            if (this.runtime.breakpoints !== null && this.runtime.breakpoints.has(currentBlockId) &&
+                this.hitBreakpoint(thread, currentBlockId)) {
+                return;
             }
             if (thread.target === null) {
                 this.retireThread(thread);
@@ -320,6 +332,26 @@ class Sequencer {
     }
 
     /**
+     * Report a breakpoint and decide whether the thread stops before the block.
+     * A thread resumed at the block passes it once.
+     * @param {!Thread} thread Thread at the breakpoint.
+     * @param {string} blockId Breakpointed block, or the top block for compiled threads.
+     * @return {boolean} True if a listener paused the thread.
+     */
+    hitBreakpoint (thread, blockId) {
+        if (thread.breakpointBlock === blockId) {
+            thread.breakpointBlock = null;
+            return false;
+        }
+        const status = thread.status;
+        thread.breakpointBlock = blockId;
+        this.runtime.emit('BREAKPOINT_HIT', thread, blockId);
+        if (thread.status !== status) return true;
+        thread.breakpointBlock = null;
+        return false;
+    }
+
+    /**
      * Step a thread into a block's branch.
      * @param {!Thread} thread Thread object to step to branch.
      * @param {number} branchNum Which branch to step to (i.e., 1, 2).
@@ -376,6 +408,23 @@ class Sequencer {
                 // In normal-mode threads, yield any time we have a recursive call.
                 thread.status = Thread.STATUS_YIELD;
             }
+        }
+    }
+
+    /**
+     * Contain an error thrown while stepping a thread so the other threads in the frame still run.
+     * An interpreted thread has not advanced past the block that threw, so it retries that block
+     * next frame, as it did before errors were contained. A compiled thread's generator is finished
+     * once it throws, so the thread is retired.
+     * @param {!Thread} thread The thread that threw.
+     * @param {*} error The thrown value.
+     */
+    handleThreadError (thread, error) {
+        this.runtime.reportScriptError(thread, error);
+        if (thread.isCompiled) {
+            this.retireThread(thread);
+        } else {
+            thread.status = Thread.STATUS_YIELD_TICK;
         }
     }
 

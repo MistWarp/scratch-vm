@@ -1,0 +1,2041 @@
+{
+  "sources": [
+    "runtime._primitives",
+    "runtime._hats",
+    "scratch-blocks Blockly.Blocks"
+  ],
+  "opcodes": {
+    "argument_editor_boolean": {
+      "inputs": [],
+      "fields": [
+        "TEXT"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "argument_editor_string_number": {
+      "inputs": [],
+      "fields": [
+        "TEXT"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "argument_reporter_boolean": {
+      "inputs": [],
+      "fields": [
+        "VALUE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "argument_reporter_string_number": {
+      "inputs": [],
+      "fields": [
+        "VALUE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_allnames": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_byte": {
+      "inputs": [
+        "INDEX",
+        "ASSET"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_check": {
+      "inputs": [
+        "ASSET"
+      ],
+      "fields": [
+        "STATE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_delete": {
+      "inputs": [
+        "ASSET"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_get": {
+      "inputs": [
+        "ASSET"
+      ],
+      "fields": [
+        "PROPERTY"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_infolder": {
+      "inputs": [
+        "FOLDER"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_load": {
+      "inputs": [
+        "ASSET"
+      ],
+      "fields": [
+        "KIND"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_menu": {
+      "inputs": [],
+      "fields": [
+        "ASSET"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "assets_set": {
+      "inputs": [
+        "ASSET",
+        "VALUE"
+      ],
+      "fields": [
+        "FORMAT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_unload": {
+      "inputs": [
+        "ASSET"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "assets_unloadall": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "colour_picker": {
+      "inputs": [],
+      "fields": [
+        "COLOUR"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "control_all_at_once": {
+      "inputs": [
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_break": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_case": {
+      "inputs": [
+        "VALUE",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_case_fallthrough": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_clear_counter": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_create_clone_of": {
+      "inputs": [
+        "CLONE_OPTION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_create_clone_of_menu": {
+      "inputs": [],
+      "fields": [
+        "CLONE_OPTION"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "control_default": {
+      "inputs": [
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_delete_this_clone": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_for_each": {
+      "inputs": [
+        "VALUE",
+        "SUBSTACK"
+      ],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_forever": {
+      "inputs": [
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_get_counter": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_if": {
+      "inputs": [
+        "CONDITION",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_if_else": {
+      "inputs": [
+        "CONDITION",
+        "SUBSTACK",
+        "SUBSTACK2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_incr_counter": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_repeat": {
+      "inputs": [
+        "TIMES",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_repeat_until": {
+      "inputs": [
+        "CONDITION",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_start_as_clone": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "control_stop": {
+      "inputs": [],
+      "fields": [
+        "STOP_OPTION"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_switch": {
+      "inputs": [
+        "VALUE",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_wait": {
+      "inputs": [
+        "DURATION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_wait_until": {
+      "inputs": [
+        "CONDITION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "control_while": {
+      "inputs": [
+        "CONDITION",
+        "SUBSTACK"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_addtolist": {
+      "inputs": [
+        "ITEM"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_changevariableby": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_deletealloflist": {
+      "inputs": [],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_deleteoflist": {
+      "inputs": [
+        "INDEX"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_hidelist": {
+      "inputs": [],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_hidevariable": {
+      "inputs": [],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_insertatlist": {
+      "inputs": [
+        "ITEM",
+        "INDEX"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_itemnumoflist": {
+      "inputs": [
+        "ITEM"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_itemoflist": {
+      "inputs": [
+        "INDEX"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_lengthoflist": {
+      "inputs": [],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_listcontainsitem": {
+      "inputs": [
+        "ITEM"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_listcontents": {
+      "inputs": [],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_listindexall": {
+      "inputs": [],
+      "fields": [
+        "INDEX"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "data_listindexrandom": {
+      "inputs": [],
+      "fields": [
+        "INDEX"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "data_listjson": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": false
+    },
+    "data_replaceitemoflist": {
+      "inputs": [
+        "INDEX",
+        "ITEM"
+      ],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_setvariableto": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_showlist": {
+      "inputs": [],
+      "fields": [
+        "LIST"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_showvariable": {
+      "inputs": [],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "data_variable": {
+      "inputs": [],
+      "fields": [
+        "VARIABLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "event_broadcast": {
+      "inputs": [
+        "BROADCAST_INPUT"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "event_broadcast_menu": {
+      "inputs": [],
+      "fields": [
+        "BROADCAST_OPTION"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "event_broadcastandwait": {
+      "inputs": [
+        "BROADCAST_INPUT"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "event_touchingobjectmenu": {
+      "inputs": [],
+      "fields": [
+        "TOUCHINGOBJECTMENU"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "event_whenbackdropswitchesto": {
+      "inputs": [],
+      "fields": [
+        "BACKDROP"
+      ],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whenbroadcastreceived": {
+      "inputs": [],
+      "fields": [
+        "BROADCAST_OPTION"
+      ],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whenflagclicked": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whengreaterthan": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "WHENGREATERTHANMENU"
+      ],
+      "primitive": true,
+      "hat": true,
+      "definition": true
+    },
+    "event_whenkeypressed": {
+      "inputs": [],
+      "fields": [
+        "KEY_OPTION"
+      ],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whenstageclicked": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whenthisspriteclicked": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": true,
+      "definition": true
+    },
+    "event_whentouchingobject": {
+      "inputs": [
+        "TOUCHINGOBJECTMENU"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": true,
+      "definition": true
+    },
+    "extension_microbit_display": {
+      "inputs": [
+        "MATRIX"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_music_drum": {
+      "inputs": [
+        "NUMBER"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_music_play_note": {
+      "inputs": [
+        "NOTE",
+        "BEATS"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_music_reporter": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_pen_down": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_wedo_boolean": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_wedo_hat": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_wedo_motor": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_wedo_tilt_menu": {
+      "inputs": [],
+      "fields": [
+        "TILT"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "extension_wedo_tilt_reporter": {
+      "inputs": [
+        "TILT"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "looks_backdropnumbername": {
+      "inputs": [],
+      "fields": [
+        "NUMBER_NAME"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_backdrops": {
+      "inputs": [],
+      "fields": [
+        "BACKDROP"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "looks_changeeffectby": {
+      "inputs": [
+        "CHANGE"
+      ],
+      "fields": [
+        "EFFECT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_changesizeby": {
+      "inputs": [
+        "CHANGE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_changestretchby": {
+      "inputs": [
+        "CHANGE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_cleargraphiceffects": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_costume": {
+      "inputs": [],
+      "fields": [
+        "COSTUME"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "looks_costumenumbername": {
+      "inputs": [],
+      "fields": [
+        "NUMBER_NAME"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_costumes": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_goforwardbackwardlayers": {
+      "inputs": [
+        "NUM"
+      ],
+      "fields": [
+        "FORWARD_BACKWARD"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_gotofrontback": {
+      "inputs": [],
+      "fields": [
+        "FRONT_BACK"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_hide": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_hideallsprites": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_nextbackdrop": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_nextcostume": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_say": {
+      "inputs": [
+        "MESSAGE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_sayforsecs": {
+      "inputs": [
+        "MESSAGE",
+        "SECS"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_seteffectto": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "EFFECT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_setsizeto": {
+      "inputs": [
+        "SIZE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_setstretchto": {
+      "inputs": [
+        "STRETCH"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_show": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_size": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_switchbackdropto": {
+      "inputs": [
+        "BACKDROP"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_switchbackdroptoandwait": {
+      "inputs": [
+        "BACKDROP"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_switchcostumeto": {
+      "inputs": [
+        "COSTUME"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_think": {
+      "inputs": [
+        "MESSAGE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "looks_thinkforsecs": {
+      "inputs": [
+        "MESSAGE",
+        "SECS"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "math_angle": {
+      "inputs": [],
+      "fields": [
+        "NUM"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "math_integer": {
+      "inputs": [],
+      "fields": [
+        "NUM"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "math_number": {
+      "inputs": [],
+      "fields": [
+        "NUM"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "math_positive_number": {
+      "inputs": [],
+      "fields": [
+        "NUM"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "math_whole_number": {
+      "inputs": [],
+      "fields": [
+        "NUM"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "matrix": {
+      "inputs": [],
+      "fields": [
+        "MATRIX"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "motion_align_scene": {
+      "inputs": [],
+      "fields": [
+        "ALIGNMENT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_changexby": {
+      "inputs": [
+        "DX"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_changeyby": {
+      "inputs": [
+        "DY"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_direction": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_glidesecstoxy": {
+      "inputs": [
+        "SECS",
+        "X",
+        "Y"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_glideto": {
+      "inputs": [
+        "SECS",
+        "TO"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_glideto_menu": {
+      "inputs": [],
+      "fields": [
+        "TO"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "motion_goto": {
+      "inputs": [
+        "TO"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_goto_menu": {
+      "inputs": [],
+      "fields": [
+        "TO"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "motion_gotoxy": {
+      "inputs": [
+        "X",
+        "Y"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_ifonedgebounce": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_movesteps": {
+      "inputs": [
+        "STEPS"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_pointindirection": {
+      "inputs": [
+        "DIRECTION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_pointtowards": {
+      "inputs": [
+        "TOWARDS"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_pointtowards_menu": {
+      "inputs": [],
+      "fields": [
+        "TOWARDS"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "motion_pointtowards_xy": {
+      "inputs": [
+        "X",
+        "Y"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_pointtowards_xyfrom": {
+      "inputs": [
+        "X",
+        "Y",
+        "FROMX",
+        "FROMY"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_scroll_right": {
+      "inputs": [
+        "DISTANCE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_scroll_up": {
+      "inputs": [
+        "DISTANCE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_setrotationstyle": {
+      "inputs": [],
+      "fields": [
+        "STYLE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_setx": {
+      "inputs": [
+        "X"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_sety": {
+      "inputs": [
+        "Y"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_turnleft": {
+      "inputs": [
+        "DEGREES"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_turnright": {
+      "inputs": [
+        "DEGREES"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_xposition": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_xscroll": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_yposition": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "motion_yscroll": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "note": {
+      "inputs": [],
+      "fields": [
+        "NOTE"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "operator_add": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_and": {
+      "inputs": [
+        "OPERAND1",
+        "OPERAND2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "OPERAND",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_change_case": {
+      "inputs": [
+        "STRING"
+      ],
+      "fields": [
+        "CASE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_clamp": {
+      "inputs": [
+        "NUM",
+        "MIN",
+        "MAX"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_contains": {
+      "inputs": [
+        "STRING1",
+        "STRING2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_divide": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_equals": {
+      "inputs": [
+        "OPERAND1",
+        "OPERAND2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_gt": {
+      "inputs": [
+        "OPERAND1",
+        "OPERAND2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_index_of": {
+      "inputs": [
+        "SUBSTRING",
+        "STRING"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_join": {
+      "inputs": [
+        "STRING1",
+        "STRING2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "STRING",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_length": {
+      "inputs": [
+        "STRING"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_letter_of": {
+      "inputs": [
+        "LETTER",
+        "STRING"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_letters_of": {
+      "inputs": [
+        "LETTER1",
+        "LETTER2",
+        "STRING"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_lt": {
+      "inputs": [
+        "OPERAND1",
+        "OPERAND2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_mathop": {
+      "inputs": [
+        "NUM"
+      ],
+      "fields": [
+        "OPERATOR"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_max": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": false
+      }
+    },
+    "operator_min": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": false
+      }
+    },
+    "operator_mod": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_multiply": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_newline": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_not": {
+      "inputs": [
+        "OPERAND"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_or": {
+      "inputs": [
+        "OPERAND1",
+        "OPERAND2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "OPERAND",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_pi": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_random": {
+      "inputs": [
+        "FROM",
+        "TO"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_repeat": {
+      "inputs": [
+        "STRING",
+        "REPEAT"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_replace": {
+      "inputs": [
+        "SUBSTRING",
+        "STRING",
+        "REPLACE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_round": {
+      "inputs": [
+        "NUM"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "operator_subtract": {
+      "inputs": [
+        "NUM1",
+        "NUM2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "NUM",
+        "minItems": 2,
+        "collapsed": true
+      }
+    },
+    "operator_trim": {
+      "inputs": [
+        "STRING"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "patching_jsboolean": {
+      "inputs": [
+        "ARG1"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "ARG",
+        "minItems": 1,
+        "collapsed": false
+      }
+    },
+    "patching_jscommand": {
+      "inputs": [
+        "ARG1"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "ARG",
+        "minItems": 1,
+        "collapsed": false
+      }
+    },
+    "patching_jsreporter": {
+      "inputs": [
+        "ARG1"
+      ],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true,
+      "variadic": {
+        "prefix": "ARG",
+        "minItems": 1,
+        "collapsed": false
+      }
+    },
+    "procedures_call": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true,
+      "mutationInputs": "argumentids"
+    },
+    "procedures_declaration": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "procedures_definition": {
+      "inputs": [
+        "custom_block"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "procedures_prototype": {
+      "inputs": [],
+      "fields": [],
+      "primitive": false,
+      "hat": false,
+      "definition": true,
+      "mutationInputs": "argumentids"
+    },
+    "procedures_return": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_answer": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_askandwait": {
+      "inputs": [
+        "QUESTION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_coloristouchingcolor": {
+      "inputs": [
+        "COLOR",
+        "COLOR2"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_current": {
+      "inputs": [],
+      "fields": [
+        "CURRENTMENU"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_dayssince2000": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_distanceto": {
+      "inputs": [
+        "DISTANCETOMENU"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_distancetomenu": {
+      "inputs": [],
+      "fields": [
+        "DISTANCETOMENU"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_keyoptions": {
+      "inputs": [],
+      "fields": [
+        "KEY_OPTION"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_keypressed": {
+      "inputs": [
+        "KEY_OPTION"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_loud": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_loudness": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_mousedown": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_mousex": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_mousey": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_of": {
+      "inputs": [
+        "OBJECT"
+      ],
+      "fields": [
+        "PROPERTY"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_of_object_menu": {
+      "inputs": [],
+      "fields": [
+        "OBJECT"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_online": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_resettimer": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_setdragmode": {
+      "inputs": [],
+      "fields": [
+        "DRAG_MODE"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_stageheight": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_stagewidth": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_timer": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_touchingcolor": {
+      "inputs": [
+        "COLOR"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_touchingobject": {
+      "inputs": [
+        "TOUCHINGOBJECTMENU"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_touchingobjectmenu": {
+      "inputs": [],
+      "fields": [
+        "TOUCHINGOBJECTMENU"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_userid": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sensing_username": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_beats_menu": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": false
+    },
+    "sound_changeeffectby": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "EFFECT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_changevolumeby": {
+      "inputs": [
+        "VOLUME"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_cleareffects": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_effects_menu": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": false
+    },
+    "sound_play": {
+      "inputs": [
+        "SOUND_MENU"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_playuntildone": {
+      "inputs": [
+        "SOUND_MENU"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_seteffectto": {
+      "inputs": [
+        "VALUE"
+      ],
+      "fields": [
+        "EFFECT"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_setvolumeto": {
+      "inputs": [
+        "VOLUME"
+      ],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_sounds_menu": {
+      "inputs": [],
+      "fields": [
+        "SOUND_MENU"
+      ],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_stopallsounds": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "sound_volume": {
+      "inputs": [],
+      "fields": [],
+      "primitive": true,
+      "hat": false,
+      "definition": true
+    },
+    "text": {
+      "inputs": [],
+      "fields": [
+        "TEXT"
+      ],
+      "primitive": false,
+      "hat": false,
+      "definition": true
+    }
+  }
+}

@@ -27,7 +27,8 @@
     "test": "npm run lint && npm run tap",
     "watch": "webpack --progress --colors --watch",
     "version": "json -f package.json -I -e \"this.repository.sha = '$(git log -n1 --pretty=format:%H)'\"",
-    "fix-js": "eslint-auto-fix"
+    "fix-js": "eslint-auto-fix",
+    "generate:opcodes": "node tools/generate-opcodes.js"
   },
   "tap": {
     "timeout": 120,

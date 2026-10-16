@@ -303,6 +303,9 @@ class EditingCommands {
     async allowExtension (method, args) {
         if (method !== 'loadExtensionURL') return true;
         const manager = this.vm.extensionManager;
+        if (args[0] === 'patching') {
+            return Boolean(await this.vm.securityManager.canLoadExtensionFromProject('builtin:patching'));
+        }
         if (manager.isBuiltinExtension && manager.isBuiltinExtension(args[0])) return true;
         return Boolean(await this.canLoadExtension(args[0]));
     }
@@ -498,6 +501,7 @@ class EditingCommands {
                 target[key][id] = existing && existing.type === value.type ? Object.assign(existing, value) :
                     Object.assign(Object.create(prototype), value);
             }
+            if (key !== 'frames') target.bumpDeclRevision();
         }
         if (oldCloudVariables) {
             const runtime = this.vm.runtime;
@@ -526,6 +530,7 @@ class EditingCommands {
             }
             target.blocks._scripts = Object.keys(target.blocks._blocks)
                 .filter(id => target.blocks._blocks[id].topLevel);
+            target.blocks.revision++;
             target.blocks.resetCache();
         }
         if (typeof state.name === 'string') {

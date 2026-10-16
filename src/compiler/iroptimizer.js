@@ -523,6 +523,10 @@ class IROptimizer {
         case InputOpcode.ADDON_CALL:
             modified = state.clear() || modified;
             break;
+        case InputOpcode.EXTENSION:
+            modified = this.analyzeInputs(inputs.inputs, state) || modified;
+            if (!inputs.compiler.pure) modified = state.clear() || modified;
+            break;
         case InputOpcode.RAW_SOURCE:
             modified = this.analyzeInputs(inputs.fragments, state) || modified;
             modified = state.clear() || modified;
@@ -647,6 +651,10 @@ class IROptimizer {
         case StackOpcode.RAW_SOURCE:
             modified = this.analyzeInputs(inputs.fragments, state) || modified;
             modified = state.clear() || modified;
+            break;
+        case StackOpcode.EXTENSION:
+            modified = this.analyzeInputs(inputs.inputs, state) || modified;
+            if (!inputs.compiler.pure) modified = state.clear() || modified;
             break;
         default:
             modified = this.analyzeInputs(inputs, state) || modified;

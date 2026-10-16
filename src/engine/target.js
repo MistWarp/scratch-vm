@@ -82,6 +82,18 @@ class Target extends EventEmitter {
          * @type {Object.<string, object>}
          */
         this.extensionStorage = {};
+
+        this.declRevision = 0;
+    }
+
+    bumpDeclRevision () {
+        this.declRevision++;
+    }
+
+    installVariable (variable, id = variable.id) {
+        this.variables[id] = variable;
+        this.declRevision++;
+        return variable;
     }
 
     /**
@@ -139,8 +151,7 @@ class Target extends EventEmitter {
 
         // No variable with this name exists - create it locally.
         const newVariable = Variable.create(id, name, Variable.SCALAR_TYPE, false);
-        this.variables[id] = newVariable;
-        return newVariable;
+        return this.installVariable(newVariable, id);
     }
 
     /**
@@ -262,8 +273,7 @@ class Target extends EventEmitter {
 
         // No variable with this name exists - create it locally.
         const newList = Variable.create(id, name, Variable.LIST_TYPE, false);
-        this.variables[id] = newList;
-        return newList;
+        return this.installVariable(newList, id);
     }
 
     /**
@@ -283,7 +293,7 @@ class Target extends EventEmitter {
                 this.runtime.addCloudVariable();
                 this.runtime.ioDevices.cloud.requestCreateVariable(newVariable);
             }
-            this.variables[id] = newVariable;
+            this.installVariable(newVariable, id);
         }
     }
 
@@ -314,6 +324,38 @@ class Target extends EventEmitter {
                 }
             }
             this.comments[id] = newComment;
+            this.declRevision++;
+            if (blockId && this.blocks.getBlock(blockId)) this.blocks.revision++;
+        }
+    }
+
+    updateComment (id, change) {
+        if (!Object.prototype.hasOwnProperty.call(this.comments, id)) return false;
+        const comment = this.comments[id];
+        for (const key of ['text', 'x', 'y', 'width', 'height', 'minimized']) {
+            if (Object.prototype.hasOwnProperty.call(change, key)) comment[key] = change[key];
+        }
+        if (Object.prototype.hasOwnProperty.call(change, 'blockId') && change.blockId !== comment.blockId) {
+            const oldBlock = comment.blockId && this.blocks.getBlock(comment.blockId);
+            if (oldBlock && oldBlock.comment === id) delete oldBlock.comment;
+            comment.blockId = change.blockId;
+            const newBlock = change.blockId && this.blocks.getBlock(change.blockId);
+            if (newBlock) newBlock.comment = id;
+            this.blocks.revision++;
+        }
+        this.declRevision++;
+        return true;
+    }
+
+    deleteComment (id, blockId) {
+        if (!Object.prototype.hasOwnProperty.call(this.comments, id)) return;
+        const attachedTo = typeof blockId === 'undefined' ? this.comments[id].blockId : blockId;
+        delete this.comments[id];
+        this.declRevision++;
+        const block = attachedTo && this.blocks.getBlock(attachedTo);
+        if (block) {
+            delete block.comment;
+            this.blocks.revision++;
         }
     }
 
@@ -346,6 +388,7 @@ class Target extends EventEmitter {
             if (variable.id === id) {
                 const oldName = variable.name;
                 variable.name = newName;
+                this.declRevision++;
 
                 if (this.runtime) {
                     if (variable.isCloud && this.isStage) {
@@ -397,6 +440,7 @@ class Target extends EventEmitter {
             const deletedVariableName = this.variables[id].name;
             const deletedVariableWasCloud = this.variables[id].isCloud;
             delete this.variables[id];
+            this.declRevision++;
             if (this.runtime) {
                 if (deletedVariableWasCloud && this.isStage) {
                     this.runtime.ioDevices.cloud.requestDeleteVariable(deletedVariableName);
@@ -562,6 +606,7 @@ class Target extends EventEmitter {
             this.blocks.getAllVariableAndListReferences()[idToBeMerged];
 
         VariableUtil.updateVariableIdentifiers(referencesToChange, idToMergeWith, optNewName);
+        if (referencesToChange && referencesToChange.length) this.blocks.revision++;
     }
 
     /**
@@ -628,7 +673,7 @@ class Target extends EventEmitter {
         } else {
             const newVar = Variable.create(null, varName, varType);
             newVarId = newVar.id;
-            sprite.variables[newVarId] = newVar;
+            sprite.installVariable(newVar, newVarId);
         }
 
         // Merge with the local variable on the new sprite.
@@ -765,6 +810,7 @@ class Target extends EventEmitter {
                             ref.referencingField.value = newVarName;
                             return ref;
                         });
+                        this.blocks.revision++;
                     }
                 }
             } else {
@@ -822,6 +868,7 @@ class Target extends EventEmitter {
                 ref.referencingField.value = newName;
                 return ref;
             });
+            this.blocks.revision++;
         }
     }
 
