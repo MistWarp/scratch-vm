@@ -49,6 +49,11 @@ class FakeRotur {
                 return Promise.resolve({id: 'p1'});
             }
         };
+        this.storage = {
+            get: () => Promise.resolve(JSON.parse(
+                `{"data": {"__proto__": {"inherited": "yes"}, "${this.token}": 1, "score": 3}}`
+            ))
+        };
         this.keys = {
             cancel: (...args) => {
                 cancelledKeys.push(args);
@@ -226,5 +231,15 @@ test('the fallback host never hands the project the token or account secrets', a
     t.same(info, {'username': 'sophie', 'id': '7', 'sys.currency': 42, 'note': null});
     t.equal(await new RoturAccount(runtime).accountField({FIELD: 'key'}), '');
     t.equal(await new RoturAccount(runtime).accountField({FIELD: 'sys.currency'}), 42);
+    t.end();
+});
+
+test('the fallback host drops field names holding the token and keeps __proto__ an ordinary field', async t => {
+    const runtime = makeRuntime(['rotur_accountField']);
+    await new RoturAccount(runtime).accountField({FIELD: 'username'});
+    const bag = await runtime._roturHostResolved.call('storage.get', ['mistwarp']);
+    t.same(Object.keys(bag.data), ['__proto__', 'score']);
+    t.equal(bag.data.inherited, undefined);
+    t.equal(Object.getPrototypeOf(bag.data), Object.prototype);
     t.end();
 });
