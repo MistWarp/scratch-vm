@@ -17,6 +17,7 @@ global.localStorage = {
 const logins = [];
 const transfers = [];
 const cancelledKeys = [];
+const createdPosts = [];
 let authValid = true;
 
 const systems = [];
@@ -31,6 +32,12 @@ class FakeRotur {
             transfer: (...args) => {
                 transfers.push(args);
                 return Promise.resolve({});
+            }
+        };
+        this.posts = {
+            create: (...args) => {
+                createdPosts.push(args);
+                return Promise.resolve({id: 'p1'});
             }
         };
         this.keys = {
@@ -192,5 +199,12 @@ test('the fallback host confirms sensitive methods even when the caller opts out
     t.same(prompts, ['Allow test to cancel this key?', 'Allow test to cancel this key?']);
     t.same(cancelledKeys, [['second-key']]);
     delete global.window.confirm;
+    t.end();
+});
+
+test('the post block marks posts as made in MistWarp', async t => {
+    const runtime = makeRuntime(['roturSocial_post']);
+    await new RoturSocial(runtime).post({CONTENT: 'hello from a project'});
+    t.same(createdPosts, [['hello from a project', {os: 'MistWarp'}]]);
     t.end();
 });

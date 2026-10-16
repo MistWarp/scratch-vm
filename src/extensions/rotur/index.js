@@ -96,7 +96,7 @@ const status = ext('roturStatus', 'Rotur Status', [
 ], {presence: ['online', 'idle', 'dnd', 'invisible']});
 
 const social = ext('roturSocial', 'Rotur Social', [
-    {opcode: 'post', blockType: C, text: 'make a post saying [CONTENT]', args: {CONTENT: 'hello world'}, method: 'posts.create', scope: 'posts:create', map: a => [a.CONTENT]},
+    {opcode: 'post', blockType: C, text: 'make a post saying [CONTENT]', args: {CONTENT: 'hello world'}, method: 'posts.create', scope: 'posts:create', map: a => [a.CONTENT, {os: 'MistWarp'}]},
     {opcode: 'feed', blockType: R, text: 'latest posts', method: 'posts.feed', map: () => []},
     {opcode: 'followingFeed', blockType: R, text: 'posts from people I follow', method: 'posts.followingFeed', scope: 'posts:view', map: () => []},
     {opcode: 'topPosts', blockType: R, text: 'top posts', method: 'posts.top', map: () => []},
