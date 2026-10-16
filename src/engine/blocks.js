@@ -116,6 +116,8 @@ class Blocks {
          * @type {boolean}
          */
         this.forceNoGlow = optNoGlow || false;
+
+        Object.defineProperty(this, 'revision', {writable: true, enumerable: false, value: 0});
     }
 
     /**
@@ -579,8 +581,7 @@ class Blocks {
                     // comments, then the auto positioning should have taken place.
                     // Update the x and y position of these comments to match the
                     // one from the event.
-                    currTarget.comments[e.commentId].x = e.xy.x;
-                    currTarget.comments[e.commentId].y = e.xy.y;
+                    currTarget.updateComment(e.commentId, {x: e.xy.x, y: e.xy.y});
                 }
             }
             this.emitProjectChanged();
@@ -593,19 +594,20 @@ class Blocks {
                     log.warn(`Cannot change comment with id ${e.commentId} because it does not exist.`);
                     return;
                 }
-                const comment = currTarget.comments[e.commentId];
                 const change = e.newContents_;
+                const update = {};
                 if (Object.prototype.hasOwnProperty.call(change, 'minimized')) {
-                    comment.minimized = change.minimized;
+                    update.minimized = change.minimized;
                 }
                 if (Object.prototype.hasOwnProperty.call(change, 'width') &&
                     Object.prototype.hasOwnProperty.call(change, 'height')) {
-                    comment.width = change.width;
-                    comment.height = change.height;
+                    update.width = change.width;
+                    update.height = change.height;
                 }
                 if (Object.prototype.hasOwnProperty.call(change, 'text')) {
-                    comment.text = change.text;
+                    update.text = change.text;
                 }
+                currTarget.updateComment(e.commentId, update);
                 this.emitProjectChanged();
             }
             break;
@@ -616,10 +618,8 @@ class Blocks {
                     log.warn(`Cannot change comment with id ${e.commentId} because it does not exist.`);
                     return;
                 }
-                const comment = currTarget.comments[e.commentId];
                 const newCoord = e.newCoordinate_;
-                comment.x = newCoord.x;
-                comment.y = newCoord.y;
+                currTarget.updateComment(e.commentId, {x: newCoord.x, y: newCoord.y});
 
                 this.emitProjectChanged();
             }
@@ -635,14 +635,10 @@ class Blocks {
                     // when switching from sprite a to sprite b)
                     return;
                 }
-                delete currTarget.comments[e.commentId];
-                if (e.blockId) {
-                    const block = currTarget.blocks.getBlock(e.blockId);
-                    if (!block) {
-                        log.warn(`Could not find block referenced by comment with id: ${e.commentId}`);
-                        return;
-                    }
-                    delete block.comment;
+                currTarget.deleteComment(e.commentId, e.blockId);
+                if (e.blockId && !currTarget.blocks.getBlock(e.blockId)) {
+                    log.warn(`Could not find block referenced by comment with id: ${e.commentId}`);
+                    return;
                 }
 
                 this.emitProjectChanged();
@@ -750,6 +746,7 @@ class Blocks {
         }
         // Create new block.
         this._blocks[block.id] = block;
+        this.revision++;
         // Push block id to scripts array.
         // Blocks are added as a top-level stack if they are marked as a top-block
         // (if they were top-level XML in the event).
@@ -792,17 +789,21 @@ class Blocks {
                 // Get variable name using the id in args.value.
                 const variable = this.runtime.getEditingTarget().lookupVariableById(args.value);
                 if (variable) {
-                    block.fields[args.name].value = variable.name;
-                    block.fields[args.name].id = args.value;
+                    const field = block.fields[args.name];
+                    if (field.value !== variable.name || field.id !== args.value) this.revision++;
+                    field.value = variable.name;
+                    field.id = args.value;
                 }
             } else {
                 // Changing the value in a dropdown
+                if (block.fields[args.name].value !== args.value) this.revision++;
                 block.fields[args.name].value = args.value;
 
                 // The selected item in the sensing of block menu needs to change based on the
                 // selected target.  Set it to the first item in the menu list.
                 // TODO: (#1787)
                 if (block.opcode === 'sensing_of_object_menu') {
+                    this.revision++;
                     if (block.fields.OBJECT.value === '_stage_') {
                         this._blocks[block.parent].fields.PROPERTY.value = 'backdrop #';
                     } else {
@@ -822,6 +823,7 @@ class Blocks {
             break;
         case 'mutation':
             block.mutation = mutationAdapter(args.value);
+            this.revision++;
             break;
         case 'checkbox': {
             const stage = this.runtime.getTargetForStage();
@@ -972,7 +974,10 @@ class Blocks {
         }
         this.resetCache();
 
-        if (didChange) this.emitProjectChanged();
+        if (didChange) {
+            this.revision++;
+            this.emitProjectChanged();
+        }
     }
 
 
@@ -1038,6 +1043,7 @@ class Blocks {
 
         // Delete block itself.
         delete this._blocks[blockId];
+        this.revision++;
 
         this.resetCache();
         this.emitProjectChanged();
@@ -1112,8 +1118,9 @@ class Blocks {
             }
             if (varOrListField) {
                 const currFieldId = varOrListField.id;
-                if (varId === currFieldId) {
+                if (varId === currFieldId && varOrListField.value !== newName) {
                     varOrListField.value = newName;
+                    this.revision++;
                 }
             }
         }
@@ -1128,8 +1135,10 @@ class Blocks {
         for (const blockId in blocks) {
             if (isStage && blocks[blockId].opcode === 'event_whenthisspriteclicked') {
                 blocks[blockId].opcode = 'event_whenstageclicked';
+                this.revision++;
             } else if (!isStage && blocks[blockId].opcode === 'event_whenstageclicked') {
                 blocks[blockId].opcode = 'event_whenthisspriteclicked';
+                this.revision++;
             }
         }
     }
@@ -1160,8 +1169,9 @@ class Blocks {
         const blocks = this._blocks;
         for (const blockId in blocks) {
             const assetField = getAssetField(blockId);
-            if (assetField && assetField.value === oldName) {
+            if (assetField && assetField.value === oldName && oldName !== newName) {
                 assetField.value = newName;
+                this.revision++;
             }
         }
         this.resetCache();
@@ -1190,7 +1200,10 @@ class Blocks {
                 }
             }
         }
-        if (blockUpdated) this.resetCache();
+        if (blockUpdated) {
+            this.revision++;
+            this.resetCache();
+        }
         return blockUpdated;
     }
 

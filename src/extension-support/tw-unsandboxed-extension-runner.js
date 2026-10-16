@@ -21,11 +21,13 @@ const parseURL = url => {
 /**
  * Sets up the global.Scratch API for an unsandboxed extension.
  * @param {VirtualMachine} vm
+ * @param {Function} [onRegister] Called synchronously each time the extension registers.
  * @returns {Promise<object[]>} Resolves with a list of extension objects when Scratch.extensions.register is called.
  */
-const setupUnsandboxedExtensionAPI = vm => new Promise(resolve => {
+const setupUnsandboxedExtensionAPI = (vm, onRegister) => new Promise(resolve => {
     const extensionObjects = [];
     const register = extensionObject => {
+        if (onRegister) onRegister();
         extensionObjects.push(extensionObject);
         resolve(extensionObjects);
     };
@@ -197,26 +199,97 @@ const teardownUnsandboxedExtensionAPI = () => {
     delete global.ScratchExtensions;
 };
 
-/**
- * Load an unsandboxed extension from an arbitrary URL. This is dangerous.
- * @param {string} extensionURL
- * @param {Virtualmachine} vm
- * @returns {Promise<object[]>} Resolves with a list of extension objects if the extension was loaded successfully.
- */
-const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, reject) => {
+const REDECLARATION = /already been declared|redeclaration of|declare .* twice|cannot redeclare|duplicate declaration/i;
+
+let scriptCounter = 0;
+
+const percentDecodeToBytes = text => {
+    const encoder = new TextEncoder();
+    const bytes = [];
+    let i = 0;
+    while (i < text.length) {
+        if (text[i] === '%' && /^[0-9a-f]{2}$/i.test(text.slice(i + 1, i + 3))) {
+            bytes.push(parseInt(text.slice(i + 1, i + 3), 16));
+            i += 3;
+        } else {
+            const next = text.indexOf('%', i + 1);
+            const end = next === -1 ? text.length : next;
+            for (const byte of encoder.encode(text.slice(i, end))) bytes.push(byte);
+            i = end;
+        }
+    }
+    return Uint8Array.from(bytes);
+};
+
+const decodeDataURL = url => {
+    const comma = url.indexOf(',');
+    const header = url.slice(5, comma);
+    const body = url.slice(comma + 1);
+    if (/;base64$/i.test(header)) {
+        let encoded = body;
+        if (body.includes('%')) {
+            encoded = '';
+            for (const byte of percentDecodeToBytes(body)) encoded += String.fromCharCode(byte);
+        }
+        const binary = atob(encoded.replace(/[\t\n\f\r ]/g, ''));
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new TextDecoder().decode(bytes);
+    }
+    try {
+        return decodeURIComponent(body);
+    } catch (e) {
+        return new TextDecoder().decode(percentDecodeToBytes(body));
+    }
+};
+
+const canUseBlobs = () => (
+    typeof Blob === 'function' &&
+    typeof URL !== 'undefined' &&
+    typeof URL.createObjectURL === 'function'
+);
+
+const getErrorWindow = () => (
+    typeof window !== 'undefined' && window && typeof window.addEventListener === 'function' ? window : null
+);
+
+const runExtensionScript = (src, names, lineOffset, extensionURL, vm) => new Promise((resolve, reject) => {
     let isResolved = false;
     let registrationTimeout = null;
     let overallTimeout = null;
+    const errorWindow = getErrorWindow();
 
+    let onWindowError = null;
+    let registered = false;
     const settle = (fn, arg) => {
         if (isResolved) return;
         isResolved = true;
         clearTimeout(registrationTimeout);
         clearTimeout(overallTimeout);
+        if (errorWindow) errorWindow.removeEventListener('error', onWindowError);
         fn(arg);
     };
 
-    setupUnsandboxedExtensionAPI(vm)
+    onWindowError = event => {
+        if (!event || !names.includes(event.filename)) return;
+        if (registered) {
+            console.error(`Extension ${extensionURL} threw after registering:`, event.error || event.message);
+            return;
+        }
+        const error = event.error instanceof Error ? event.error : new Error(event.message);
+        const isSyntax = error.name === 'SyntaxError' || /SyntaxError/.test(event.message || '');
+        error.url = extensionURL;
+        error.type = isSyntax ? 'syntax-error' : 'script-error';
+        error.line = event.lineno ? Math.max(1, event.lineno - lineOffset) : null;
+        error.column = event.colno || null;
+        settle(reject, error);
+    };
+
+    if (errorWindow) errorWindow.addEventListener('error', onWindowError);
+
+    setupUnsandboxedExtensionAPI(vm, () => {
+        registered = true;
+    })
         .then(extensionObjects => settle(resolve, extensionObjects))
         .catch(error => {
             error.url = extensionURL;
@@ -228,7 +301,7 @@ const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, rej
     // This extension host serves Access-Control-Allow-Origin: *. Request CORS
     // so exceptions retain their message and stack instead of "Script error.".
     // Other extension hosts may only support classic, non-CORS script loading.
-    const parsed = parseURL(extensionURL);
+    const parsed = parseURL(src);
     if (parsed && parsed.origin === 'https://extensions.mistium.com') {
         script.crossOrigin = 'anonymous';
     }
@@ -268,7 +341,7 @@ const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, rej
         settle(reject, error);
     }, 30000); // 30 second overall timeout
 
-    script.src = extensionURL;
+    script.src = src;
     document.body.appendChild(script);
 })
     .then(objects => {
@@ -279,6 +352,50 @@ const loadUnsandboxedExtension = (extensionURL, vm) => new Promise((resolve, rej
         teardownUnsandboxedExtensionAPI();
         throw error;
     });
+
+const runExtensionSource = (source, wrap, extensionURL, vm) => {
+    const name = `mistwarp-extension:///${++scriptCounter}.js`;
+    let body = source;
+    if (wrap) {
+        if (body.startsWith('#!')) body = `//${body.slice(2)}`;
+        body = `(function () {\n${body}\n}).call(globalThis);`;
+    }
+    const lineOffset = wrap ? 1 : 0;
+    const blobURL = URL.createObjectURL(new Blob([`${body}\n//# sourceURL=${name}`], {type: 'text/javascript'}));
+    const names = [blobURL, name];
+    return runExtensionScript(blobURL, names, lineOffset, extensionURL, vm)
+        .then(objects => {
+            objects.script = {names, lineOffset};
+            return objects;
+        })
+        .finally(() => URL.revokeObjectURL(blobURL));
+};
+
+/**
+ * Load an unsandboxed extension from an arbitrary URL. This is dangerous.
+ * @param {string} extensionURL
+ * @param {Virtualmachine} vm
+ * @param {string} [source] The extension's source text, if already known.
+ * @returns {Promise<object[]>} Resolves with a list of extension objects if the extension was loaded successfully.
+ */
+const loadUnsandboxedExtension = async (extensionURL, vm, source) => {
+    if (typeof source !== 'string' && extensionURL.startsWith('data:')) {
+        source = decodeDataURL(extensionURL);
+    }
+    if (typeof source !== 'string' || !canUseBlobs()) {
+        const objects = await runExtensionScript(extensionURL, [extensionURL], 0, extensionURL, vm);
+        objects.script = {names: [extensionURL], lineOffset: 0};
+        return objects;
+    }
+    try {
+        return await runExtensionSource(source, false, extensionURL, vm);
+    } catch (error) {
+        if (error.type === 'syntax-error' && REDECLARATION.test(error.message)) {
+            return runExtensionSource(source, true, extensionURL, vm);
+        }
+        throw error;
+    }
+};
 
 const prefetchExtensionScript = extensionURL => {
     if (typeof document === 'undefined') {
@@ -302,12 +419,13 @@ const prefetchExtensionScript = extensionURL => {
 // only let one extension register at a time. The script download is started up front (in
 // parallel across extensions) so only the registration step is serialized.
 const limiter = new AsyncLimiter(loadUnsandboxedExtension, 1);
-const load = (extensionURL, vm) => {
-    prefetchExtensionScript(extensionURL);
-    return limiter.do(extensionURL, vm);
+const load = (extensionURL, vm, source) => {
+    if (typeof source !== 'string') prefetchExtensionScript(extensionURL);
+    return limiter.do(extensionURL, vm, source);
 };
 
 module.exports = {
     setupUnsandboxedExtensionAPI,
+    decodeDataURL,
     load
 };

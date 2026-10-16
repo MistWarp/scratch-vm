@@ -1,11 +1,17 @@
-const c = (type, compile) => Object.freeze({type, compile});
+const COMPARE_OPERATORS = ['<', '>', '<=', '>=', '==', '!=', '===', '!=='];
+
+const c = (type, compile) => Object.freeze({type, compile, pure: true});
 
 const mistsUtils = Object.freeze({
     notequals: c('boolean', ({input: i}) => `(${i.string('A')} !== ${i.string('B')})`),
     equals: c('boolean', ({input: i}) => `(${i.string('A')} === ${i.string('B')})`),
     greaterorequal: c('boolean', ({input: i}) => `(${i.number('A')} >= ${i.number('B')})`),
     lessthanorequal: c('boolean', ({input: i}) => `(${i.number('A')} <= ${i.number('B')})`),
-    compare: c('boolean', ({input: i}) => `(${i.number('A')} ${i.raw('C')} ${i.number('B')})`),
+    compare: c('boolean', ({input: i}) => {
+        const operator = String(i.raw('C')).trim();
+        if (!COMPARE_OPERATORS.includes(operator)) return 'false';
+        return `(${i.number('A')} ${operator} ${i.number('B')})`;
+    }),
     power: c('number', ({input: i}) => `Math.pow(${i.number('A')}, ${i.number('B')})`),
     round: c('number', ({input: i}) => `((a, b) => Math.round(a / b) * b)(${i.number('A')}, ${i.number('B')})`),
     clamp: c('number', ({input: i}) => `Math.min(Math.max(${i.number('A')}, ${i.number('B')}), ${i.number('C')})`),

@@ -210,6 +210,8 @@ let stepThreadsProfilerId = -1;
  * Manages targets, scripts, and the sequencer.
  * @constructor
  */
+const RAW_SOURCE_EXTENSION_IDS = new Set(['patching', 'mistsutils']);
+
 class Runtime extends EventEmitter {
     constructor () {
         super();
@@ -510,7 +512,22 @@ class Runtime extends EventEmitter {
             this.compilerExtensions.set(opcode, compiler);
         }
 
+        this._seededCompilers = new Map(this.compilerExtensions);
+
+        this._userSuppliedExtensionIds = new Set();
+
+        this._loggedScriptErrors = new Map();
+        this._extensionCompilerOpcodes = new Map();
+
         this.debug = false;
+
+        /**
+         * Block ids that stop a thread before they run, or null when there are none.
+         * @type {?Set<string>}
+         */
+        this.breakpoints = null;
+
+        this.breakpointsRevision = 0;
 
         this.interpolationEnabled = false;
 
@@ -1146,10 +1163,73 @@ class Runtime extends EventEmitter {
                 type,
                 compFunc: compFunc.bind(extensionObject)
             }));
+            if (!this._extensionCompilerOpcodes.has(extensionId)) {
+                this._extensionCompilerOpcodes.set(extensionId, new Set());
+            }
+            this._extensionCompilerOpcodes.get(extensionId).add(opcode);
             registered = true;
         }
 
         if (registered) this.resetAllCaches();
+    }
+
+    /**
+     * Report an error thrown by a script or hat. Emits THREAD_ERROR every time and logs once per
+     * script and message, so a block that throws every frame does not flood the console.
+     * @param {Thread} thread The thread that threw.
+     * @param {*} error The thrown value.
+     */
+    reportScriptError (thread, error) {
+        const message = error && error.message ? error.message : String(error);
+        const target = thread.target;
+        const original = target && target.sprite && target.sprite.clones[0];
+        const owner = original ? original.id : (target ? target.id : '');
+        const key = `${owner}:${thread.topBlock}:${message}`;
+        if (!this._loggedScriptErrors.has(key)) {
+            if (this._loggedScriptErrors.size >= 1000) this._loggedScriptErrors.clear();
+            this._loggedScriptErrors.set(key, true);
+            log.error('Script threw an error', error);
+        }
+        this.emit('THREAD_ERROR', {thread, error});
+    }
+
+    /**
+     * Remove the compilers an extension registered, restoring any built-in compiler they replaced,
+     * and drop compiled scripts that may have inlined them or captured its block functions.
+     * @param {string} extensionId The extension ID.
+     */
+    compilerUnregisterExtension (extensionId) {
+        const prefix = `${extensionId}_`;
+        const opcodes = new Set(this._extensionCompilerOpcodes.get(extensionId));
+        for (const opcode of this.compilerExtensions.keys()) {
+            if (opcode.startsWith(prefix)) opcodes.add(opcode);
+        }
+        for (const opcode of this._seededCompilers.keys()) {
+            if (opcode.startsWith(prefix)) opcodes.add(opcode);
+        }
+        const suppressed = this._userSuppliedExtensionIds.has(extensionId);
+        for (const opcode of opcodes) {
+            if (this._seededCompilers.has(opcode) && !suppressed) {
+                this.compilerExtensions.set(opcode, this._seededCompilers.get(opcode));
+            } else {
+                this.compilerExtensions.delete(opcode);
+            }
+        }
+        this._extensionCompilerOpcodes.delete(extensionId);
+        this.resetAllCaches();
+    }
+
+    suppressSeededCompilers (extensionId) {
+        this._userSuppliedExtensionIds.add(extensionId);
+        const prefix = `${extensionId}_`;
+        let dropped = false;
+        for (const [opcode, entry] of this._seededCompilers.entries()) {
+            if (opcode.startsWith(prefix) && this.compilerExtensions.get(opcode) === entry) {
+                this.compilerExtensions.delete(opcode);
+                dropped = true;
+            }
+        }
+        if (dropped) this.resetAllCaches();
     }
 
     getMonitorState () {
@@ -1178,6 +1258,7 @@ class Runtime extends EventEmitter {
         if (target) {
             context.targetType = (target.isStage ? TargetType.STAGE : TargetType.SPRITE);
         }
+        return context;
     }
 
     /**
@@ -1186,23 +1267,8 @@ class Runtime extends EventEmitter {
      * @private
      */
     _registerExtensionPrimitives (extensionInfo) {
-        const categoryInfo = {
-            id: extensionInfo.id,
-            name: maybeFormatMessage(extensionInfo.name),
-            showStatusButton: extensionInfo.showStatusButton,
-            blockIconURI: extensionInfo.blockIconURI,
-            menuIconURI: extensionInfo.menuIconURI
-        };
-
-        if (extensionInfo.color1) {
-            categoryInfo.color1 = extensionInfo.color1;
-            categoryInfo.color2 = extensionInfo.color2;
-            categoryInfo.color3 = extensionInfo.color3;
-        } else {
-            categoryInfo.color1 = defaultExtensionColors[0];
-            categoryInfo.color2 = defaultExtensionColors[1];
-            categoryInfo.color3 = defaultExtensionColors[2];
-        }
+        const categoryInfo = {id: extensionInfo.id};
+        this._fillExtensionCategoryHeader(categoryInfo, extensionInfo);
 
         this._blockInfo.push(categoryInfo);
 
@@ -1221,20 +1287,87 @@ class Runtime extends EventEmitter {
         }
 
         this.emit(Runtime.EXTENSION_ADDED, categoryInfo);
+        if (RAW_SOURCE_EXTENSION_IDS.has(categoryInfo.id)) this.resetAllCaches();
+    }
+
+    _fillExtensionCategoryHeader (categoryInfo, extensionInfo) {
+        categoryInfo.name = maybeFormatMessage(extensionInfo.name);
+        categoryInfo.showStatusButton = extensionInfo.showStatusButton;
+        categoryInfo.blockIconURI = extensionInfo.blockIconURI;
+        categoryInfo.menuIconURI = extensionInfo.menuIconURI;
+        if (extensionInfo.color1) {
+            categoryInfo.color1 = extensionInfo.color1;
+            categoryInfo.color2 = extensionInfo.color2;
+            categoryInfo.color3 = extensionInfo.color3;
+        } else {
+            categoryInfo.color1 = defaultExtensionColors[0];
+            categoryInfo.color2 = defaultExtensionColors[1];
+            categoryInfo.color3 = defaultExtensionColors[2];
+        }
     }
 
     /**
      * Reregister the primitives for an extension
      * @param  {ExtensionMetadata} extensionInfo - new info (results of running getInfo) for an extension
+     * @param {boolean} [replace] - true to drop the old primitives first and refresh the header
      * @private
      */
-    _refreshExtensionPrimitives (extensionInfo) {
+    _refreshExtensionPrimitives (extensionInfo, replace = false) {
         const categoryInfo = this._blockInfo.find(info => info.id === extensionInfo.id);
         if (categoryInfo) {
-            categoryInfo.name = maybeFormatMessage(extensionInfo.name);
+            if (replace) {
+                this._purgeExtensionPrimitives(extensionInfo.id);
+                this._fillExtensionCategoryHeader(categoryInfo, extensionInfo);
+            } else {
+                categoryInfo.name = maybeFormatMessage(extensionInfo.name);
+            }
             this._fillExtensionCategory(categoryInfo, extensionInfo);
 
             this.emit(Runtime.BLOCKSINFO_UPDATE, categoryInfo);
+        }
+    }
+
+    _purgeExtensionPrimitives (extensionId) {
+        const opcodePrefix = `${extensionId}_`;
+        const deleteByPrefix = obj => {
+            for (const key of Object.keys(obj)) {
+                if (key.startsWith(opcodePrefix)) {
+                    delete obj[key];
+                }
+            }
+        };
+        deleteByPrefix(this._primitives);
+        deleteByPrefix(this._hats);
+        deleteByPrefix(this._flowing);
+        for (const key of Array.from(this.extensionButtons.keys())) {
+            if (key.startsWith(opcodePrefix)) this.extensionButtons.delete(key);
+        }
+    }
+
+    stopThreadsUsingOpcodes (test) {
+        for (const thread of this.threads) {
+            if (thread.isKilled || !thread.blockContainer) continue;
+            const blocks = thread.blockContainer;
+            const visited = new Set();
+            const pending = [thread.topBlock];
+            let uses = false;
+            while (pending.length) {
+                const id = pending.pop();
+                if (!id || visited.has(id)) continue;
+                visited.add(id);
+                const block = blocks.getBlock(id);
+                if (!block) continue;
+                if (test(block.opcode)) {
+                    uses = true;
+                    break;
+                }
+                if (block.next) pending.push(block.next);
+                for (const name in block.inputs) pending.push(block.inputs[name].block);
+                if (block.opcode === 'procedures_call' && block.mutation) {
+                    pending.push(blocks.getProcedureDefinition(block.mutation.proccode));
+                }
+            }
+            if (uses) this._stopThread(thread);
         }
     }
 
@@ -1250,19 +1383,10 @@ class Runtime extends EventEmitter {
             this._blockInfo.splice(index, 1);
         }
 
-        const opcodePrefix = `${extensionId}_`;
-        const deleteByPrefix = obj => {
-            for (const key of Object.keys(obj)) {
-                if (key.startsWith(opcodePrefix)) {
-                    delete obj[key];
-                }
-            }
-        };
-        deleteByPrefix(this._primitives);
-        deleteByPrefix(this._hats);
-        deleteByPrefix(this._flowing);
+        this._purgeExtensionPrimitives(extensionId);
 
         this.emit(Runtime.EXTENSION_REMOVED, {id: extensionId});
+        if (RAW_SOURCE_EXTENSION_IDS.has(extensionId)) this.resetAllCaches();
     }
 
     /**
@@ -2218,6 +2342,7 @@ class Runtime extends EventEmitter {
             thread.tryCompile();
         }
 
+        if (!thread.updateMonitor && this.listenerCount('THREAD_STARTED')) this.emit('THREAD_STARTED', thread);
         return thread;
     }
 
@@ -2254,6 +2379,7 @@ class Runtime extends EventEmitter {
         if (!newThread.stackClick && !newThread.updateMonitor) {
             this.threadMap.set(newThread.getId(), newThread);
         }
+        if (!newThread.updateMonitor && this.listenerCount('THREAD_STARTED')) this.emit('THREAD_STARTED', newThread);
         const i = this.threads.indexOf(thread);
         if (i > -1) {
             this.threads[i] = newThread;
@@ -2455,17 +2581,25 @@ class Runtime extends EventEmitter {
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
         newThreads.forEach(thread => {
-            if (thread.isCompiled) {
-                if (thread.executableHat) {
-                    // It is quite likely that we are currently executing a block, so make sure
-                    // that we leave the compiler's state intact at the end.
-                    compilerExecute.saveGlobalState();
-                    compilerExecute(thread);
-                    compilerExecute.restoreGlobalState();
+            try {
+                if (thread.isCompiled) {
+                    if (thread.executableHat) {
+                        // It is quite likely that we are currently executing a block, so make sure
+                        // that we leave the compiler's state intact at the end.
+                        compilerExecute.saveGlobalState();
+                        try {
+                            compilerExecute(thread);
+                        } finally {
+                            compilerExecute.restoreGlobalState();
+                        }
+                    }
+                } else {
+                    execute(this.sequencer, thread);
+                    thread.goToNextBlock();
                 }
-            } else {
-                execute(this.sequencer, thread);
-                thread.goToNextBlock();
+            } catch (error) {
+                this.reportScriptError(thread, error);
+                this.sequencer.retireThread(thread);
             }
         });
         return newThreads;
@@ -2693,6 +2827,7 @@ class Runtime extends EventEmitter {
     stopAll () {
         // Emit stop event to allow blocks to clean up any state.
         this.emit(Runtime.PROJECT_STOP_ALL);
+        this._loggedScriptErrors.clear();
 
         // Dispose all clones.
         const newTargets = [];
@@ -3014,6 +3149,79 @@ class Runtime extends EventEmitter {
     /**
      * tw: Reset the cache of all block containers.
      */
+    /**
+     * Replace the set of breakpointed block ids.
+     * @param {?Iterable<string>} blockIds Block ids, or null to clear.
+     */
+    setBreakpoints (blockIds) {
+        const next = new Set(blockIds || []);
+        this.breakpoints = next.size ? next : null;
+        this.breakpointsRevision++;
+    }
+
+    /**
+     * Whether any block of a script, or of a procedure it calls, matches a test.
+     * @param {!Blocks} blocks Block container of the script.
+     * @param {string} topBlockId Top block of the script.
+     * @param {function(string, object): boolean} matches Test called with each block id and block.
+     * @return {boolean} True if a block matched.
+     */
+    _someScriptBlock (blocks, topBlockId, matches) {
+        const seen = new Set();
+        const pending = [topBlockId];
+        while (pending.length) {
+            const id = pending.pop();
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            const block = blocks.getBlock(id);
+            if (!block) continue;
+            if (matches(id, block)) return true;
+            pending.push(block.next);
+            for (const name in block.inputs) pending.push(block.inputs[name].block);
+            if (block.opcode === 'procedures_call' && block.mutation) {
+                pending.push(blocks.getProcedureDefinition(block.mutation.proccode));
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a script, or a procedure it calls, contains a breakpointed block.
+     * @param {!Blocks} blocks Block container of the script.
+     * @param {string} topBlockId Top block of the script.
+     * @return {boolean} True if a breakpoint can stop the script.
+     */
+    scriptHasBreakpoint (blocks, topBlockId) {
+        const breakpoints = this.breakpoints;
+        if (breakpoints === null) return false;
+        return this._someScriptBlock(blocks, topBlockId, id => breakpoints.has(id));
+    }
+
+    /**
+     * Whether a script, or a procedure it calls, uses a block that only the compiler can run.
+     * @param {!Blocks} blocks Block container of the script.
+     * @param {string} topBlockId Top block of the script.
+     * @return {boolean} True if the interpreter has no implementation for one of its blocks.
+     */
+    scriptNeedsCompiler (blocks, topBlockId) {
+        return this._someScriptBlock(blocks, topBlockId, (id, block) => !block.shadow &&
+            !Object.prototype.hasOwnProperty.call(this._primitives, block.opcode) &&
+            !Object.prototype.hasOwnProperty.call(this._hats, block.opcode));
+    }
+
+    /**
+     * Whether a compiled thread's script contains a breakpoint, cached per breakpoint revision.
+     * @param {!Thread} thread Compiled thread.
+     * @return {boolean} True if the thread should stop at its next yield point.
+     */
+    compiledThreadHasBreakpoint (thread) {
+        if (thread.breakpointsRevision !== this.breakpointsRevision) {
+            thread.breakpointsRevision = this.breakpointsRevision;
+            thread.hasBreakpoint = this.scriptHasBreakpoint(thread.blockContainer, thread.topBlock);
+        }
+        return thread.hasBreakpoint;
+    }
+
     resetAllCaches () {
         for (const target of this.targets) {
             if (target.isOriginal) {
@@ -3274,7 +3482,7 @@ class Runtime extends EventEmitter {
         const text = `Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n${ExtendedJSON.stringify(options)}${COMMENT_CONFIG_MAGIC}`;
         const existingComment = this.findProjectOptionsComment();
         if (existingComment) {
-            existingComment.text = text;
+            this.getTargetForStage().updateComment(existingComment.id, {text});
         } else {
             const target = this.getTargetForStage();
             if (target) {
@@ -3838,7 +4046,7 @@ class Runtime extends EventEmitter {
         const newName = StringUtil.unusedName(variableName, allVariableNames);
         const variable = Variable.create(optVarId || uid(), newName, varType);
         const stage = this.getTargetForStage();
-        stage.variables[variable.id] = variable;
+        stage.installVariable(variable);
         return variable;
     }
 

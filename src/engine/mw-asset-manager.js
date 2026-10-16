@@ -106,11 +106,12 @@ class AssetManager extends EventEmitter {
             return;
         }
         const existingIndex = this.assets.findIndex(i => i.name.toLowerCase() === normalized.toLowerCase());
-        if (existingIndex !== -1) {
+        if (existingIndex === -1) {
+            this.assets.push({name: normalized, asset});
+        } else {
             this.releaseObjectURL(this.assets[existingIndex].name);
-            this.assets.splice(existingIndex, 1);
+            this.assets[existingIndex] = {name: normalized, asset};
         }
-        this.assets.push({name: normalized, asset});
         this.changed();
     }
 

@@ -424,7 +424,8 @@ const serializePrimitiveBlock = function (block) {
         const primitiveInfo = primitiveOpcodeInfoMap[block.opcode];
         const primitiveConstant = primitiveInfo[0];
         const fieldName = primitiveInfo[1];
-        const field = block.fields[fieldName];
+        const field = block.fields && block.fields[fieldName];
+        if (!field) return null;
         const primitiveDesc = [primitiveConstant, field.value];
         if (block.opcode === 'event_broadcast_menu') {
             primitiveDesc.push(field.id);
@@ -1045,6 +1046,19 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
 
     const usedConstants = new Set();
 
+    const extensionManager = runtime.extensionManager;
+    if (!targetId && extensionManager && typeof extensionManager.getBelongingExtensionIds === 'function') {
+        const extensionURLs = extensionManager.getExtensionURLs();
+        for (const extensionId of extensionManager.getBelongingExtensionIds()) {
+            if (
+                typeof extensionURLs[extensionId] === 'string' ||
+                (extensionManager.isBuiltinExtension(extensionId) && extensionManager.isExtensionLoaded(extensionId))
+            ) {
+                extensions.add(extensionId);
+            }
+        }
+    }
+
     const serializedTargets = flattenedOriginalTargets.map(t => serializeTarget(t, extensions, usedConstants))
         .map((serialized, index) => {
             // can't serialize extensionStorage until the list of used extensions is fully known
@@ -1147,10 +1161,10 @@ const serialize = function (runtime, targetId, {allowOptimization = true} = {}) 
  * @param {object} blocks The entire blocks object currently in the process of getting serialized.
  * @return {object} The deserialized input descriptor.
  */
-const deserializeInputDesc = function (inputDescOrId, parentId, isShadow, blocks) {
+const deserializeInputDesc = function (inputDescOrId, parentId, isShadow, blocks, forcedId) {
     if (!Array.isArray(inputDescOrId)) return inputDescOrId;
     const primitiveObj = Object.create(null);
-    const newId = uid();
+    const newId = typeof forcedId === 'string' && !hasOwnProperty.call(blocks, forcedId) ? forcedId : uid();
     primitiveObj.id = newId;
     primitiveObj.next = null;
     primitiveObj.parent = parentId;
@@ -1299,26 +1313,28 @@ const deserializeInputDesc = function (inputDescOrId, parentId, isShadow, blocks
  * in the process of getting deserialized.
  * @return {object} The deserialized and uncompressed inputs.
  */
-const deserializeInputs = function (inputs, parentId, blocks) {
+const deserializeInputs = function (inputs, parentId, blocks, primitiveIds) {
     // Explicitly not using Object.create(null) here
     // because we call prototype functions later in the vm
     const obj = {};
+    const knownIds = primitiveIds && hasOwnProperty.call(primitiveIds, parentId) ? primitiveIds[parentId] : null;
     for (const inputName in inputs) {
         if (!hasOwnProperty.call(inputs, inputName)) continue;
         const inputDescArr = inputs[inputName];
         // If this block has already been deserialized (it's not an array) skip it
         if (!Array.isArray(inputDescArr)) continue;
+        const ids = knownIds && hasOwnProperty.call(knownIds, inputName) ? knownIds[inputName] : {};
         let block = null;
         let shadow = null;
         const blockShadowInfo = inputDescArr[0];
         if (blockShadowInfo === INPUT_SAME_BLOCK_SHADOW) {
             // block and shadow are the same id, and only one is provided
-            block = shadow = deserializeInputDesc(inputDescArr[1], parentId, true, blocks);
+            block = shadow = deserializeInputDesc(inputDescArr[1], parentId, true, blocks, ids.block || ids.shadow);
         } else if (blockShadowInfo === INPUT_BLOCK_NO_SHADOW) {
-            block = deserializeInputDesc(inputDescArr[1], parentId, false, blocks);
+            block = deserializeInputDesc(inputDescArr[1], parentId, false, blocks, ids.block);
         } else { // assume INPUT_DIFF_BLOCK_SHADOW
-            block = deserializeInputDesc(inputDescArr[1], parentId, false, blocks);
-            shadow = deserializeInputDesc(inputDescArr[2], parentId, true, blocks);
+            block = deserializeInputDesc(inputDescArr[1], parentId, false, blocks, ids.block);
+            shadow = deserializeInputDesc(inputDescArr[2], parentId, true, blocks, ids.shadow);
         }
         obj[inputName] = {
             name: inputName,
@@ -1370,7 +1386,7 @@ const deserializeFields = function (fields) {
  * @param {object} blocks Serialized SB3 "blocks" property of a target. Will be mutated.
  * @return {object} input is modified and returned
  */
-const deserializeBlocks = function (blocks) {
+const deserializeBlocks = function (blocks, primitiveIds) {
     for (const blockId in blocks) {
         if (!Object.prototype.hasOwnProperty.call(blocks, blockId)) {
             continue;
@@ -1381,7 +1397,7 @@ const deserializeBlocks = function (blocks) {
             // delete the old entry in object.blocks and replace it w/the
             // deserialized object
             delete blocks[blockId];
-            deserializeInputDesc(block, null, false, blocks);
+            deserializeInputDesc(block, null, false, blocks, primitiveIds ? blockId : null);
             continue;
         }
         const patching = MIST_PATCHING_OPCODES[block.opcode];
@@ -1395,7 +1411,7 @@ const deserializeBlocks = function (blocks) {
             block.mutation = {tagName: 'mutation', children: [], itemcount: String(patching[1])};
         }
         block.id = blockId; // add id back to block since it wasn't serialized
-        block.inputs = deserializeInputs(block.inputs, blockId, blocks);
+        block.inputs = deserializeInputs(block.inputs, blockId, blocks, primitiveIds);
         block.fields = deserializeFields(block.fields);
     }
     for (const blockId in blocks) {
@@ -1993,6 +2009,18 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
             extensions.extensionURLs.set(id, url);
         }
     }
+    if (!isSingleSprite && Array.isArray(json.extensions)) {
+        const extensionManager = runtime.extensionManager;
+        for (const id of json.extensions) {
+            if (typeof id !== 'string') continue;
+            if (
+                typeof extensions.extensionURLs.get(id) === 'string' &&
+                !(extensionManager && extensionManager.isBuiltinExtension(id))
+            ) {
+                extensions.extensionIDs.add(id);
+            }
+        }
+    }
 
     // Extract any custom fonts before loading costumes.
     let fontPromise;
@@ -2060,6 +2088,9 @@ const deserialize = async function (json, runtime, zip, isSingleSprite) {
 
 module.exports = {
     serialize: serialize,
+    serializeVariables: serializeVariables,
+    serializeMonitors: serializeMonitors,
+    EXTENDABLE_OPERATORS: EXTENDABLE_OPERATORS,
     deserialize: deserialize,
     deserializeBlocks: deserializeBlocks,
     serializeBlocks: serializeBlocks,

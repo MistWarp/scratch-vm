@@ -257,6 +257,7 @@ test('folded literals match the same operators run on variables and in the inter
 const compileScript = async (blocks, extra = {}) => {
     const vm = new VirtualMachine();
     vm.setCompilerOptions({enabled: true});
+    vm.securityManager.canLoadExtensionFromProject = () => true;
     vm.on('COMPILE_ERROR', (target, error) => {
         throw new Error(`Compile error: ${error}`);
     });

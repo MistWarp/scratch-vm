@@ -43,6 +43,15 @@ const RAW_SOURCE_REPORTERS = new Map([
     ['patching_jsboolean', InputType.BOOLEAN]
 ]);
 
+const rawSourceAllowed = (runtime, opcode) => {
+    const manager = runtime.extensionManager;
+    if (!manager) return true;
+    const extensionId = opcode.slice(0, opcode.indexOf('_'));
+    if (!manager.isExtensionLoaded(extensionId)) return false;
+    if (manager.isBuiltinExtension(extensionId)) return true;
+    return typeof manager.getExtensionMode === 'function' && manager.getExtensionMode(extensionId) === 'unsandboxed';
+};
+
 /**
  * @typedef DescendedVariable
  * @property {'target'|'stage'} scope
@@ -250,7 +259,7 @@ class ScriptTreeGenerator {
      */
     descendInput (block, preserveStrings = false) {
         const rawSourceType = RAW_SOURCE_REPORTERS.get(block.opcode);
-        if (rawSourceType) {
+        if (rawSourceType && rawSourceAllowed(this.runtime, block.opcode)) {
             return this.descendRawSourceInput(block, rawSourceType);
         }
 
@@ -685,13 +694,13 @@ class ScriptTreeGenerator {
      * @returns {IntermediateStackBlock} Compiled node for this block.
      */
     descendStackedBlock (block) {
-        if (RAW_SOURCE_COMMANDS.has(block.opcode)) {
+        if (RAW_SOURCE_COMMANDS.has(block.opcode) && rawSourceAllowed(this.runtime, block.opcode)) {
             return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {
                 fragments: this.descendRawSourceFragments(block)
             });
         }
         const rawSourceType = RAW_SOURCE_REPORTERS.get(block.opcode);
-        if (rawSourceType) {
+        if (rawSourceType && rawSourceAllowed(this.runtime, block.opcode)) {
             return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
                 input: this.descendRawSourceInput(block, rawSourceType)
             });
@@ -1388,7 +1397,7 @@ class ScriptTreeGenerator {
 
         // Intentionally not using newVariable.id so that this matches vanilla Scratch quirks regarding
         // handling of null variable IDs.
-        target.variables[String(id)] = newVariable;
+        target.installVariable(newVariable, String(id));
 
         if (target.sprite) {
             // Create the variable in all instances of this sprite.
@@ -1396,7 +1405,7 @@ class ScriptTreeGenerator {
             // sprite.clones has all instances of this sprite including the original and all clones
             for (const clone of target.sprite.clones) {
                 if (!Object.prototype.hasOwnProperty.call(clone.variables, id)) {
-                    clone.variables[String(id)] = Variable.createSibling(newVariable, id, name, type, false);
+                    clone.installVariable(Variable.createSibling(newVariable, id, name, type, false), String(id));
                 }
             }
         }

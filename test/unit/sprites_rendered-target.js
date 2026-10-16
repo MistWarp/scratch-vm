@@ -55,6 +55,32 @@ test('blocks get new id on duplicate', t => {
     });
 });
 
+test('duplicate copies comments and remaps the fractch map to the new block ids', t => {
+    const r = new Runtime();
+    const s = new Sprite(null, r);
+    const rt = new RenderedTarget(s, r);
+    rt.blocks.createBlock({id: 'top', opcode: 'event_whenflagclicked', topLevel: true, inputs: {}, fields: {},
+        next: null, parent: null});
+    rt.blocks.createBlock({id: 'other', opcode: 'event_whenflagclicked', topLevel: true, inputs: {}, fields: {},
+        next: null, parent: null});
+    rt.createComment('note', 'top', 'hello', 1, 2, 200, 200, false);
+    rt.createComment('map', null, `_fractch_map_${JSON.stringify({
+        version: 1, scripts: {top: 'Enemies', gone: 'main'}, modules: {other: 'math'}})}`, 0, 0, 200, 200, true);
+
+    return rt.duplicate().then(duplicate => {
+        const [newTop] = Object.keys(duplicate.blocks._blocks).filter(id =>
+            duplicate.blocks._blocks[id].comment === 'note');
+        const newOther = Object.keys(duplicate.blocks._blocks).find(id => id !== newTop);
+        t.ok(newTop && newTop !== 'top');
+        t.equal(duplicate.comments.note.blockId, newTop);
+        t.equal(duplicate.comments.note.text, 'hello');
+        t.same(JSON.parse(duplicate.comments.map.text.slice('_fractch_map_'.length)),
+            {version: 1, scripts: {[newTop]: 'Enemies', gone: 'main'}, modules: {[newOther]: 'math'}});
+        t.equal(rt.comments.map.text.includes('"top"'), true, 'the original map is unchanged');
+        t.end();
+    });
+});
+
 test('direction', t => {
     const r = new Runtime();
     const s = new Sprite(null, r);

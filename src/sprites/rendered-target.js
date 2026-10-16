@@ -4,6 +4,7 @@ const Cast = require('../util/cast');
 const Clone = require('../util/clone');
 const Target = require('../engine/target');
 const StageLayering = require('../engine/stage-layering');
+const {isMapComment, remapMapCommentText} = require('../serialization/fractch-context');
 
 /**
  * Rendered target: instance of a sprite (clone), or the stage.
@@ -967,7 +968,8 @@ class RenderedTarget extends Target {
      * @return {RenderedTarget} New clone.
      */
     duplicate () {
-        return this.sprite.duplicate().then(newSprite => {
+        const blockIds = {};
+        return this.sprite.duplicate(blockIds).then(newSprite => {
             const newTarget = newSprite.createClone();
             // Copy all properties.
             // @todo refactor with clone methods
@@ -981,6 +983,13 @@ class RenderedTarget extends Target {
             newTarget.rotationStyle = this.rotationStyle;
             newTarget.effects = JSON.parse(JSON.stringify(this.effects));
             newTarget.variables = this.duplicateVariables(newTarget.blocks);
+            for (const id of Object.keys(this.comments)) {
+                const comment = this.comments[id];
+                const blockId = comment.blockId ? blockIds[comment.blockId] || null : null;
+                const text = isMapComment(comment) ? remapMapCommentText(comment.text, blockIds) : comment.text;
+                newTarget.createComment(id, blockId, text, comment.x, comment.y, comment.width, comment.height,
+                    comment.minimized);
+            }
             newTarget.updateAllDrawableProperties();
             return newTarget;
         });

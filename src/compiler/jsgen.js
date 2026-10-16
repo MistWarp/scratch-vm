@@ -757,7 +757,7 @@ class JSGenerator {
         }
 
         case StackOpcode.EXTENSION:
-            this.source += `${this.generateExtensionCompilerSource(node)};\n`;
+            this.source += `{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
             break;
 
         case StackOpcode.RAW_SOURCE:

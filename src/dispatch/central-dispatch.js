@@ -33,6 +33,10 @@ class CentralDispatch extends SharedDispatch {
          * @type {Array}
          */
         this.workers = [];
+
+        this.workerGuards = new Map();
+
+        this.WORKER_REMOVED_ERROR = 'The extension was unloaded.';
     }
 
     /**
@@ -91,17 +95,38 @@ class CentralDispatch extends SharedDispatch {
      * Add a worker to the message dispatch system. The worker must implement a compatible message dispatch framework.
      * The dispatcher will immediately attempt to "handshake" with the worker.
      * @param {Worker} worker - the worker to add into the dispatch system.
+     * @param {{call: Function, setService: Function}} [guard] - limits what the worker may call and register.
      */
-    addWorker (worker) {
+    addWorker (worker, guard) {
         if (this.workers.indexOf(worker) === -1) {
             this.workers.push(worker);
+            if (guard) this.workerGuards.set(worker, guard);
             worker.onmessage = this._onMessage.bind(this, worker);
             this._remoteCall(worker, 'dispatch', 'handshake').catch(e => {
+                if (e === this.WORKER_REMOVED_ERROR) return;
                 log.error(`Could not handshake with worker: ${e}`);
             });
         } else {
             log.warn('Central dispatch ignoring attempt to add duplicate worker');
         }
+    }
+
+    removeWorker (worker) {
+        const index = this.workers.indexOf(worker);
+        if (index !== -1) this.workers.splice(index, 1);
+        this.workerGuards.delete(worker);
+        for (const service of Object.keys(this.services)) {
+            if (this.services[service] === worker) delete this.services[service];
+        }
+        for (const responseId of Object.keys(this.callbacks)) {
+            const callback = this.callbacks[responseId];
+            if (callback && callback[2] === worker) {
+                delete this.callbacks[responseId];
+                callback[1](this.WORKER_REMOVED_ERROR);
+            }
+        }
+        worker.onmessage = null;
+        if (typeof worker.terminate === 'function') worker.terminate();
     }
 
     /**
@@ -130,13 +155,42 @@ class CentralDispatch extends SharedDispatch {
     _onDispatchMessage (worker, message) {
         let promise;
         switch (message.method) {
-        case 'setService':
-            promise = this.setService(message.args[0], worker);
+        case 'setService': {
+            const guard = this.workerGuards.get(worker);
+            const service = message.args[0];
+            if (guard && (
+                !guard.setService(service) ||
+                (Object.prototype.hasOwnProperty.call(this.services, service) && this.services[service] !== worker)
+            )) {
+                promise = Promise.reject(new Error(`Not allowed to register service ${service}`));
+                break;
+            }
+            promise = this.setService(service, worker);
             break;
+        }
         default:
             log.error(`Central dispatch received message for unknown method: ${message.method}`);
         }
         return promise;
+    }
+
+    _onWorkerCall (worker, message) {
+        const guard = this.workerGuards.get(worker);
+        if (!guard) return super._onWorkerCall(worker, message);
+        try {
+            return Promise.resolve(guard.call(message.service, message.method, message.args));
+        } catch (e) {
+            return Promise.reject(e);
+        }
+    }
+
+    _deliverResponse (responseId, message, worker) {
+        const callback = this.callbacks[responseId];
+        if (callback && callback[2] && worker && callback[2] !== worker) {
+            log.warn('Central dispatch ignoring a response from a worker the call was not sent to');
+            return;
+        }
+        super._deliverResponse(responseId, message);
     }
 }
 

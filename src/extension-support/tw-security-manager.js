@@ -50,6 +50,14 @@ class SecurityManager {
         return Promise.resolve(false);
     }
 
+    canCreateUnsandboxedExtension () {
+        return Promise.resolve(true);
+    }
+
+    canRunUnsandboxedFromFile (fileName, source, extensionId) {
+        return Promise.resolve(false);
+    }
+
     /**
      * Allows last-minute changing the real URL of the extension that gets loaded.
      * @param {*} extensionURL The URL requested to be loaded.

@@ -48,7 +48,8 @@ class IframeExtensionWorker {
         this.iframe.allow = generateAllow();
         document.body.appendChild(this.iframe);
 
-        window.addEventListener('message', this._onWindowMessage.bind(this));
+        this._onWindowMessage = this._onWindowMessage.bind(this);
+        window.addEventListener('message', this._onWindowMessage);
         const blob = new Blob([
             // eslint-disable-next-line max-len
             `<!DOCTYPE html><body><script>window.__WRAPPED_IFRAME_ID__=${JSON.stringify(this.id)};${frameSource}</script></body>`
@@ -56,6 +57,15 @@ class IframeExtensionWorker {
             type: 'text/html; charset=utf-8'
         });
         this.iframe.src = URL.createObjectURL(blob);
+    }
+
+    terminate () {
+        this.terminated = true;
+        this.ready = false;
+        window.removeEventListener('message', this._onWindowMessage);
+        URL.revokeObjectURL(this.iframe.src);
+        this.iframe.remove();
+        this.queuedMessages.length = 0;
     }
 
     _onWindowMessage (e) {
@@ -81,6 +91,7 @@ class IframeExtensionWorker {
     }
 
     postMessage (data, transfer) {
+        if (this.terminated) return;
         if (this.ready) {
             if (transfer) {
                 this.iframe.contentWindow.postMessage(data, '*', transfer);
