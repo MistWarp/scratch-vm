@@ -27,7 +27,16 @@ class FakeRotur {
         this.token = (options && options.token) || null;
         this.socket = {username: 'sophie', userId: '7'};
         this.me = {
-            get: () => Promise.resolve({username: 'sophie', id: '7', 'sys.currency': 42}),
+            get: () => Promise.resolve({
+                'username': 'sophie',
+                'id': '7',
+                'sys.currency': 42,
+                'key': this.token,
+                'email': 'sophie@example.com',
+                'sys.reset_token': 'reset-secret-value',
+                'sys.logins': [{ip: '1.2.3.4'}],
+                'note': `token ${this.token}`
+            }),
             checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'}),
             transfer: (...args) => {
                 transfers.push(args);
@@ -51,7 +60,7 @@ class FakeRotur {
     login (options) {
         logins.push(options.requires);
         systems.push(options.system);
-        this.token = `token-${logins.length}`;
+        this.token = `token-${logins.length}-session`;
         return Promise.resolve(this);
     }
 }
@@ -84,7 +93,7 @@ test('logs in once with only the scopes the project uses', async t => {
     t.same(logins, [['account:view']]);
     t.same(systems, ['MistWarp: test']);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
-        token: 'token-1',
+        token: 'token-1-session',
         scopes: ['account:view'],
         system: 'MistWarp: test'
     });
@@ -106,7 +115,7 @@ test('logs in again when the stored token no longer validates', async t => {
     t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view'], ['account:view']]);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
-        token: 'token-2',
+        token: 'token-2-session',
         scopes: ['account:view'],
         system: 'MistWarp: test'
     });
@@ -206,5 +215,16 @@ test('the post block marks posts as made in MistWarp', async t => {
     const runtime = makeRuntime(['roturSocial_post']);
     await new RoturSocial(runtime).post({CONTENT: 'hello from a project'});
     t.same(createdPosts, [['hello from a project', {os: 'MistWarp'}]]);
+    t.end();
+});
+
+test('the fallback host never hands the project the token or account secrets', async t => {
+    const runtime = makeRuntime(['rotur_accountField']);
+    await new RoturAccount(runtime).accountField({FIELD: 'username'});
+    const host = runtime._roturHostResolved;
+    const info = await host.call('me.get', []);
+    t.same(info, {'username': 'sophie', 'id': '7', 'sys.currency': 42, 'note': null});
+    t.equal(await new RoturAccount(runtime).accountField({FIELD: 'key'}), '');
+    t.equal(await new RoturAccount(runtime).accountField({FIELD: 'sys.currency'}), 42);
     t.end();
 });
