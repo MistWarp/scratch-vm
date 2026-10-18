@@ -222,6 +222,7 @@ class Thread {
          * @type {Generator}
          */
         this.generator = null;
+        this.compiledFunction = null;
         /**
          * @type {Object.<string, import('../compiler/compile').CompiledScript>}
          */
@@ -540,7 +541,14 @@ class Thread {
             }
         }
 
-        this.generator = result.startingFunction(this)();
+        const startingFunction = result.startingFunction(this);
+        if (result.yields) {
+            this.generator = startingFunction();
+            this.compiledFunction = null;
+        } else {
+            this.generator = null;
+            this.compiledFunction = startingFunction;
+        }
 
         this.executableHat = result.executableHat;
 
