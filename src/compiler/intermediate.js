@@ -36,6 +36,8 @@ class IntermediateStackBlock {
          */
         this.yields = yields;
 
+        this.blockId = null;
+
         /**
          * Should state changes made by this stack block be ignored? Used for testing.
          * @type {boolean}
