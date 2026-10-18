@@ -8,6 +8,7 @@ const environment = require('./environment');
 const {StackOpcode, InputOpcode, InputType, COMPILER_INPUT_TYPES} = require('./enums.js');
 const {buildCompFuncHelpers} = require('./extension-compiler');
 const oldCompilerCompatibility = require('./old-compiler-compatibility.js');
+const Sampler = require('../engine/tw-sampler.js');
 
 // These imports are used by jsdoc comments but eslint doesn't know that
 /* eslint-disable no-unused-vars */
@@ -246,6 +247,10 @@ class JSGenerator {
         this.isInHat = false;
 
         this.debug = this.target.runtime.debug;
+
+        const sampler = this.target.runtime.sampler;
+        this.sampler = sampler.enableCommands ? sampler : null;
+        this.currentSamplerLocation = -1;
 
         this.oldCompilerStub = new oldCompilerCompatibility.JSGeneratorStub(this);
     }
@@ -1265,15 +1270,30 @@ class JSGenerator {
         // TODO: allow if/else to inherit values
         this.pushFrame(frame);
 
+        const parentSamplerLocation = this.currentSamplerLocation;
+
         for (let i = 0; i < stack.blocks.length; i++) {
             frame.isLastBlock = i === stack.blocks.length - 1;
+            const block = stack.blocks[i];
+
+            if (this.sampler && block.blockId) {
+                const originalTargetId = this.target.sprite.clones[0].id;
+                this.currentSamplerLocation = this.sampler.blockToLocation(originalTargetId, block.blockId);
+                this.source += `pc[0] = ${this.currentSamplerLocation};\n`;
+            }
+
             const consumed = this.descendEqualsChainAsSwitch(stack.blocks, i);
             if (consumed > 0) {
                 i += consumed - 1;
                 continue;
             }
-            this.descendStackedBlock(stack.blocks[i]);
+            this.descendStackedBlock(block);
         }
+
+        if (this.sampler && frame.isLoop) {
+            this.source += `pc[0] = ${parentSamplerLocation};\n`;
+        }
+        this.currentSamplerLocation = parentSamplerLocation;
 
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
@@ -1406,6 +1426,9 @@ class JSGenerator {
         if (!this.isWarp) {
             this.source += 'yield;\n';
             this.yielded();
+            if (this.sampler) {
+                this.source += `pc[0] = ${this.currentSamplerLocation};\n`;
+            }
         }
     }
 
@@ -1414,11 +1437,17 @@ class JSGenerator {
      */
     yieldStuckOrNotWarp () {
         if (this.isWarp) {
+            if (this.sampler) {
+                this.source += `pc[0] = ${Sampler.WARP_TIMER};\n`;
+            }
             this.source += 'if (isStuck()) yield;\n';
         } else {
             this.source += 'yield;\n';
         }
         this.yielded();
+        if (this.sampler) {
+            this.source += `pc[0] = ${this.currentSamplerLocation};\n`;
+        }
     }
 
     yielded () {
@@ -1495,13 +1524,15 @@ class JSGenerator {
      * @returns {string} JavaScript source, or an empty string in warp mode.
      */
     extensionYieldLoop () {
+        const resume = this.sampler ? ` pc[0] = ${this.currentSamplerLocation};` : '';
         if (this.warpTimer) {
             this.yielded();
-            return 'if (isStuck()) yield;';
+            const warpTimer = this.sampler ? `pc[0] = ${Sampler.WARP_TIMER}; ` : '';
+            return `${warpTimer}if (isStuck()) yield;${resume}`;
         }
         if (this.isWarp) return '';
         this.yielded();
-        return 'yield;';
+        return `yield;${resume}`;
     }
 
     generateExtensionCompilerSource (node) {
@@ -1679,6 +1710,9 @@ class JSGenerator {
         script += 'const target = thread.target; ';
         script += 'const runtime = target.runtime; ';
         script += 'const stage = runtime.getTargetForStage();\n';
+        if (this.sampler) {
+            script += 'const pc = runtime.sampler.pc;\n';
+        }
         for (const varValue of Object.keys(this._setupVariables)) {
             const varName = this._setupVariables[varValue];
             script += `const ${varName} = ${varValue};\n`;

@@ -32,6 +32,7 @@ const {serializeSounds, serializeCostumes} = require('./serialization/serialize-
 require('canvas-toBlob');
 const {exportCostume} = require('./serialization/tw-costume-import-export');
 const Base64Util = require('./util/base64-util');
+const Sampler = require('./engine/tw-sampler.js');
 const fractchContext = require('./serialization/fractch-context');
 const {replaceTargetScripts} = require('./engine/replace-target-scripts');
 
@@ -258,6 +259,7 @@ class VirtualMachine extends EventEmitter {
             RenderedTarget,
             JSZip,
             Variable,
+            Sampler,
 
             compiler: Object.freeze({
                 types: ReturnType,
