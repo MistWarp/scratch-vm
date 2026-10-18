@@ -324,3 +324,31 @@ tap.test('block info', t => {
 
     t.end();
 });
+
+tap.test('argument defaults', t => {
+    const vm = new VirtualMachine();
+
+    vm.addAddonBlock({
+        procedureCode: 'defaults %s %n %b %s',
+        arguments: ['text', 'number', 'boolean', 'no default'],
+        argumentDefaults: ['a < b', 5, 'true'],
+        callback: () => {}
+    });
+
+    const blockInfo = vm.runtime._blockInfo.find(i => i.id === 'a-b');
+    t.same(blockInfo.blocks, [
+        {
+            info: {},
+            // eslint-disable-next-line max-len
+            xml: '<block type="procedures_call" gap="16"><mutation generateshadows="true" warp="false" proccode="defaults %s %n %b %s" argumentnames="[&quot;text&quot;,&quot;number&quot;,&quot;boolean&quot;,&quot;no default&quot;]" argumentids="[&quot;arg0&quot;,&quot;arg1&quot;,&quot;arg2&quot;,&quot;arg3&quot;]" argumentdefaults="[&quot;a &lt; b&quot;,&quot;5&quot;,&quot;true&quot;,&quot;&quot;]"></mutation><value name="arg0"><shadow type="text"><field name="TEXT">a &lt; b</field></shadow></value><value name="arg1"><shadow type="math_number"><field name="NUM">5</field></shadow></value></block>'
+        }
+    ]);
+
+    t.same(vm.runtime.getAddonBlock('defaults %s %n %b %s').namesIdsDefaults, [
+        ['text', 'number', 'boolean', 'no default'],
+        ['arg0', 'arg1', 'arg2', 'arg3'],
+        ['a < b', '5', 'true', '']
+    ]);
+    t.end();
+});
+
