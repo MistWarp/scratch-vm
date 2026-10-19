@@ -648,6 +648,20 @@ class IROptimizer {
             }
             break;
         }
+        case StackOpcode.EXTENSION_CONTROL: {
+            // The compiler's own template can read and write anything, so only
+            // analyze the branches for their own typing and then forget every
+            // assumption made before or inside the block.
+            modified = this.analyzeInputs(inputs, state) || modified;
+            modified = this.analyzeInputs(inputs.inputs, state) || modified;
+            for (const branchNumber in inputs.substacks) {
+                const newState = state.clone();
+                modified = this.analyzeStack(inputs.substacks[branchNumber], newState) || modified;
+                modified = state.or(newState) || modified;
+            }
+            modified = state.clear() || modified;
+            break;
+        }
         case StackOpcode.RAW_SOURCE:
             modified = this.analyzeInputs(inputs.fragments, state) || modified;
             modified = state.clear() || modified;

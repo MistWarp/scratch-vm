@@ -760,6 +760,10 @@ class JSGenerator {
             this.source += `{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
             break;
 
+        case StackOpcode.EXTENSION_CONTROL:
+            this.source += `{\n${this.generateExtensionControlSource(node)}\n}\n`;
+            break;
+
         case StackOpcode.RAW_SOURCE:
             this.source += `${this.generateRawSource(node.fragments)}\n`;
             break;
@@ -1463,7 +1467,12 @@ class JSGenerator {
         return result;
     }
 
-    generateExtensionCompilerSource (node) {
+    /**
+     * Build the input and field helpers shared by extension compiler forms.
+     * @param {*} node The extension node's inputs record.
+     * @returns {{input: Function, field: Function}}
+     */
+    createExtensionInputHelpers (node) {
         const getInput = (name, type) => {
             const value = node.inputs[name];
             if (!value) return '""';
@@ -1478,7 +1487,25 @@ class JSGenerator {
         input.string = name => getInput(name, 'string');
         input.boolean = name => getInput(name, 'boolean');
         const field = name => JSON.stringify(node.fields[name] ?? '');
+        return {input, field};
+    }
 
+    /**
+     * The per-iteration yield a compiled loop must emit.
+     * @returns {string} JavaScript source, or an empty string in warp mode.
+     */
+    extensionYieldLoop () {
+        if (this.warpTimer) {
+            this.yielded();
+            return 'if (isStuck()) yield;';
+        }
+        if (this.isWarp) return '';
+        this.yielded();
+        return 'yield;';
+    }
+
+    generateExtensionCompilerSource (node) {
+        const {input, field} = this.createExtensionInputHelpers(node);
         const compiler = node.compiler;
         if (typeof compiler.compFunc === 'function') {
             const {args, cast} = buildCompFuncHelpers(Object.keys(node.inputs), node.fields, input, field);
@@ -1506,6 +1533,83 @@ class JSGenerator {
             stage: 'stage'
         });
         if (typeof source !== 'string') throw new TypeError('Extension compiler must return JavaScript source');
+        return source;
+    }
+
+    /**
+     * Generate the source for a C-shaped extension block. The compiler owns the
+     * control flow and splices its branches in with `branch(n)`.
+     * @param {*} node The EXTENSION_CONTROL node's inputs record.
+     * @returns {string} JavaScript source.
+     */
+    generateExtensionControlSource (node) {
+        const {input, field} = this.createExtensionInputHelpers(node);
+        const usedBranches = new Set();
+
+        const branch = (branchNumber, options) => {
+            const index = Number(branchNumber);
+            if (!Number.isInteger(index) || index < 1 || index > node.branchCount) {
+                throw new TypeError(`${node.opcode} has no branch ${branchNumber}`);
+            }
+            if (options && options.isLoop && node.blockType !== BlockType.LOOP) {
+                throw new TypeError('The isLoop branch option is only available for loop blocks');
+            }
+            const stack = node.substacks[index];
+            if (!stack) return '';
+            usedBranches.add(index);
+
+            // Generate into a temporary buffer so nested extension blocks can
+            // use branch() from inside this one.
+            const savedSource = this.source;
+            try {
+                this.source = '';
+                this.descendStack(stack, new Frame(Boolean(options && options.isLoop)));
+                return this.source;
+            } finally {
+                this.source = savedSource;
+            }
+        };
+
+        const yieldLoop = () => {
+            if (node.blockType !== BlockType.LOOP) {
+                throw new TypeError('yieldLoop() is only available for loop blocks');
+            }
+            return this.extensionYieldLoop();
+        };
+
+        const util = {
+            input,
+            field,
+            mutation: node.mutation,
+            runtime: 'runtime',
+            target: 'target',
+            stage: 'stage',
+            branch,
+            yieldLoop,
+            blockType: node.blockType,
+            branchCount: node.branchCount
+        };
+
+        const compiler = node.compiler;
+        let source;
+        if (typeof compiler.compFunc === 'function') {
+            const {args, cast} = buildCompFuncHelpers(Object.keys(node.inputs), node.fields, input, field);
+            source = compiler.compFunc(args, Object.assign({cast}, util));
+        } else {
+            source = compiler.compile(util);
+        }
+
+        if (typeof source !== 'string') {
+            throw new TypeError('Extension compiler must return JavaScript source');
+        }
+
+        // Silently dropping a branch would lose the user's code.
+        for (const index of Object.keys(node.substacks)) {
+            if (node.substacks[index].blocks.length && !usedBranches.has(Number(index))) {
+                throw new TypeError(`Compiler for ${node.opcode} did not include branch ${index}`);
+            }
+        }
+
         return source;
     }
 

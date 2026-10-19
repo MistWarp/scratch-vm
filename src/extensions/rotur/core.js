@@ -130,6 +130,97 @@ const writeStoredToken = value => {
     }
 };
 
+const SECRET_FIELDS = new Set(['key', 'token', 'access_token', 'refresh_token', 'accesstoken', 'refreshtoken',
+    'password', 'validator', 'code', 'webhook']);
+const SENSITIVE_FIELD = new RegExp([
+    'token', 'secret', 'passw', 'email', 'reset', 'verif', 'login', 'hmac', 'stripe', 'billing', 'session',
+    'webhook', 'recovery', 'totp', 'phone', 'birth', '^dob$', '(^|[._])(ip|ips|last_ip)$'
+].join('|'), 'i');
+const PROJECT_SYSTEM_FIELDS = new Set([
+    'sys.id', 'sys.index', 'sys.badges', 'sys.banner', 'sys.banner_unlocked', 'sys.banner_updated_at',
+    'sys.overlay', 'sys.social_links', 'sys.group', 'sys.status', 'sys.subscription', 'sys.moderator',
+    'sys.admin', 'sys.banned', 'sys.account_type', 'sys.tos_accepted', 'sys.email_verified',
+    'sys.terms_updated', 'sys.policy_updated', 'sys.friends', 'sys.requests', 'sys.blocked', 'sys.currency',
+    'sys.sable_credits', 'sys.items'
+]);
+const ALLOWED_FIELDS = new Set(['next_billing', 'token_type', 'sys.email_verified', 'discord_verified']);
+const HIDDEN_PROFILE_FIELDS = new Set(['email', 'sexuality', 'identity', 'nationality', 'birthday', 'age',
+    'relationship_status', 'timezone', 'language', 'favorite_website']);
+const METHOD_SECRET_FIELDS = {
+    'gifts.mine': new Set(['code']),
+    'gifts.get': new Set(['code']),
+    'keys.get': new Set(['webhook']),
+    'keys.mine': new Set(['webhook']),
+    'items.get': new Set(['private_data']),
+    'items.list': new Set(['private_data']),
+    'items.selling': new Set(['private_data'])
+};
+
+const subscriptionSummary = value => (value && typeof value === 'object' && !Array.isArray(value) ? {
+    active: value.active,
+    tier: value.tier,
+    next_billing: value.next_billing
+} : value);
+
+const tokenVariants = tokens => {
+    const variants = new Set();
+    for (const token of tokens) {
+        if (typeof token !== 'string' || token.length < 8) continue;
+        variants.add(token);
+        variants.add(encodeURIComponent(token));
+    }
+    return [...variants];
+};
+
+const scrubString = (value, secrets) => (secrets.some(secret => value.includes(secret)) ? null : value);
+
+const withoutSecrets = (value, rules, ancestors = new Set(), depth = 0) => {
+    if (typeof value === 'string') return scrubString(value, rules.secrets);
+    if (!value || typeof value !== 'object') return value;
+    if (value instanceof ArrayBuffer || ArrayBuffer.isView(value) || value instanceof Date) return value;
+    if (ancestors.has(value)) return null;
+    ancestors.add(value);
+    let clean;
+    if (Array.isArray(value)) {
+        clean = value.map(item => withoutSecrets(item, rules, ancestors, depth + 1));
+    } else {
+        clean = {};
+        for (const [field, item] of Object.entries(value)) {
+            const lower = field.toLowerCase();
+            if (scrubString(field, rules.secrets) === null) continue;
+            if (rules.fields && rules.fields.has(lower)) continue;
+            if (rules.account && !ALLOWED_FIELDS.has(lower) &&
+                (SECRET_FIELDS.has(lower) || SENSITIVE_FIELD.test(lower))) continue;
+            if (rules.account && depth === 0 && (HIDDEN_PROFILE_FIELDS.has(lower) ||
+                (lower.startsWith('sys.') && !PROJECT_SYSTEM_FIELDS.has(lower)))) continue;
+            const summarise = rules.account && depth === 0 && lower === 'sys.subscription';
+            const kept = summarise ? subscriptionSummary(item) : item;
+            Object.defineProperty(clean, field, {
+                value: withoutSecrets(kept, rules, ancestors, depth + 1),
+                enumerable: true,
+                writable: true,
+                configurable: true
+            });
+        }
+    }
+    ancestors.delete(value);
+    return clean;
+};
+
+const projectSafeResult = (method, result, tokens) => withoutSecrets(result, {
+    secrets: tokenVariants(tokens),
+    account: method.startsWith('me.') || method.startsWith('profiles.'),
+    fields: METHOD_SECRET_FIELDS[method] || null
+});
+
+const projectSafeError = (error, tokens) => {
+    const message = String((error && error.message) || error || 'The Rotur request failed');
+    const safe = new Error(scrubString(message, tokenVariants(tokens)) === null ?
+        'The Rotur request failed' : message.slice(0, 300));
+    if (error && typeof error.status === 'number') safe.status = error.status;
+    return safe;
+};
+
 const createSdkHost = runtime => {
     let clientPromise = null;
     let extraScopes = [];
@@ -240,7 +331,14 @@ const createSdkHost = runtime => {
                     window.confirm(`Allow ${projectLabel() || 'this project'} to ${confirmLabel(method)}?`))) {
                 throw new Error('You cancelled this Rotur action');
             }
-            return fn.apply(ctx, list);
+            const tokenBefore = rotur.token;
+            let result;
+            try {
+                result = await fn.apply(ctx, list);
+            } catch (error) {
+                throw projectSafeError(error, [tokenBefore, rotur.token]);
+            }
+            return projectSafeResult(method, result, [tokenBefore, rotur.token]);
         }
     };
 };

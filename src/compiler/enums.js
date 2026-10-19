@@ -158,6 +158,7 @@ const StackOpcode = {
     COMPATIBILITY_LAYER: 'compat',
     OLD_COMPILER_COMPATIBILITY_LAYER: 'oldCompiler',
     EXTENSION: 'extension',
+    EXTENSION_CONTROL: 'extension.control',
     RAW_SOURCE: 'rawSource',
 
     HAT_EDGE: 'hat.edge',
