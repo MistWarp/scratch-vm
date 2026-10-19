@@ -699,6 +699,11 @@ class ScriptTreeGenerator {
 
         const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
         if (compilerExtension) {
+            const blockInfo = this.getBlockInfo(block.opcode);
+            const blockType = blockInfo && blockInfo.info && blockInfo.info.blockType;
+            if (blockType === BlockType.LOOP || blockType === BlockType.CONDITIONAL) {
+                return this.descendCompilerExtensionControl(block, compilerExtension, blockType);
+            }
             if (compilerExtension.type === 'command') {
                 return this.descendCompilerExtensionStack(block, compilerExtension);
             }
@@ -1498,6 +1503,53 @@ class ScriptTreeGenerator {
         // so its declared type stays available to the generator.
         const input = this.descendCompilerExtensionInput(block, compiler, 'any');
         return new IntermediateStackBlock(StackOpcode.EXTENSION, input.inputs);
+    }
+
+    /**
+     * Descend into a C-shaped (loop or conditional) extension block that has a
+     * compiler. The branches are kept separate from the ordinary inputs so the
+     * extension's compiler can splice them into its own control flow.
+     * @param {*} block The Scratch block to parse.
+     * @param {*} compiler The registered compiler descriptor.
+     * @param {string} blockType BlockType.LOOP or BlockType.CONDITIONAL.
+     * @returns {IntermediateStackBlock}
+     * @private
+     */
+    descendCompilerExtensionControl (block, compiler, blockType) {
+        if (compiler.type !== 'command') {
+            throw new Error(`Compiler for ${block.opcode} must be a command; C blocks produce no value`);
+        }
+
+        const inputs = {};
+        for (const name of Object.keys(block.inputs)) {
+            if (name.startsWith('SUBSTACK')) continue;
+            inputs[name] = this.descendInputOfBlock(block, name, true);
+        }
+        const fields = {};
+        for (const name of Object.keys(block.fields)) {
+            fields[name] = block.fields[name].value;
+        }
+
+        const blockInfo = this.getBlockInfo(block.opcode);
+        const branchCount = Math.max(1, (blockInfo && blockInfo.info && blockInfo.info.branchCount) || 1);
+        const substacks = {};
+        for (let i = 1; i <= branchCount; i++) {
+            // Empty branches have no input at all; descendSubstack returns an
+            // empty stack for them.
+            substacks[i] = this.descendSubstack(block, i === 1 ? 'SUBSTACK' : `SUBSTACK${i}`);
+        }
+
+        return new IntermediateStackBlock(StackOpcode.EXTENSION_CONTROL, {
+            id: block.id,
+            opcode: block.opcode,
+            blockType,
+            branchCount,
+            compiler,
+            inputs,
+            fields,
+            mutation: block.mutation || {},
+            substacks
+        }, blockType === BlockType.LOOP ? this.analyzeLoop() : false);
     }
 
     /**

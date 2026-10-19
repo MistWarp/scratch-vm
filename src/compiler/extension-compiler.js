@@ -17,6 +17,10 @@ const resolveCompilerType = (blockType, declared) => {
         if (!isCompilerType(declared)) {
             throw new TypeError(`Unknown compiler returnType: ${declared}`);
         }
+        if ((blockType === BlockType.LOOP || blockType === BlockType.CONDITIONAL) &&
+            declared !== COMPILER_TYPES.COMMAND) {
+            throw new TypeError('Loop and conditional blocks cannot produce a value');
+        }
         return declared;
     }
     switch (blockType) {
@@ -26,9 +30,12 @@ const resolveCompilerType = (blockType, declared) => {
         return COMPILER_TYPES.ANY;
     case BlockType.COMMAND:
         return COMPILER_TYPES.COMMAND;
+    case BlockType.LOOP:
+    case BlockType.CONDITIONAL:
+        return COMPILER_TYPES.COMMAND;
     default:
         // A missing block type is a command (Scratch's default); anything else
-        // (hats, loops, conditionals, buttons, labels, XML) cannot be compiled.
+        // (hats, buttons, labels, XML) cannot be compiled.
         return blockType ? null : COMPILER_TYPES.COMMAND;
     }
 };
