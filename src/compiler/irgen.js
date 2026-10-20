@@ -1294,9 +1294,10 @@ class ScriptTreeGenerator {
             return null;
         }
         try {
+            const input = this.descendInput(block);
             return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
-                input: this.descendInput(block)
-            });
+                input
+            }, input.yields);
         } catch (e) {
             return null;
         }
@@ -1651,8 +1652,10 @@ class ScriptTreeGenerator {
             // interpreter parity, but the reuslt is ignored.
             const opcodeFunction = this.runtime.getOpcodeFunction(opcode);
             if (opcodeFunction) {
+                const hat = this.descendCompatLayerStack(hatBlock);
+                this.script.yields = this.script.yields || hat.yields;
                 return new IntermediateStack([
-                    this.descendCompatLayerStack(hatBlock),
+                    hat,
                     ...this.walkStack(nextBlock).blocks
                 ]);
             }
