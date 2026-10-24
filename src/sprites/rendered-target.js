@@ -990,6 +990,12 @@ class RenderedTarget extends Target {
                 newTarget.createComment(id, blockId, text, comment.x, comment.y, comment.width, comment.height,
                     comment.minimized);
             }
+            for (const id of Object.keys(this.frames)) {
+                const frame = this.frames[id];
+                const members = frame.blocks.map(blockId => blockIds[blockId]).filter(Boolean);
+                newTarget.createFrame(id, frame.title, frame.x, frame.y, frame.width, frame.height,
+                    frame.collapsed, members);
+            }
             newTarget.updateAllDrawableProperties();
             return newTarget;
         });
