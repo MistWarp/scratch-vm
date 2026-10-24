@@ -65,7 +65,7 @@ const buildBlocks = (extensionId, specs) => specs.map(spec => {
     if (spec.isEdgeActivated) {
         block.isEdgeActivated = true;
     }
-    if (Object.prototype.hasOwnProperty.call(spec, 'removed')) {
+    if (spec.hidden || Object.prototype.hasOwnProperty.call(spec, 'removed')) {
         block.hideFromPalette = true;
     }
     return block;

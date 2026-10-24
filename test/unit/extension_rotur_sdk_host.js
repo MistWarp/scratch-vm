@@ -60,6 +60,13 @@ class FakeRotur {
                 return Promise.resolve({});
             }
         };
+        // As Rotur answers now: no names, only the count, and none for a private profile.
+        this.following = {
+            followers: user => Promise.resolve(user === 'private' ?
+                {followers: [], hidden: true, deprecated: true} :
+                {followers: [], count: 12, deprecated: true}),
+            following: () => Promise.resolve({following: [], count: 3, deprecated: true})
+        };
         this._http = {getToken: () => this.token};
     }
     login (options) {
@@ -175,6 +182,23 @@ test('the removed money blocks load hidden, ask for nothing, and do nothing', as
         }
     }
     t.equal(logins.length, before);
+    t.end();
+});
+
+test('follower blocks give counts, and the old list blocks load hidden with an empty list', async t => {
+    const social = new RoturSocial(makeRuntime(['roturSocial_followersOf', 'roturSocial_followerCount']));
+    const blocks = Object.fromEntries(social.getInfo().blocks.map(block => [block.opcode, block]));
+    t.equal(await social.followerCount({USER: 'mist'}), 12);
+    t.equal(await social.followingCount({USER: 'mist'}), 3);
+    t.equal(await social.followerCount({USER: 'private'}), '');
+    t.notOk(blocks.followerCount.hideFromPalette);
+    t.notOk(blocks.followingCount.hideFromPalette);
+
+    t.ok(blocks.followersOf.hideFromPalette);
+    t.ok(blocks.followingOf.hideFromPalette);
+    t.same(JSON.parse(await social.followersOf({USER: 'mist'})), {followers: [], count: 12});
+    t.same(JSON.parse(await social.followingOf({USER: 'mist'})), {following: [], count: 3});
+    t.same(JSON.parse(await social.followersOf({USER: 'private'})), {followers: []});
     t.end();
 });
 

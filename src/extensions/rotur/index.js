@@ -14,6 +14,10 @@ const COLORS = {
     color3: '#241a24'
 };
 
+// Blank when the profile hides its counts.
+const followCount = r => (r && typeof r.count === 'number' ? r.count : '');
+const emptyFollowList = key => r => ({[key]: [], ...(r && typeof r.count === 'number' ? {count: r.count} : {})});
+
 const ext = (id, name, specs, menus) => defineExtension(id, {name, ...COLORS, menus: menus || {}}, specs);
 
 const account = ext('rotur', 'Rotur Account', [
@@ -109,8 +113,13 @@ const social = ext('roturSocial', 'Rotur Social', [
     {label: 'Following'},
     {opcode: 'follow', blockType: C, text: 'follow [USER]', args: {USER: 'username'}, method: 'following.follow', scope: 'following:follow', map: a => [a.USER]},
     {opcode: 'unfollow', blockType: C, text: 'unfollow [USER]', args: {USER: 'username'}, method: 'following.unfollow', scope: 'following:unfollow', map: a => [a.USER]},
-    {opcode: 'followersOf', blockType: R, text: 'followers of [USER]', args: {USER: 'username'}, method: 'following.followers', map: a => [a.USER]},
-    {opcode: 'followingOf', blockType: R, text: 'who [USER] follows', args: {USER: 'username'}, method: 'following.following', map: a => [a.USER]},
+    {opcode: 'followerCount', blockType: R, text: 'follower count of [USER]', args: {USER: 'username'}, method: 'following.followers', map: a => [a.USER], result: followCount},
+    {opcode: 'followingCount', blockType: R, text: 'following count of [USER]', args: {USER: 'username'}, method: 'following.following', map: a => [a.USER], result: followCount},
+    // Rotur no longer lists who follows someone or whom they follow, only how
+    // many. These stay, hidden, so projects that use them still load; their
+    // list is always empty, with the count beside it.
+    {opcode: 'followersOf', blockType: R, text: 'followers of [USER]', args: {USER: 'username'}, method: 'following.followers', map: a => [a.USER], hidden: true, result: emptyFollowList('followers')},
+    {opcode: 'followingOf', blockType: R, text: 'who [USER] follows', args: {USER: 'username'}, method: 'following.following', map: a => [a.USER], hidden: true, result: emptyFollowList('following')},
     {label: 'Friends'},
     {opcode: 'friends', blockType: R, text: 'my friends', method: 'friends.list', scope: 'friends:view', map: () => []},
     {opcode: 'friendRequests', blockType: R, text: 'my incoming friend requests', method: 'me.requests', scope: 'friends:view', map: () => [], result: r => JSON.stringify((r && r.requests) || [])},
