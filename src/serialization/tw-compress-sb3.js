@@ -112,6 +112,16 @@ const compress = projectData => {
                 pool.addReference(comment.blockId);
             }
         }
+
+        for (const frame of Object.values(target.frames || {})) {
+            for (const blockId of frame.blocks || []) {
+                if (Object.prototype.hasOwnProperty.call(target.blocks, blockId)) {
+                    pool.addReference(blockId);
+                } else {
+                    pool.skip(blockId);
+                }
+            }
+        }
     }
 
     pool.generateNewIds();
@@ -149,6 +159,12 @@ const compress = projectData => {
             newComments[pool.getNewId(commentId)] = comment;
             if (comment.blockId) {
                 comment.blockId = pool.getNewId(comment.blockId);
+            }
+        }
+
+        for (const frame of Object.values(target.frames || {})) {
+            if (Array.isArray(frame.blocks)) {
+                frame.blocks = frame.blocks.map(blockId => pool.getNewId(blockId));
             }
         }
 
