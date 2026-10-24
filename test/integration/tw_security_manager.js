@@ -272,6 +272,9 @@ test('canEmbed', async t => {
         href: 'https://example.com/'
     };
 
+    vm.securityManager.canEmbed = () => assert.fail('should not call security manager for javascript:');
+    assert.strictEqual(await global.Scratch.canEmbed('javascript:alert(1)'), false);
+
     const calledWithURLs = [];
     vm.securityManager.canEmbed = async url => {
         calledWithURLs.push(url);
