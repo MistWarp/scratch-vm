@@ -5,6 +5,7 @@ const Runtime = require('../../src/engine/runtime');
 const sb3 = require('../../src/serialization/sb3');
 const adapter = require('../../src/engine/adapter');
 const readFileToBuffer = require('../fixtures/readProjectFile').readFileToBuffer;
+const makeTestStorage = require('../fixtures/make-test-storage');
 const projectPath = path.resolve(__dirname, '../fixtures/comments.sb3');
 
 test('frames round-trip through sb3 and the workspace xml', t => {
@@ -173,5 +174,29 @@ test('a collapsed frame keeps its blocks when saving shortens block ids', t => {
         t.equal(frame.blocks[1], 'goneBlock', 'an id with no block is left alone');
         t.notOk(blocks.goneBlock, 'and no shortened id takes it over');
         t.end();
+    });
+});
+
+test('duplicating a sprite copies its frames and points collapsed ones at the copied blocks', t => {
+    const vm = new VirtualMachine();
+    vm.attachStorage(makeTestStorage());
+    vm.loadProject(readFileToBuffer(projectPath)).then(() => {
+        const sprite = vm.runtime.targets.find(target => !target.isStage);
+        const topId = sprite.blocks.getScripts()[0];
+        sprite.createFrame('open', 'Open', 40, 60, 400, 300, false, []);
+        sprite.createFrame('shut', 'Shut', 40, 400, 400, 300, true, [topId]);
+
+        return sprite.duplicate().then(copy => {
+            t.same(Object.keys(copy.frames).sort(), ['open', 'shut']);
+            t.equal(copy.frames.open.title, 'Open');
+            t.equal(copy.frames.shut.collapsed, true);
+            t.equal(copy.frames.shut.blocks.length, 1);
+            const member = copy.frames.shut.blocks[0];
+            t.not(member, topId, 'the copy points at its own block');
+            t.ok(copy.blocks.getBlock(member), 'which exists in the copy');
+            t.equal(copy.blocks.getBlock(member).opcode, sprite.blocks.getBlock(topId).opcode);
+            t.not(copy.frames.shut, sprite.frames.shut, 'the frame objects are not shared');
+            t.end();
+        });
     });
 });
