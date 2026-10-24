@@ -154,3 +154,24 @@ test('a frame drag carries its scripts to another sprite', t => {
         });
     });
 });
+
+test('a collapsed frame keeps its blocks when saving shortens block ids', t => {
+    const vm = new VirtualMachine();
+    vm.loadProject(readFileToBuffer(projectPath)).then(() => {
+        const sprite = vm.runtime.targets.find(target => !target.isStage);
+        const topId = sprite.blocks.getScripts()[0];
+        const opcode = sprite.blocks.getBlock(topId).opcode;
+        sprite.createFrame('f1', 'Collapsed', 0, 0, 400, 300, true, [topId, 'goneBlock']);
+
+        const json = JSON.parse(JSON.stringify(sb3.serialize(vm.runtime, null, {allowOptimization: true})));
+        const frame = json.targets.find(target => !target.isStage).frames.f1;
+        const blocks = json.targets.find(target => !target.isStage).blocks;
+
+        t.not(frame.blocks[0], topId, 'the block id was shortened');
+        t.ok(blocks[frame.blocks[0]], 'the frame points at a block that exists');
+        t.equal(blocks[frame.blocks[0]].opcode, opcode, 'and it is the block the frame swallowed');
+        t.equal(frame.blocks[1], 'goneBlock', 'an id with no block is left alone');
+        t.notOk(blocks.goneBlock, 'and no shortened id takes it over');
+        t.end();
+    });
+});
