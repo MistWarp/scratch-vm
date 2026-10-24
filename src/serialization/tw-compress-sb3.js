@@ -56,11 +56,25 @@ class Pool {
     }
 }
 
+const COMMENT_TEXT_LIMIT = 8000;
+
+const fullCommentText = comment => comment.text + (typeof comment.extraText === 'string' ? comment.extraText : '');
+
+const setCommentText = (comment, text) => {
+    if (text.length > COMMENT_TEXT_LIMIT) {
+        comment.text = text.substring(0, COMMENT_TEXT_LIMIT);
+        comment.extraText = text.substring(COMMENT_TEXT_LIMIT);
+    } else {
+        comment.text = text;
+        delete comment.extraText;
+    }
+};
+
 const mapCommentIds = comment => {
     if (!isMapComment(comment)) return [];
     let data;
     try {
-        data = JSON.parse(comment.text.slice(FRACTCH_MAP_COMMENT_MAGIC.length));
+        data = JSON.parse(fullCommentText(comment).slice(FRACTCH_MAP_COMMENT_MAGIC.length));
     } catch (e) {
         return [];
     }
@@ -189,7 +203,7 @@ const compress = projectData => {
                 comment.blockId = pool.getNewId(comment.blockId);
             }
             if (isMapComment(comment)) {
-                comment.text = remapMapCommentText(comment.text, blockIds);
+                setCommentText(comment, remapMapCommentText(fullCommentText(comment), blockIds));
             }
         }
 

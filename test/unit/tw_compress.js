@@ -361,3 +361,49 @@ test('fractch map comment follows the compressed block ids', t => {
     t.notOk(Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
     t.end();
 });
+
+test('a fractch map split across text and extraText is remapped whole', t => {
+    const blocks = {};
+    const scripts = {};
+    for (let i = 0; i < 400; i++) {
+        const id = `a-long-original-block-id-${i}`;
+        blocks[id] = {opcode: 'event_whenflagclicked', next: null, parent: null, inputs: {}, fields: {},
+            shadow: false, topLevel: true, x: 0, y: i};
+        scripts[id] = i % 2 ? 'enemies/boss' : 'main';
+    }
+    const fullText = `_fractch_map_${JSON.stringify({scripts})}`;
+    t.ok(fullText.length > 8000);
+    const data = {
+        targets: [
+            {
+                isStage: false,
+                name: 'Sprite1',
+                variables: {},
+                lists: {},
+                broadcasts: {},
+                blocks,
+                comments: {
+                    mapComment: {blockId: null, x: 0, y: 0, width: 200, height: 200, minimized: false,
+                        text: fullText.substring(0, 8000), extraText: fullText.substring(8000)}
+                },
+                currentCostume: 0,
+                costumes: [],
+                sounds: []
+            }
+        ],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+    };
+    compress(data);
+    const target = data.targets[0];
+    const comment = Object.values(target.comments)[0];
+    t.ok(comment.text.length <= 8000);
+    const text = comment.text + (comment.extraText || '');
+    const remapped = JSON.parse(text.slice('_fractch_map_'.length));
+    const ids = Object.keys(target.blocks);
+    t.equal(Object.keys(remapped.scripts).length, 400);
+    t.ok(Object.keys(remapped.scripts).every(id => ids.includes(id)));
+    t.equal(remapped.scripts[ids[1]], 'enemies/boss');
+    t.end();
+});
