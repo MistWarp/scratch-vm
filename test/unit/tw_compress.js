@@ -316,3 +316,48 @@ test('Script execution order is preserved', t => {
 
     t.end();
 });
+
+test('fractch map comment follows the compressed block ids', t => {
+    const map = {scripts: {hatOne: 'main', hatTwo: 'enemies/boss', deletedHat: 'old'}, modules: {hatTwo: 'm'}};
+    const data = {
+        targets: [
+            {
+                isStage: false,
+                name: 'Sprite1',
+                variables: {},
+                lists: {},
+                broadcasts: {},
+                blocks: {
+                    hatOne: {opcode: 'event_whenflagclicked', next: null, parent: null, inputs: {}, fields: {},
+                        shadow: false, topLevel: true, x: 0, y: 0},
+                    hatTwo: {opcode: 'event_whenkeypressed', next: null, parent: null, inputs: {}, fields: {},
+                        shadow: false, topLevel: true, x: 0, y: 100}
+                },
+                comments: {
+                    mapComment: {blockId: null, x: 0, y: 0, width: 200, height: 200, minimized: false,
+                        text: `_fractch_map_${JSON.stringify(map)}`}
+                },
+                currentCostume: 0,
+                costumes: [],
+                sounds: []
+            }
+        ],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+    };
+    compress(data);
+    const target = data.targets[0];
+    const idOf = opcode => Object.keys(target.blocks).find(id => target.blocks[id].opcode === opcode);
+    const one = idOf('event_whenflagclicked');
+    const two = idOf('event_whenkeypressed');
+    t.not(one, 'hatOne');
+    const comment = Object.values(target.comments)[0];
+    const remapped = JSON.parse(comment.text.slice('_fractch_map_'.length));
+    t.equal(remapped.scripts[one], 'main');
+    t.equal(remapped.scripts[two], 'enemies/boss');
+    t.equal(remapped.modules[two], 'm');
+    t.equal(remapped.scripts.deletedHat, 'old');
+    t.notOk(Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
+    t.end();
+});
