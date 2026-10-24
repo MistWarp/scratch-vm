@@ -22,6 +22,7 @@ let authValid = true;
 
 const systems = [];
 const modes = [];
+const signedOut = [];
 
 class FakeRotur {
     constructor (options) {
@@ -71,6 +72,10 @@ class FakeRotur {
             following: () => Promise.resolve({following: [], count: 3, deprecated: true})
         };
         this._http = {getToken: () => this.token};
+    }
+    signOut () {
+        signedOut.push(this.token);
+        return Promise.resolve();
     }
     login (options) {
         logins.push(options.requires);
@@ -131,6 +136,7 @@ test('logs in again when the stored token no longer validates', async t => {
 
     t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view'], ['account:view']]);
+    t.same(signedOut, ['token-1-session']);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
         token: 'token-2-session',
         scopes: ['account:view'],

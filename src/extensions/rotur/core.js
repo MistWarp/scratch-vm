@@ -241,11 +241,15 @@ const createSdkHost = runtime => {
                 const stored = readStoredToken();
                 let rotur = null;
                 if (stored && stored.system === system && sameScopes(stored.scopes, scopes)) {
-                    rotur = new Rotur({token: stored.token});
-                    const abilities = await rotur.me.abilities().catch(() => null);
-                    if (!abilities || abilities.error) {
+                    const candidate = new Rotur({token: stored.token});
+                    const abilities = await candidate.me.abilities().catch(() => null);
+                    if (abilities && !abilities.error) {
+                        rotur = candidate;
+                    } else {
                         writeStoredToken(null);
-                        rotur = null;
+                        await Promise.resolve()
+                            .then(() => candidate.signOut())
+                            .catch(() => null);
                     }
                 }
                 if (!rotur) {

@@ -75,3 +75,44 @@ test('the methods the fallback host always allows are in the SDK', t => {
     }
     t.end();
 });
+
+const runWith = (Extension, opcode, args, answer) => {
+    const host = {
+        whenReady: () => Promise.resolve(),
+        getUser: () => ({loggedIn: true}),
+        projectId: () => 'project',
+        projectName: () => 'Project',
+        projectImage: () => '',
+        ensureConsent: () => Promise.resolve(true),
+        call: () => Promise.resolve(answer)
+    };
+    return new Extension({roturHost: host, targets: []})[opcode](args);
+};
+
+test('blocks report what they did on rotur-sdk 2.5.2 from the answers 3.x gives', async t => {
+    const {RoturAccount, RoturSocial, RoturFiles} = roturExtensions;
+    const badges = {badges: [{name: 'early', icon: ''}, {name: 'dev', icon: ''}], all_badges: [], preferences: {}};
+    t.equal(await runWith(RoturAccount, 'myBadges', {}, badges), '["early","dev"]');
+    t.equal(await runWith(RoturAccount, 'myBadges', {}, {badge_names: ['early', 'dev']}), '["early","dev"]');
+    t.equal(await runWith(RoturAccount, 'myBadges', {}, null), '[]');
+
+    t.equal(await runWith(RoturAccount, 'isBanned', {USER: 'Spammer'}, {banned: ['spammer']}), true);
+    t.equal(await runWith(RoturAccount, 'isBanned', {USER: 'mist'}, {banned: ['spammer']}), false);
+    t.equal(await runWith(RoturAccount, 'isBanned', {USER: 'mist'}, {banned: []}), false);
+
+    t.equal(await runWith(RoturAccount, 'blockedUsers', {}, ['kit', 'sam']), '["kit","sam"]');
+    t.equal(await runWith(RoturAccount, 'blockedUsers', {}, {blocked: ['kit']}), '["kit"]');
+    t.equal(await runWith(RoturSocial, 'friendRequests', {}, ['kit']), '["kit"]');
+    t.equal(await runWith(RoturSocial, 'friendRequests', {}, {requests: ['sam']}), '["sam"]');
+    t.equal(await runWith(RoturSocial, 'friendRequests', {}, []), '[]');
+
+    const entry = n => Array.from({length: 14}, (_, i) => `${n}-${i}`);
+    const flat = [...entry('a'), ...entry('b')];
+    t.same(JSON.parse(await runWith(RoturFiles, 'myFiles', {}, [entry('a'), entry('b')])), flat);
+    t.same(JSON.parse(await runWith(RoturFiles, 'myFiles', {}, flat)), flat);
+    t.equal(await runWith(RoturFiles, 'myFiles', {}, []), '[]');
+
+    t.equal(await runWith(RoturAccount, 'avatarOf', {USER: 'mist'}, 'https://avatars.rotur.dev/mist?v='),
+        'https://avatars.rotur.dev/mist?v=');
+    t.end();
+});
