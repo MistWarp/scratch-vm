@@ -35,6 +35,25 @@ test('deserialize', t => {
     });
 });
 
+test('deserialize monitor with an inherited object property as its ID', async t => {
+    const runtime = new Runtime();
+    await sb3.deserialize({
+        targets: [],
+        monitors: [{
+            id: 'constructor',
+            opcode: 'data_variable',
+            params: {VARIABLE: 'x'},
+            visible: true,
+            x: 0,
+            y: 0
+        }]
+    }, runtime);
+
+    t.equal(Object.prototype.hasOwnProperty.call(runtime.monitorBlocks._blocks, 'constructor'), true);
+    t.equal(runtime.monitorBlocks._blocks.constructor.opcode, 'data_variable');
+    t.end();
+});
+
 
 test('serialize sb2 project with comments as sb3', t => {
     const vm = new VirtualMachine();

@@ -49,6 +49,16 @@ test('getBlock', t => {
     t.end();
 });
 
+test('createBlock ignores __proto__ IDs', t => {
+    const blocks = new Blocks(new Runtime());
+    blocks.createBlock({id: '__proto__', topLevel: true});
+
+    t.equal(Object.getPrototypeOf(blocks._blocks), Object.prototype);
+    t.equal(Object.prototype.hasOwnProperty.call(blocks._blocks, '__proto__'), false);
+    t.same(blocks.getScripts(), []);
+    t.end();
+});
+
 test('getScripts', t => {
     const b = new Blocks(new Runtime());
     let scripts = b.getScripts();
