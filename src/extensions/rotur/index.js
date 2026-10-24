@@ -18,6 +18,21 @@ const COLORS = {
 const followCount = r => (r && typeof r.count === 'number' ? r.count : '');
 const emptyFollowList = key => r => ({[key]: [], ...(r && typeof r.count === 'number' ? {count: r.count} : {})});
 
+// Some Rotur answers are a bare list, others an object holding it.
+const listOf = (r, key) => (Array.isArray(r) ? r : (r && Array.isArray(r[key]) ? r[key] : []));
+const badgeNames = r => {
+    if (r && Array.isArray(r.badge_names)) return JSON.stringify(r.badge_names);
+    const badges = listOf(r, 'badges');
+    return JSON.stringify(badges.map(badge => (badge && typeof badge === 'object' ? badge.name : badge)).filter(Boolean));
+};
+const isBanned = (r, a) => {
+    const name = String(a.USER).toLowerCase();
+    if (r && Array.isArray(r.banned)) return r.banned.some(user => String(user).toLowerCase() === name);
+    return Boolean(r && r[a.USER]);
+};
+// files.index gives one array per file; the block reports one flat list, 14 values per file.
+const flatFileIndex = r => (Array.isArray(r) && r.every(Array.isArray) ? r.flat() : r);
+
 const ext = (id, name, specs, menus) => defineExtension(id, {name, ...COLORS, menus: menus || {}}, specs);
 
 const account = ext('rotur', 'Rotur Account', [
@@ -31,18 +46,18 @@ const account = ext('rotur', 'Rotur Account', [
     {label: 'Account'},
     {opcode: 'accountInfo', blockType: R, text: 'my account info', method: 'me.get', scope: 'account:view', map: () => [], result: r => r},
     {opcode: 'accountField', blockType: R, text: 'my account [FIELD]', args: {FIELD: 'username'}, method: 'me.get', scope: 'account:view', map: () => [], result: (r, a) => (r && typeof r === 'object' ? r[a.FIELD] : '')},
-    {opcode: 'checkAuth', blockType: B, text: 'is my login valid?', method: 'me.checkAuth', map: () => [], result: r => Boolean(r && r.username)},
-    {opcode: 'myBadges', blockType: R, text: 'my badges', method: 'me.badges', scope: 'account:view', map: () => [], result: r => JSON.stringify((r && r.badge_names) || [])},
+    {opcode: 'checkAuth', blockType: B, text: 'is my login valid?', method: 'me.checkAuth', scope: 'account:view', map: () => [], result: r => Boolean(r && r.username)},
+    {opcode: 'myBadges', blockType: R, text: 'my badges', method: 'me.badges', scope: 'account:view', map: () => [], result: badgeNames},
     {opcode: 'mySubscription', blockType: R, text: 'my subscription', method: 'me.subscription', scope: 'account:view', map: () => []},
-    {opcode: 'blockedUsers', blockType: R, text: 'users I have blocked', method: 'me.blocked', scope: 'blocked:view', map: () => [], result: r => JSON.stringify((r && r.blocked) || [])},
+    {opcode: 'blockedUsers', blockType: R, text: 'users I have blocked', method: 'me.blocked', scope: 'blocked:view', map: () => [], result: r => JSON.stringify(listOf(r, 'blocked'))},
     {opcode: 'block', blockType: C, text: 'block [USER]', args: {USER: 'username'}, method: 'me.block', scope: 'blocked:manage', map: a => [a.USER]},
     {opcode: 'unblock', blockType: C, text: 'unblock [USER]', args: {USER: 'username'}, method: 'me.unblock', scope: 'blocked:manage', map: a => [a.USER]},
     {label: 'People'},
     {opcode: 'profileOf', blockType: R, text: 'profile of [USER]', args: {USER: 'username'}, method: 'profiles.get', map: a => [a.USER]},
     {opcode: 'userExists', blockType: B, text: 'does user [USER] exist?', args: {USER: 'username'}, method: 'profiles.exists', map: a => [a.USER], result: r => Boolean(r && r.exists)},
-    {opcode: 'avatarOf', blockType: R, text: 'avatar url of [USER]', args: {USER: 'username'}, method: 'profiles.getAvatarUrl', map: a => [a.USER]},
+    {opcode: 'avatarOf', blockType: R, text: 'avatar url of [USER]', args: {USER: 'username'}, method: 'avatars.url', map: a => [a.USER]},
     {opcode: 'standingOf', blockType: R, text: 'moderation standing of [USER]', args: {USER: 'username'}, method: 'standing.get', map: a => [a.USER]},
-    {opcode: 'isBanned', blockType: B, text: 'is [USER] banned?', args: {USER: 'username'}, method: 'check.banned', map: a => [[a.USER]], result: (r, a) => Boolean(r && r[a.USER])},
+    {opcode: 'isBanned', blockType: B, text: 'is [USER] banned?', args: {USER: 'username'}, method: 'accounts.bannedCheck', map: a => [[a.USER]], result: isBanned},
     {label: 'Notifications'},
     {opcode: 'notifications', blockType: R, text: 'my notifications', method: 'notifications.list', scope: 'notifications:view', map: () => []}
 ]);
@@ -73,7 +88,7 @@ const keys = ext('roturKeys', 'Rotur Keys', [
     {opcode: 'keyInfo', blockType: R, text: 'details of key [ID]', args: {ID: 'id'}, method: 'keys.get', map: a => [a.ID]},
     {opcode: 'userHasKey', blockType: B, text: 'does [USER] own key [KEY]?', args: {USER: 'username', KEY: 'key'}, method: 'keys.check', map: a => [a.USER, a.KEY], result: r => Boolean(r && (r.owns || r.owned || r.has))},
     {opcode: 'buyKey', blockType: C, text: 'buy key [ID]', args: {ID: 'id'}, removed: ''},
-    {opcode: 'cancelKey', blockType: C, text: 'cancel key [ID]', args: {ID: 'id'}, method: 'keys.cancel', sensitive: true, confirm: 'cancel this key', map: a => [a.ID]},
+    {opcode: 'cancelKey', blockType: C, text: 'cancel key [ID]', args: {ID: 'id'}, method: 'keys.cancel', scope: 'keys:manage', sensitive: true, confirm: 'cancel this key', map: a => [a.ID]},
     {label: 'Manage my keys'},
     {opcode: 'renameKey', blockType: C, text: 'rename key [ID] to [NAME]', args: {ID: 'id', NAME: 'name'}, method: 'keys.rename', scope: 'keys:manage', map: a => [a.ID, a.NAME]},
     {opcode: 'updateKey', blockType: C, text: 'set key [ID] data to [DATA]', args: {ID: 'id', DATA: '{}'}, method: 'keys.update', scope: 'keys:manage', map: a => [a.ID, a.DATA]},
@@ -92,11 +107,11 @@ const status = ext('roturStatus', 'Rotur Status', [
     {opcode: 'presenceOf', blockType: R, text: "[USER]'s presence", args: {USER: 'username'}, method: 'status.get', map: a => [a.USER], result: r => (r && r.presence ? r.presence : '')},
     {opcode: 'fullStatusOf', blockType: R, text: "[USER]'s full status", args: {USER: 'username'}, method: 'status.get', map: a => [a.USER], result: r => r},
     {label: 'My presence'},
-    {opcode: 'setStatus', blockType: C, text: 'set my status to [TEXT] and presence to [PRESENCE]', args: {TEXT: 'hello', PRESENCE: menu('presence', 'online')}, method: 'socket.setStatus', scope: 'account:profile', map: a => [a.TEXT, a.PRESENCE]},
+    {opcode: 'setStatus', blockType: C, text: 'set my status to [TEXT] and presence to [PRESENCE]', args: {TEXT: 'hello', PRESENCE: menu('presence', 'online')}, method: 'socket.setStatus', scope: 'status:update', map: a => [a.TEXT, a.PRESENCE]},
     {label: 'Rich presence'},
-    {opcode: 'setGameActivity', blockType: C, text: 'show I am [VERB] this project', args: {VERB: 'Playing'}, activity: 'set', scope: 'account:profile'},
-    {opcode: 'setGameActivityFull', blockType: C, text: 'show I am [VERB] this project doing [DETAILS] with image [IMAGE]', args: {VERB: 'Playing', DETAILS: 'in a match', IMAGE: ''}, activity: 'set', scope: 'account:profile'},
-    {opcode: 'clearActivity', blockType: C, text: 'clear my activity', activity: 'clear', scope: 'account:profile'}
+    {opcode: 'setGameActivity', blockType: C, text: 'show I am [VERB] this project', args: {VERB: 'Playing'}, activity: 'set', scope: 'status:update'},
+    {opcode: 'setGameActivityFull', blockType: C, text: 'show I am [VERB] this project doing [DETAILS] with image [IMAGE]', args: {VERB: 'Playing', DETAILS: 'in a match', IMAGE: ''}, activity: 'set', scope: 'status:update'},
+    {opcode: 'clearActivity', blockType: C, text: 'clear my activity', activity: 'clear', scope: 'status:update'}
 ], {presence: ['online', 'idle', 'dnd', 'invisible']});
 
 const social = ext('roturSocial', 'Rotur Social', [
@@ -122,7 +137,7 @@ const social = ext('roturSocial', 'Rotur Social', [
     {opcode: 'followingOf', blockType: R, text: 'who [USER] follows', args: {USER: 'username'}, method: 'following.following', map: a => [a.USER], hidden: true, result: emptyFollowList('following')},
     {label: 'Friends'},
     {opcode: 'friends', blockType: R, text: 'my friends', method: 'friends.list', scope: 'friends:view', map: () => []},
-    {opcode: 'friendRequests', blockType: R, text: 'my incoming friend requests', method: 'me.requests', scope: 'friends:view', map: () => [], result: r => JSON.stringify((r && r.requests) || [])},
+    {opcode: 'friendRequests', blockType: R, text: 'my incoming friend requests', method: 'friends.requests', scope: 'friends:view', map: () => [], result: r => JSON.stringify(listOf(r, 'requests'))},
     {opcode: 'requestFriend', blockType: C, text: 'add [USER] as a friend', args: {USER: 'username'}, method: 'friends.request', scope: 'friends:request', map: a => [a.USER]},
     {opcode: 'acceptFriend', blockType: C, text: 'accept friend request from [USER]', args: {USER: 'username'}, method: 'friends.accept', scope: 'friends:accept', map: a => [a.USER]},
     {opcode: 'rejectFriend', blockType: C, text: 'reject friend request from [USER]', args: {USER: 'username'}, method: 'friends.reject', scope: 'friends:accept', map: a => [a.USER]},
@@ -137,7 +152,7 @@ const shop = ext('roturShop', 'Rotur Shop', [
     {opcode: 'buyItem', blockType: C, text: 'buy item [NAME]', args: {NAME: 'name'}, removed: ''},
     {opcode: 'sellItem', blockType: C, text: 'put item [NAME] up for sale', args: {NAME: 'name'}, method: 'items.sell', scope: 'items:sell', map: a => [a.NAME]},
     {opcode: 'stopSelling', blockType: C, text: 'stop selling item [NAME]', args: {NAME: 'name'}, method: 'items.stopSelling', scope: 'items:sell', map: a => [a.NAME]},
-    {opcode: 'setItemPrice', blockType: C, text: 'set price of item [NAME] to [PRICE]', args: {NAME: 'name', PRICE: num(1)}, method: 'items.setPrice', scope: 'items:sell', map: a => [a.NAME, Number(a.PRICE) || 0]},
+    {opcode: 'setItemPrice', blockType: C, text: 'set price of item [NAME] to [PRICE]', args: {NAME: 'name', PRICE: num(1)}, method: 'items.setPrice', scope: 'items:manage', map: a => [a.NAME, Number(a.PRICE) || 0]},
     {opcode: 'giveItem', blockType: C, text: 'give item [NAME] to [USER]', args: {NAME: 'name', USER: 'username'}, method: 'items.transfer', scope: 'items:manage', sensitive: true, confirm: 'give away this item', map: a => [a.NAME, a.USER]},
     {label: 'Cosmetics'},
     {opcode: 'cosmeticShop', blockType: R, text: 'cosmetics shop', method: 'cosmetics.shop', map: () => []},
@@ -167,7 +182,7 @@ const groups = ext('roturGroups', 'Rotur Groups', [
 ]);
 
 const files = ext('roturFiles', 'Rotur Files', [
-    {opcode: 'myFiles', blockType: R, text: 'my files', method: 'files.index', scope: 'files:view', map: () => []},
+    {opcode: 'myFiles', blockType: R, text: 'my files', method: 'files.index', scope: 'files:view', map: () => [], result: flatFileIndex},
     {opcode: 'fileAtPath', blockType: R, text: 'file at path [PATH]', args: {PATH: '/file.txt'}, method: 'files.getByPath', scope: 'files:view', map: a => [a.PATH]},
     {opcode: 'fileById', blockType: R, text: 'file with id [UUID]', args: {UUID: 'uuid'}, method: 'files.getByUUID', scope: 'files:view', map: a => [a.UUID]},
     {opcode: 'storageUsage', blockType: R, text: 'my storage usage', method: 'files.usage', scope: 'files:view', map: () => []}

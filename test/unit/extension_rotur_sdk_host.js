@@ -21,6 +21,7 @@ const createdPosts = [];
 let authValid = true;
 
 const systems = [];
+const modes = [];
 
 class FakeRotur {
     constructor (options) {
@@ -37,7 +38,9 @@ class FakeRotur {
                 'sys.logins': [{ip: '1.2.3.4'}],
                 'note': `token ${this.token}`
             }),
-            checkAuth: () => Promise.resolve({auth: authValid, username: 'sophie'}),
+            abilities: () => (authValid ?
+                Promise.resolve({token_type: 'app', permissions: ['account:view']}) :
+                Promise.reject(new Error('Unauthorized'))),
             transfer: (...args) => {
                 transfers.push(args);
                 return Promise.resolve({});
@@ -72,6 +75,7 @@ class FakeRotur {
     login (options) {
         logins.push(options.requires);
         systems.push(options.system);
+        modes.push(options.mode);
         this.token = `token-${logins.length}-session`;
         return Promise.resolve(this);
     }
@@ -104,6 +108,7 @@ test('logs in once with only the scopes the project uses', async t => {
     t.equal(await account.accountField({FIELD: 'username'}), 'sophie');
     t.same(logins, [['account:view']]);
     t.same(systems, ['MistWarp: test']);
+    t.same(modes, ['popup']);
     t.same(JSON.parse(store['mw:rotur-sdk-token']), {
         token: 'token-1-session',
         scopes: ['account:view'],

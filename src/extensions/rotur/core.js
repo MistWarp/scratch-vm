@@ -242,8 +242,8 @@ const createSdkHost = runtime => {
                 let rotur = null;
                 if (stored && stored.system === system && sameScopes(stored.scopes, scopes)) {
                     rotur = new Rotur({token: stored.token});
-                    const auth = await rotur.me.checkAuth().catch(() => null);
-                    if (!auth || !auth.auth) {
+                    const abilities = await rotur.me.abilities().catch(() => null);
+                    if (!abilities || abilities.error) {
                         writeStoredToken(null);
                         rotur = null;
                     }
@@ -252,6 +252,7 @@ const createSdkHost = runtime => {
                     rotur = new Rotur();
                     await rotur.login({
                         system,
+                        mode: 'popup',
                         timeout: 120000,
                         requires: scopes
                     });
