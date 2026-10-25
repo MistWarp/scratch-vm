@@ -71,17 +71,25 @@ const setCommentText = (comment, text) => {
 };
 
 const mapCommentIds = comment => {
-    if (!isMapComment(comment)) return [];
+    const ids = {blocks: [], comments: []};
+    if (!isMapComment(comment)) return ids;
     let data;
     try {
         data = JSON.parse(fullCommentText(comment).slice(FRACTCH_MAP_COMMENT_MAGIC.length));
     } catch (e) {
-        return [];
+        return ids;
     }
-    if (!data || typeof data !== 'object') return [];
-    const ids = [];
+    if (!data || typeof data !== 'object') return ids;
     for (const key of ['scripts', 'modules']) {
-        if (data[key] && typeof data[key] === 'object') ids.push(...Object.keys(data[key]));
+        if (data[key] && typeof data[key] === 'object') ids.blocks.push(...Object.keys(data[key]));
+    }
+    const comments = data.comments;
+    if (comments && typeof comments === 'object' && !Array.isArray(comments)) {
+        for (const id of Object.keys(comments)) {
+            ids.comments.push(id);
+            const entry = comments[id];
+            if (entry && typeof entry === 'object' && typeof entry.before === 'string') ids.blocks.push(entry.before);
+        }
     }
     return ids;
 };
@@ -143,9 +151,15 @@ const compress = projectData => {
             if (comment.blockId) {
                 pool.addReference(comment.blockId);
             }
-            for (const blockId of mapCommentIds(comment)) {
+            const mapIds = mapCommentIds(comment);
+            for (const blockId of mapIds.blocks) {
                 if (!Object.prototype.hasOwnProperty.call(target.blocks, blockId)) {
                     pool.skip(blockId);
+                }
+            }
+            for (const id of mapIds.comments) {
+                if (!Object.prototype.hasOwnProperty.call(target.comments, id)) {
+                    pool.skip(id);
                 }
             }
         }
@@ -195,6 +209,10 @@ const compress = projectData => {
         for (const blockId of Object.keys(target.blocks)) {
             blockIds[blockId] = pool.getNewId(blockId);
         }
+        const commentIds = {};
+        for (const commentId of Object.keys(target.comments)) {
+            commentIds[commentId] = pool.getNewId(commentId);
+        }
 
         for (const commentId of Object.keys(target.comments)) {
             const comment = target.comments[commentId];
@@ -203,7 +221,7 @@ const compress = projectData => {
                 comment.blockId = pool.getNewId(comment.blockId);
             }
             if (isMapComment(comment)) {
-                setCommentText(comment, remapMapCommentText(fullCommentText(comment), blockIds));
+                setCommentText(comment, remapMapCommentText(fullCommentText(comment), blockIds, commentIds));
             }
         }
 
