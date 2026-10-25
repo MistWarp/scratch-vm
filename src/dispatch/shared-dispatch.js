@@ -137,7 +137,9 @@ class SharedDispatch {
             // tw: upstream's logic is broken
             // Args is actually a 3 length list of [args, util, real block info]
             // We only want to send args. The others will throw errors when they try to be cloned
-            if ((args.length > 0) && (typeof args[args.length - 1].func === 'function')) {
+            // The last argument can be null (a worker reporting an error with no location).
+            const last = args[args.length - 1];
+            if (last && typeof last.func === 'function') {
                 args.pop();
                 args.pop();
             }
