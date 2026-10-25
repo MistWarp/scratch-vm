@@ -407,3 +407,61 @@ test('a fractch map split across text and extraText is remapped whole', t => {
     t.equal(remapped.scripts[ids[1]], 'enemies/boss');
     t.end();
 });
+
+test('fractch map comment entries follow the compressed comment and block ids', t => {
+    const map = {
+        version: 1,
+        scripts: {hatOne: 'enemies/boss'},
+        comments: {
+            noteOne: {region: 'enemies/boss', before: 'hatOne'},
+            noteTwo: {},
+            deletedNote: {before: 'deletedHat'}
+        }
+    };
+    const comment = (text, extra = {}) => ({blockId: null, x: 0, y: 0, width: 200, height: 200, minimized: false,
+        text, ...extra});
+    const data = {
+        targets: [
+            {
+                isStage: false,
+                name: 'Sprite1',
+                variables: {},
+                lists: {},
+                broadcasts: {},
+                blocks: {
+                    hatOne: {opcode: 'event_whenflagclicked', next: null, parent: null, inputs: {}, fields: {},
+                        shadow: false, topLevel: true, x: 0, y: 0}
+                },
+                comments: {
+                    noteOne: comment('first'),
+                    noteTwo: comment('second'),
+                    mapComment: comment(`_fractch_map_${JSON.stringify(map)}`)
+                },
+                currentCostume: 0,
+                costumes: [],
+                sounds: []
+            }
+        ],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
+    };
+    compress(data);
+    const target = data.targets[0];
+    const hat = Object.keys(target.blocks)[0];
+    const idOfText = text => Object.keys(target.comments).find(id => target.comments[id].text === text);
+    const one = idOfText('first');
+    const two = idOfText('second');
+    t.not(one, 'noteOne');
+    t.not(hat, 'hatOne');
+    const mapText = target.comments[Object.keys(target.comments).find(id =>
+        target.comments[id].text.startsWith('_fractch_map_'))].text;
+    const remapped = JSON.parse(mapText.slice('_fractch_map_'.length));
+    t.same(remapped.scripts, {[hat]: 'enemies/boss'});
+    t.same(remapped.comments[one], {region: 'enemies/boss', before: hat});
+    t.same(remapped.comments[two], {});
+    t.same(remapped.comments.deletedNote, {before: 'deletedHat'});
+    t.notOk(Object.prototype.hasOwnProperty.call(target.comments, 'deletedNote'));
+    t.notOk(Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
+    t.end();
+});

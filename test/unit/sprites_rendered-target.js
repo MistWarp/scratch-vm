@@ -610,3 +610,27 @@ test('#reorderSound', t => {
 
     t.end();
 });
+
+test('duplicate keeps free comment entries in the fractch map pointing at the new scripts', t => {
+    const r = new Runtime();
+    const s = new Sprite(null, r);
+    const rt = new RenderedTarget(s, r);
+    rt.blocks.createBlock({id: 'top', opcode: 'event_whenflagclicked', topLevel: true, inputs: {}, fields: {},
+        next: null, parent: null});
+    rt.createComment('free', null, 'a note', 0, 0, 200, 200, false);
+    rt.createComment('last', null, 'end note', 0, 0, 200, 200, false);
+    rt.createComment('map', null, `_fractch_map_${JSON.stringify({
+        version: 1,
+        scripts: {top: 'enemies/boss'},
+        comments: {free: {region: 'enemies/boss', before: 'top'}, last: {region: 'enemies/boss'}}
+    })}`, 0, 0, 200, 200, true);
+
+    return rt.duplicate().then(duplicate => {
+        const newTop = Object.keys(duplicate.blocks._blocks)[0];
+        t.not(newTop, 'top');
+        const map = JSON.parse(duplicate.comments.map.text.slice('_fractch_map_'.length));
+        t.same(map.comments, {free: {region: 'enemies/boss', before: newTop}, last: {region: 'enemies/boss'}});
+        t.equal(duplicate.comments.free.text, 'a note');
+        t.end();
+    });
+});

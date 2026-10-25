@@ -22,7 +22,7 @@ const isReservedComment = (target, comment) => {
         text.includes(RESERVED_COMMENT_MARKERS.gamepad);
 };
 
-const remapMapCommentText = (text, blockIds) => {
+const remapMapCommentText = (text, blockIds, commentIds = {}) => {
     let data;
     try {
         data = JSON.parse(text.slice(FRACTCH_MAP_COMMENT_MAGIC.length));
@@ -36,6 +36,19 @@ const remapMapCommentText = (text, blockIds) => {
         const remapped = {};
         for (const id of Object.keys(entries)) remapped[hasOwn(blockIds, id) ? blockIds[id] : id] = entries[id];
         data[key] = remapped;
+    }
+    const comments = data.comments;
+    if (comments && typeof comments === 'object' && !Array.isArray(comments)) {
+        const remapped = {};
+        for (const id of Object.keys(comments)) {
+            let entry = comments[id];
+            if (entry && typeof entry === 'object' && typeof entry.before === 'string' &&
+                hasOwn(blockIds, entry.before)) {
+                entry = {...entry, before: blockIds[entry.before]};
+            }
+            remapped[hasOwn(commentIds, id) ? commentIds[id] : id] = entry;
+        }
+        data.comments = remapped;
     }
     return FRACTCH_MAP_COMMENT_MAGIC + JSON.stringify(data);
 };
