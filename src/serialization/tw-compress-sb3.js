@@ -1,3 +1,5 @@
+const {FRACTCH_MAP_COMMENT_MAGIC, isMapComment, remapMapCommentText} = require('./fractch-context');
+
 // We don't generate new IDs using numbers at this time because their enumeration
 // order can affect script execution order as they always come first.
 // https://tc39.es/ecma262/#sec-ordinaryownpropertykeys
@@ -53,6 +55,36 @@ class Pool {
         return originalId;
     }
 }
+
+const COMMENT_TEXT_LIMIT = 8000;
+
+const fullCommentText = comment => comment.text + (typeof comment.extraText === 'string' ? comment.extraText : '');
+
+const setCommentText = (comment, text) => {
+    if (text.length > COMMENT_TEXT_LIMIT) {
+        comment.text = text.substring(0, COMMENT_TEXT_LIMIT);
+        comment.extraText = text.substring(COMMENT_TEXT_LIMIT);
+    } else {
+        comment.text = text;
+        delete comment.extraText;
+    }
+};
+
+const mapCommentIds = comment => {
+    if (!isMapComment(comment)) return [];
+    let data;
+    try {
+        data = JSON.parse(fullCommentText(comment).slice(FRACTCH_MAP_COMMENT_MAGIC.length));
+    } catch (e) {
+        return [];
+    }
+    if (!data || typeof data !== 'object') return [];
+    const ids = [];
+    for (const key of ['scripts', 'modules']) {
+        if (data[key] && typeof data[key] === 'object') ids.push(...Object.keys(data[key]));
+    }
+    return ids;
+};
 
 const compress = projectData => {
     // projectData is modified in-place
@@ -111,6 +143,11 @@ const compress = projectData => {
             if (comment.blockId) {
                 pool.addReference(comment.blockId);
             }
+            for (const blockId of mapCommentIds(comment)) {
+                if (!Object.prototype.hasOwnProperty.call(target.blocks, blockId)) {
+                    pool.skip(blockId);
+                }
+            }
         }
 
         for (const frame of Object.values(target.frames || {})) {
@@ -154,11 +191,19 @@ const compress = projectData => {
             }
         }
 
+        const blockIds = {};
+        for (const blockId of Object.keys(target.blocks)) {
+            blockIds[blockId] = pool.getNewId(blockId);
+        }
+
         for (const commentId of Object.keys(target.comments)) {
             const comment = target.comments[commentId];
             newComments[pool.getNewId(commentId)] = comment;
             if (comment.blockId) {
                 comment.blockId = pool.getNewId(comment.blockId);
+            }
+            if (isMapComment(comment)) {
+                setCommentText(comment, remapMapCommentText(fullCommentText(comment), blockIds));
             }
         }
 
