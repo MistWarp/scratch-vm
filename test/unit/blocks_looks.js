@@ -280,3 +280,39 @@ test('clamp graphic effects', t => {
     }
     t.end();
 });
+
+test('switch backdrop and wait starts scripts through its own block utility', t => {
+    const started = {};
+    const stage = {
+        currentCostume: 0,
+        getCostumeIndexByName: () => 1,
+        setCostume (index) {
+            this.currentCostume = index;
+        },
+        getCostumes: () => [{name: 'a'}, {name: 'b'}]
+    };
+    const looks = new Looks({
+        getTargetForStage: () => stage,
+        on: () => {},
+        threads: [started],
+        isWaitingThread: () => false,
+        // runtime.startHats can leave the shared block utility on a started thread.
+        startHats: () => t.fail('runtime.startHats was used')
+    });
+    const frame = {};
+    let yielded = false;
+    const fakeUtil = {
+        stackFrame: frame,
+        startHats: (opcode, fields) => {
+            t.same([opcode, fields], ['event_whenbackdropswitchesto', {BACKDROP: 'b'}]);
+            return [started];
+        },
+        yield: () => {
+            yielded = true;
+        }
+    };
+    looks.switchBackdropAndWait({BACKDROP: 'b'}, fakeUtil);
+    t.same(frame.startedThreads, [started], 'the started scripts are remembered on the calling block');
+    t.equal(yielded, true, 'the block waits for them');
+    t.end();
+});

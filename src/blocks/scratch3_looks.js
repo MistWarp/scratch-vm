@@ -425,9 +425,10 @@ class Scratch3LooksBlocks {
      * @param {!Target} stage Target to set backdrop to.
      * @param {Any} requestedBackdrop Backdrop requested, e.g., 0, 'name', etc.
      * @param {boolean=} optZeroIndex Set to zero-index the requestedBackdrop.
+     * @param {BlockUtility=} util The calling block's utility, so starting hats keeps it on the calling thread.
      * @return {Array.<!Thread>} Any threads started by this switch.
      */
-    _setBackdrop (stage, requestedBackdrop, optZeroIndex) { // used by compiler
+    _setBackdrop (stage, requestedBackdrop, optZeroIndex, util) { // used by compiler
         if (typeof requestedBackdrop === 'number') {
             // Numbers should be treated as backdrop indices, always
             stage.setCostume(optZeroIndex ? requestedBackdrop : requestedBackdrop - 1);
@@ -463,7 +464,7 @@ class Scratch3LooksBlocks {
         }
 
         const newName = stage.getCostumes()[stage.currentCostume].name;
-        return this.runtime.startHats('event_whenbackdropswitchesto', {
+        return (util && util.startHats ? util : this.runtime).startHats('event_whenbackdropswitchesto', {
             BACKDROP: newName
         });
     }
@@ -478,19 +479,19 @@ class Scratch3LooksBlocks {
         );
     }
 
-    switchBackdrop (args) {
-        this._setBackdrop(this.runtime.getTargetForStage(), args.BACKDROP);
+    switchBackdrop (args, util) {
+        this._setBackdrop(this.runtime.getTargetForStage(), args.BACKDROP, false, util);
     }
 
     switchBackdropAndWait (args, util) {
         // Have we run before, starting threads?
         if (!util.stackFrame.startedThreads) {
             // No - switch the backdrop.
-            util.stackFrame.startedThreads = (
-                this._setBackdrop(
-                    this.runtime.getTargetForStage(),
-                    args.BACKDROP
-                )
+            util.stackFrame.startedThreads = this._setBackdrop(
+                this.runtime.getTargetForStage(),
+                args.BACKDROP,
+                false,
+                util
             );
             if (util.stackFrame.startedThreads.length === 0) {
                 // Nothing was started.
@@ -520,10 +521,10 @@ class Scratch3LooksBlocks {
         }
     }
 
-    nextBackdrop () {
+    nextBackdrop (args, util) {
         const stage = this.runtime.getTargetForStage();
         this._setBackdrop(
-            stage, stage.currentCostume + 1, true
+            stage, stage.currentCostume + 1, true, util
         );
     }
 
