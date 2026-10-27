@@ -265,7 +265,6 @@ class RenderedTarget extends Target {
     setXY (x, y, force) { // used by compiler
         if (this.isStage) return;
         if (this.dragging && !force) return;
-        if (x === this.x && y === this.y && !force) return;
         const oldX = this.x;
         const oldY = this.y;
         if (this.renderer) {
@@ -353,7 +352,6 @@ class RenderedTarget extends Target {
         if (this.isStage) {
             return;
         }
-        if (this.visible === !!visible) return;
         this.visible = !!visible;
         if (this.renderer) {
             this.renderer.updateDrawableVisible(this.drawableID, this.visible);
