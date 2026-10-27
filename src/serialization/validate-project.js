@@ -10,19 +10,34 @@ try {
     // @flufi/scsf not available, scsf support disabled
 }
 
-const ajv = require('ajv')();
-ajv.addSchema(require('scratch-parser/lib/sb2_definitions.json'));
-const sb3Definitions = require('scratch-parser/lib/sb3_definitions.json');
-const sb3ListDefinition = sb3Definitions.definitions && sb3Definitions.definitions.list;
-if (sb3ListDefinition && Array.isArray(sb3ListDefinition.items) && sb3ListDefinition.items[1]) {
-    delete sb3ListDefinition.items[1].items;
-}
-ajv.addSchema(sb3Definitions);
+// Building the schema validators with ajv is a large part of loading a project, so they are precompiled by
+// tools/generate-validators.js, and each is only loaded when first used (an sb3 project needs just the sb3 one). If a
+// precompiled validator is missing, it is built at runtime instead.
+const {SCHEMAS, prepareAjv} = require('./validator-schemas');
 
-const validateSb3 = ajv.compile(require('scratch-parser/lib/sb3_schema.json'));
-const validateSprite3 = ajv.compile(require('scratch-parser/lib/sprite3_schema.json'));
-const validateSb2 = ajv.compile(require('scratch-parser/lib/sb2_schema.json'));
-const validateSprite2 = ajv.compile(require('scratch-parser/lib/sprite2_schema.json'));
+let ajv = null;
+const lazyValidator = name => {
+    let validate = null;
+    const run = input => {
+        if (!validate) {
+            try {
+                validate = require(`./validators/${name}.generated.js`);
+            } catch (e) {
+                ajv = ajv || require('ajv')({meta: false, validateSchema: false});
+                validate = prepareAjv(ajv, SCHEMAS[name].sb2).compile(SCHEMAS[name].schema());
+            }
+        }
+        const valid = validate(input);
+        run.errors = validate.errors;
+        return valid;
+    };
+    return run;
+};
+
+const validateSb3 = lazyValidator('sb3');
+const validateSprite3 = lazyValidator('sprite3');
+const validateSb2 = lazyValidator('sb2');
+const validateSprite2 = lazyValidator('sprite2');
 
 const validateOnce = function (isSprite, input, callback) {
     const validate3 = isSprite ? validateSprite3 : validateSb3;
