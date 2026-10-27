@@ -86,6 +86,8 @@ test('type assertions', async t => {
                     yield {block, region};
                     break;
                 case 'typeassert_region': {
+                    // Extension blocks clear type state; the probes must not.
+                    block.ignoreState = true;
                     const newRegionNameInput = block.inputs.inputs.NAME;
                     if (newRegionNameInput.opcode !== InputOpcode.CONSTANT) {
                         throw new Error('Region block inputs must be a constant.');

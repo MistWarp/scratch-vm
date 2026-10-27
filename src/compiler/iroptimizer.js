@@ -15,6 +15,14 @@ const {
 } = require('./intermediate');
 /* eslint-enable no-unused-vars */
 
+// Opcode prefixes of Scratch's own blocks; any other block belongs to an extension, whose code can read, write or call
+// anything, so nothing is assumed across it.
+const CORE_PREFIXES = new Set([
+    'argument', 'assets', 'colour', 'control', 'data', 'event', 'looks', 'math', 'motion', 'operator', 'procedures',
+    'sensing', 'sound'
+]);
+const isExtensionOpcode = opcode => !CORE_PREFIXES.has(opcode.substring(0, opcode.indexOf('_')));
+
 class TypeState {
     constructor () {
         /** @type {Object.<string, InputType | 0>}*/
@@ -521,11 +529,16 @@ class IROptimizer {
 
         switch (inputBlock.opcode) {
         case InputOpcode.ADDON_CALL:
+        case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
             modified = state.clear() || modified;
             break;
         case InputOpcode.EXTENSION:
             modified = this.analyzeInputs(inputs.inputs, state) || modified;
             if (!inputs.compiler.pure) modified = state.clear() || modified;
+            break;
+        case InputOpcode.COMPATIBILITY_LAYER:
+            modified = this.analyzeInputs(inputs.inputs, state) || modified;
+            if (isExtensionOpcode(inputs.opcode)) modified = state.clear() || modified;
             break;
         case InputOpcode.RAW_SOURCE:
             modified = this.analyzeInputs(inputs.fragments, state) || modified;
@@ -641,19 +654,23 @@ class IROptimizer {
         case StackOpcode.COMPATIBILITY_LAYER: {
             modified = this.analyzeInputs(inputs, state) || modified;
             this.analyzeInputs(inputs.inputs, state);
+            const extension = isExtensionOpcode(inputs.opcode) && !stackBlock.ignoreState;
+            // An extension can change anything before running a branch, and run it any number of times.
+            if (extension) modified = state.clear() || modified;
             for (const substackName in inputs.substacks) {
                 const newState = state.clone();
                 modified = this.analyzeStack(inputs.substacks[substackName], newState) || modified;
                 modified = state.or(newState) || modified;
             }
+            if (extension) modified = state.clear() || modified;
             break;
         }
         case StackOpcode.EXTENSION_CONTROL: {
-            // The compiler's own template can read and write anything, so only
-            // analyze the branches for their own typing and then forget every
-            // assumption made before or inside the block.
+            // The compiler's own template can read and write anything, and run a branch any number of times, so
+            // assume nothing entering a branch or leaving the block.
             modified = this.analyzeInputs(inputs, state) || modified;
             modified = this.analyzeInputs(inputs.inputs, state) || modified;
+            modified = state.clear() || modified;
             for (const branchNumber in inputs.substacks) {
                 const newState = state.clone();
                 modified = this.analyzeStack(inputs.substacks[branchNumber], newState) || modified;
@@ -669,6 +686,11 @@ class IROptimizer {
         case StackOpcode.EXTENSION:
             modified = this.analyzeInputs(inputs.inputs, state) || modified;
             if (!inputs.compiler.pure) modified = state.clear() || modified;
+            break;
+        case StackOpcode.ADDON_CALL:
+        case StackOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
+            modified = this.analyzeInputs(inputs, state) || modified;
+            modified = state.clear() || modified;
             break;
         default:
             modified = this.analyzeInputs(inputs, state) || modified;
