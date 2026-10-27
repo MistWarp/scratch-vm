@@ -23,13 +23,20 @@ return function funXYZ_a () {
 b0.value = "ababa";
 b1.value = "";
 b2.value = 1;
-for (var a0 = b0.value.length; a0 > 0; a0--) {
-if ((b0.value[b2.value - 1] || "").toLowerCase() === "a") {
-b1.value = b1.value + "b";
+{
+let a0 = b0.value;
+let a1 = b2.value;
+let a2 = b1.value;
+for (var a3 = a0.length; a3 > 0; a3--) {
+if ((a0[a1 - 1] || "").toLowerCase() === "a") {
+a2 = a2 + "b";
 } else {
-b1.value = b1.value + "a";
+a2 = a2 + "a";
 }
-b2.value = b2.value + 1;
+a1 = a1 + 1;
+b2.value = a1;
+b1.value = a2;
+}
 }
 return "";
 }; })

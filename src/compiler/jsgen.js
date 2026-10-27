@@ -41,6 +41,55 @@ const PEN_EXT = 'runtime.ext_pen';
 const PEN_STATE = `${PEN_EXT}._getPenState(target)`;
 
 /**
+ * Loops whose variables can be kept in JS locals (see JSGenerator#findPromotableVariables), and the blocks that may
+ * appear inside one. None of these run other code, read a variable some other way, yield, or leave the loop early,
+ * so nothing can tell that a variable's value is in a local until the loop ends.
+ */
+const PROMOTABLE_LOOPS = new Set([StackOpcode.CONTROL_REPEAT, StackOpcode.CONTROL_WHILE, StackOpcode.CONTROL_FOR]);
+const PROMOTION_SAFE_STACK = new Set([
+    StackOpcode.NOP,
+    StackOpcode.CONTROL_IF_ELSE,
+    StackOpcode.CONTROL_REPEAT,
+    StackOpcode.CONTROL_WHILE,
+    StackOpcode.CONTROL_FOR,
+    StackOpcode.VAR_SET,
+    StackOpcode.LIST_ADD,
+    StackOpcode.LIST_INSERT,
+    StackOpcode.LIST_REPLACE,
+    StackOpcode.LIST_DELETE,
+    StackOpcode.LIST_DELETE_ALL
+]);
+const PROMOTION_SAFE_INPUT = new Set([
+    InputOpcode.CONSTANT,
+    InputOpcode.CAST_NUMBER,
+    InputOpcode.CAST_NUMBER_INDEX,
+    InputOpcode.CAST_NUMBER_OR_NAN,
+    InputOpcode.CAST_STRING,
+    InputOpcode.CAST_BOOLEAN,
+    InputOpcode.CAST_COLOR,
+    InputOpcode.VAR_GET,
+    InputOpcode.LIST_GET,
+    InputOpcode.LIST_LENGTH,
+    InputOpcode.LIST_CONTAINS,
+    InputOpcode.LIST_INDEX_OF,
+    InputOpcode.LIST_CONTENTS,
+    InputOpcode.PROCEDURE_ARGUMENT,
+    InputOpcode.MOTION_X_GET,
+    InputOpcode.MOTION_Y_GET,
+    InputOpcode.MOTION_DIRECTION_GET,
+    InputOpcode.LOOKS_SIZE_GET,
+    InputOpcode.LOOKS_COSTUME_NUMBER,
+    InputOpcode.LOOKS_BACKDROP_NUMBER,
+    InputOpcode.SENSING_TIMER_GET,
+    InputOpcode.SENSING_TIME_DAYS_SINCE_2000,
+    InputOpcode.SENSING_MOUSE_X,
+    InputOpcode.SENSING_MOUSE_Y,
+    InputOpcode.SENSING_MOUSE_DOWN,
+    InputOpcode.SENSING_KEY_DOWN,
+    ...Object.values(InputOpcode).filter(opcode => opcode.startsWith('op.'))
+]);
+
+/**
  * Variable pool used for factory function names.
  */
 const factoryNameVariablePool = new VariablePool('factory');
@@ -244,6 +293,18 @@ class JSGenerator {
 
         this.descendedIntoModulo = false;
         this.expressionTempVariables = [];
+
+        /**
+         * While compiling a loop whose variables are kept in locals: the local for each variable reference.
+         * @type {Map<string, string>|null}
+         */
+        this.promotedVariables = null;
+        /**
+         * The outermost loop whose variables are in locals, and the JS that stores the ones it sets back into them.
+         * @type {IntermediateStackBlock|null}
+         */
+        this.promotionLoop = null;
+        this.promotionStore = '';
         this.isInHat = false;
 
         this.debug = this.target.runtime.debug;
@@ -744,7 +805,7 @@ class JSGenerator {
             return primary('runtime.ioDevices.keyboard.getLastKeyPressed()');
 
         case InputOpcode.VAR_GET:
-            return primary(`${this.referenceVariable(node.variable)}.value`);
+            return primary(this.variableValue(node.variable));
 
         default:
             log.warn(`JS: Unknown input: ${block.opcode}`, node);
@@ -756,6 +817,13 @@ class JSGenerator {
      * @param {IntermediateStackBlock} block Stacked block to compile.
      */
     descendStackedBlock (block) {
+        if (this.promotedVariables === null && PROMOTABLE_LOOPS.has(block.opcode)) {
+            const variables = this.findPromotableVariables(block);
+            if (variables) {
+                this.descendWithPromotedVariables(block, variables);
+                return;
+            }
+        }
         const node = block.inputs;
         switch (block.opcode) {
         case StackOpcode.ADDON_CALL: {
@@ -853,8 +921,9 @@ class JSGenerator {
             this.source += `var ${index} = 0; `;
             this.source += `while (${index} < ${this.descendInputAt(node.count, Precedence.SHIFT)}) { `;
             this.source += `${index}++; `;
-            this.source += `${this.referenceVariable(node.variable)}.value = ${index};\n`;
+            this.source += `${this.variableValue(node.variable)} = ${index};\n`;
             this.descendStack(node.do, new Frame(true));
+            this.storePromotedVariables(block);
             this.yieldLoop();
             this.source += '}\n';
             break;
@@ -905,6 +974,7 @@ class JSGenerator {
                 this.source += `for (var ${i} = ${this.descendInputAt(node.times, Precedence.LOWEST)}; ${i} >= 0.5; ${i}--) {\n`;
             }
             this.descendStack(node.do, new Frame(true));
+            this.storePromotedVariables(block);
             this.yieldLoop();
             this.source += `}\n`;
             break;
@@ -941,6 +1011,7 @@ class JSGenerator {
         case StackOpcode.CONTROL_WHILE:
             this.source += `while (${this.descendInputAt(node.condition, Precedence.LOWEST)}) {\n`;
             this.descendStack(node.do, new Frame(true));
+            this.storePromotedVariables(block);
             if (node.warpTimer) {
                 this.yieldStuckOrNotWarp();
             } else {
@@ -1209,7 +1280,7 @@ class JSGenerator {
             break;
         case StackOpcode.VAR_SET: {
             const varReference = this.referenceVariable(node.variable);
-            this.source += `${varReference}.value = ${this.descendInputAt(node.value, Precedence.LOWEST)};\n`;
+            this.source += `${this.variableValue(node.variable)} = ${this.descendInputAt(node.value, Precedence.LOWEST)};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${varReference}.value);\n`;
             }
@@ -1375,6 +1446,97 @@ class JSGenerator {
         const blockFunction = `runtime.getAddonBlock("${sanitize(node.code)}").callback`;
         const blockId = `"${sanitize(node.blockId)}"`;
         return `yield* executeInCompatibilityLayer(${inputs}, ${blockFunction}, ${this.isWarp}, false, ${blockId})`;
+    }
+
+    /**
+     * The JS for a scalar variable's value: its local while the loop being compiled keeps it in one, else its property.
+     * @param {*} variable
+     * @returns {string}
+     */
+    variableValue (variable) {
+        const reference = this.referenceVariable(variable);
+        return (this.promotedVariables && this.promotedVariables.get(reference)) || `${reference}.value`;
+    }
+
+    /**
+     * Find the variables a loop can keep in JS locals: V8 cannot keep a value held in an object property in a register,
+     * so a counter in a tight loop costs a memory round trip on every use. That is only safe when nothing else can see
+     * the variable until the loop ends, so the loop must not yield (warp mode, no warp timer) and may only contain the
+     * blocks listed in PROMOTION_SAFE_STACK and PROMOTION_SAFE_INPUT.
+     * A variable stored into a list item as a number that might be NaN stays a property: its reads are NaN-guarded, so
+     * V8 keeps a local for it as an unboxed float, and storing that turns the list's integer array into a double array
+     * and deoptimizes the code using it (a matrix multiply's accumulator ran about 40% slower than in the object).
+     * @param {IntermediateStackBlock} loop The loop.
+     * @returns {Map<string, boolean>|null} By variable reference, whether the loop sets it; null if the loop does not
+     * qualify.
+     */
+    findPromotableVariables (loop) {
+        if (!this.isWarp || this.warpTimer || loop.inputs.warpTimer) return null;
+        const variables = new Map();
+        const storedNaN = new Set();
+        const visit = value => {
+            if (value instanceof IntermediateStack) return value.blocks.every(visit);
+            if (Array.isArray(value)) return value.every(visit);
+            if (value instanceof IntermediateStackBlock || value instanceof IntermediateInput) {
+                const safe = value instanceof IntermediateStackBlock ?
+                    PROMOTION_SAFE_STACK.has(value.opcode) :
+                    PROMOTION_SAFE_INPUT.has(value.opcode);
+                if (!safe || value.yields) return false;
+                const variable = value.inputs.variable;
+                if (variable && variable.type !== 'list' &&
+                    (value.opcode === StackOpcode.VAR_SET || value.opcode === InputOpcode.VAR_GET ||
+                        value.opcode === StackOpcode.CONTROL_FOR)) {
+                    if (variable.isCloud) return false;
+                    const reference = this.referenceVariable(variable);
+                    variables.set(reference, variables.get(reference) || value.opcode !== InputOpcode.VAR_GET);
+                }
+                const item = value.inputs.item;
+                if ((value.opcode === StackOpcode.LIST_ADD || value.opcode === StackOpcode.LIST_INSERT ||
+                    value.opcode === StackOpcode.LIST_REPLACE) &&
+                    item instanceof IntermediateInput && item.opcode === InputOpcode.VAR_GET &&
+                    item.isSometimesType(InputType.NUMBER_NAN)) {
+                    storedNaN.add(this.referenceVariable(item.inputs.variable));
+                }
+                return Object.values(value.inputs).every(visit);
+            }
+            return true;
+        };
+        if (!visit(loop)) return null;
+        for (const reference of storedNaN) variables.delete(reference);
+        return variables.size > 0 ? variables : null;
+    }
+
+    /**
+     * Compile a loop with its variables in JS locals, loaded before it. The ones it sets are stored back at the end of
+     * every iteration rather than once after the loop: a long loop is optimized by V8 while it runs, and stores after it
+     * that have never run have no type feedback, so leaving the loop would deoptimize the function on every call.
+     * @param {IntermediateStackBlock} loop The loop.
+     * @param {Map<string, boolean>} variables From findPromotableVariables().
+     */
+    descendWithPromotedVariables (loop, variables) {
+        this.promotedVariables = new Map();
+        this.promotionLoop = loop;
+        this.promotionStore = '';
+        this.source += '{\n';
+        for (const [reference, written] of variables) {
+            const local = this.localVariables.next();
+            this.promotedVariables.set(reference, local);
+            this.source += `let ${local} = ${reference}.value;\n`;
+            if (written) this.promotionStore += `${reference}.value = ${local};\n`;
+        }
+        this.descendStackedBlock(loop);
+        this.source += '}\n';
+        this.promotedVariables = null;
+        this.promotionLoop = null;
+        this.promotionStore = '';
+    }
+
+    /**
+     * At the end of an iteration of the outermost promoted loop, store its variables back.
+     * @param {IntermediateStackBlock} loop The loop whose body just ended.
+     */
+    storePromotedVariables (loop) {
+        if (loop === this.promotionLoop) this.source += this.promotionStore;
     }
 
     /**

@@ -17,10 +17,14 @@ const b2 = stage.variables["o4+OyKx[M=quu6p{=kRl-input-list"] || stage.lookupOrC
 return function funXYZ_copy_input () {
 b0.value = [];
 b1.value = 0;
-for (var a0 = b2.value.length; a0 > 0; a0--) {
-b1.value = b1.value + 1;
-b0.value.push(b2.value[b1.value - 1] ?? "");
+{
+let a0 = b1.value;
+for (var a1 = b2.value.length; a1 > 0; a1--) {
+a0 = a0 + 1;
+b0.value.push(b2.value[a0 - 1] ?? "");
 b0._monitorUpToDate = false;
+b1.value = a0;
+}
 }
 return "";
 }; })
@@ -56,10 +60,16 @@ const b2 = stage.variables["o4+OyKx[M=quu6p{=kRl-input-list"] || stage.lookupOrC
 return function funXYZ_get_max_length () {
 b0.value = 0;
 b1.value = 0;
-for (var a0 = b2.value.length; a0 > 0; a0--) {
-b1.value = b1.value + 1;
-if (("" + (b2.value[b1.value - 1] ?? "")).length > b0.value) {
-b0.value = ("" + (b2.value[b1.value - 1] ?? "")).length;
+{
+let a0 = b1.value;
+let a1 = b0.value;
+for (var a2 = b2.value.length; a2 > 0; a2--) {
+a0 = a0 + 1;
+if (("" + (b2.value[a0 - 1] ?? "")).length > a1) {
+a1 = ("" + (b2.value[a0 - 1] ?? "")).length;
+}
+b1.value = a0;
+b0.value = a1;
 }
 }
 return "";
@@ -404,18 +414,30 @@ return "";
 const b0 = stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-result-", "result");
 const b1 = stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i");
 return function funXYZ_insert___ (p0,p1,p2) {
-var a1;
+var a3;
 b0.value = "";
 b1.value = 0;
-for (var a0 = ((a1 = +p1) === a1 ? a1 : 0) - 1; a0 >= 0.5; a0--) {
-b1.value = b1.value + 1;
-b0.value = b0.value + (("" + p0)[b1.value - 1] || "");
+{
+let a0 = b1.value;
+let a1 = b0.value;
+for (var a2 = ((a3 = +p1) === a3 ? a3 : 0) - 1; a2 >= 0.5; a2--) {
+a0 = a0 + 1;
+a1 = a1 + (("" + p0)[a0 - 1] || "");
+b1.value = a0;
+b0.value = a1;
+}
 }
 b0.value = b0.value + p2;
 b1.value = b1.value + 1;
-for (var a2 = ("" + p0).length - b1.value; a2 > 0; a2--) {
-b1.value = b1.value + 1;
-b0.value = b0.value + (("" + p0)[b1.value - 1] || "");
+{
+let a4 = b1.value;
+let a5 = b0.value;
+for (var a6 = ("" + p0).length - a4; a6 > 0; a6--) {
+a4 = a4 + 1;
+a5 = a5 + (("" + p0)[a4 - 1] || "");
+b1.value = a4;
+b0.value = a5;
+}
 }
 return "";
 }; })

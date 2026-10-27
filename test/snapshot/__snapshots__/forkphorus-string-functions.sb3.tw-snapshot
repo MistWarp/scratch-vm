@@ -140,10 +140,14 @@ const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 return function funXYZ___endsWith____ (p0,p1) {
 b0.value = [];
 b1.value = ("" + p0).length;
-for (var a0 = ("" + p1).length; a0 > 0; a0--) {
-b0.value.unshift(("" + p0)[b1.value - 1] || "");
+{
+let a0 = b1.value;
+for (var a1 = ("" + p1).length; a1 > 0; a1--) {
+b0.value.unshift(("" + p0)[a0 - 1] || "");
 b0._monitorUpToDate = false;
-b1.value = b1.value - 1;
+a0 = a0 - 1;
+b1.value = a0;
+}
 }
 b2.value = compareEqual(listContents(b0), p1);
 return "";
@@ -195,10 +199,14 @@ const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 return function funXYZ___startsWith____ (p0,p1) {
 b0.value = [];
 b1.value = 0;
-for (var a0 = ("" + p1).length; a0 > 0; a0--) {
-b1.value = b1.value + 1;
-b0.value.push(("" + p0)[b1.value - 1] || "");
+{
+let a0 = b1.value;
+for (var a1 = ("" + p1).length; a1 > 0; a1--) {
+a0 = a0 + 1;
+b0.value.push(("" + p0)[a0 - 1] || "");
 b0._monitorUpToDate = false;
+b1.value = a0;
+}
 }
 b2.value = compareEqual(listContents(b0), p1);
 return "";
@@ -240,24 +248,30 @@ b0.value = [];
 b1.value = [];
 b2.value = "";
 b3.value = 0;
-for (var a0 = ("" + p0).length; a0 > 0; a0--) {
-b3.value = b3.value + 1;
-b0.value.push(("" + p0)[b3.value - 1] || "");
+{
+let a0 = b3.value;
+let a1 = b2.value;
+for (var a2 = ("" + p0).length; a2 > 0; a2--) {
+a0 = a0 + 1;
+b0.value.push(("" + p0)[a0 - 1] || "");
 b0._monitorUpToDate = false;
 if (b0.value.length > ("" + p1).length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
 }
-b1.value.push(("" + p0)[b3.value - 1] || "");
+b1.value.push(("" + p0)[a0 - 1] || "");
 b1._monitorUpToDate = false;
 if (compareEqual(listContents(b0), p1)) {
-for (var a1 = ("" + p1).length; a1 > 0; a1--) {
+for (var a3 = ("" + p1).length; a3 > 0; a3--) {
 b1.value.pop();
 b1._monitorUpToDate = false;
 }
-b2.value = b2.value + listContents(b1);
-b2.value = b2.value + p2;
+a1 = a1 + listContents(b1);
+a1 = a1 + p2;
 b1.value = [];
+}
+b3.value = a0;
+b2.value = a1;
 }
 }
 b2.value = b2.value + listContents(b1);

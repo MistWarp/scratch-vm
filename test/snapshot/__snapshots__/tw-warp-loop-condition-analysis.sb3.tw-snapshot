@@ -30,9 +30,15 @@ const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList("
 return function funXYZ_test () {
 b0.value = "";
 b1.value = 1;
-while (!(("" + b0.value).toLowerCase() === "final")) {
-b0.value = b2.value[b1.value - 1] ?? "";
-b1.value = b1.value + 1;
+{
+let a0 = b0.value;
+let a1 = b1.value;
+while (!(("" + a0).toLowerCase() === "final")) {
+a0 = b2.value[a1 - 1] ?? "";
+a1 = a1 + 1;
+b0.value = a0;
+b1.value = a1;
+}
 }
 return "";
 }; })
