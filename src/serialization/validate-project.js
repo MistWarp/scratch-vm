@@ -2,13 +2,18 @@ const JSZip = require('@turbowarp/jszip');
 const log = require('../util/log');
 const unpack = require('scratch-parser/lib/unpack');
 const parse = require('scratch-parser/lib/parse');
+// Loaded only for scsf projects.
 let scsfReader;
-try {
-    const scsfModule = require('../scsf-bundle.js');
-    scsfReader = scsfModule.Reader;
-} catch (e) {
-    // @flufi/scsf not available, scsf support disabled
-}
+const getScsfReader = () => {
+    if (typeof scsfReader === 'undefined') {
+        try {
+            scsfReader = require('../scsf-bundle.js').Reader;
+        } catch (e) {
+            scsfReader = null; // @flufi/scsf not available, scsf support disabled
+        }
+    }
+    return scsfReader;
+};
 
 // Building the schema validators with ajv is a large part of loading a project, so they are precompiled by
 // tools/generate-validators.js, and each is only loaded when first used (an sb3 project needs just the sb3 one). If a
@@ -97,7 +102,6 @@ const parseProject = function (input, callback) {
 };
 
 const tryConvertScsf = function (content) {
-    if (!scsfReader) return content;
     // scsf projects are a JSON array; sb2/sb3 are objects. Sniff the first
     // non-whitespace character so we don't parse the whole project twice.
     if (typeof content === 'string') {
@@ -107,8 +111,9 @@ const tryConvertScsf = function (content) {
     }
     try {
         const parsed = JSON.parse(content);
-        if (Array.isArray(parsed)) {
-            const reader = new scsfReader();
+        const Reader = Array.isArray(parsed) && getScsfReader();
+        if (Reader) {
+            const reader = new Reader();
             const project = reader.readProject(parsed);
             const json = project.outputJson();
             json.projectVersion = 3;
@@ -167,6 +172,25 @@ const readEntryTextViaJSZip = function (entry) {
         .then(bytes => new TextDecoder().decode(bytes));
 };
 
+// Reads a stream into one buffer. (Response would do it, but loads all of Node's fetch implementation.)
+const readAll = async (stream, size) => {
+    const reader = stream.getReader();
+    let buffer = new Uint8Array(size || 65536);
+    let length = 0;
+    for (;;) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        if (length + value.length > buffer.length) {
+            const bigger = new Uint8Array(Math.max(buffer.length * 2, length + value.length));
+            bigger.set(buffer.subarray(0, length));
+            buffer = bigger;
+        }
+        buffer.set(value, length);
+        length += value.length;
+    }
+    return buffer.subarray(0, length);
+};
+
 /**
  * Read a zip entry as text, letting the platform inflate it if it can. JSZip
  * inflates in JavaScript; DecompressionStream does it natively, several times
@@ -179,7 +203,6 @@ const readEntryText = function (entry, onProgress) {
     const data = entry._data;
     const canGoNative = typeof DecompressionStream !== 'undefined' &&
         typeof Blob !== 'undefined' &&
-        typeof Response !== 'undefined' &&
         typeof TransformStream !== 'undefined' &&
         data && data.compressedContent &&
         data.compression && data.compression.magic === DEFLATE_MAGIC;
@@ -212,11 +235,9 @@ const readEntryText = function (entry, onProgress) {
         const inflated = new Blob([data.compressedContent]).stream()
             .pipeThrough(counter)
             .pipeThrough(new DecompressionStream('deflate-raw'));
-        // Collect the bytes and decode them in one go, rather than letting
-        // Response.text() stitch the string together chunk by chunk. On a
-        // 175MB project.json that is about a second.
-        return new Response(inflated).arrayBuffer()
-            .then(buffer => new TextDecoder().decode(buffer))
+        // Decode in one go: stitching the string chunk by chunk costs about a second on a 175MB project.json.
+        return readAll(inflated, total)
+            .then(bytes => new TextDecoder().decode(bytes))
             .catch(() => readEntryTextViaJSZip(entry));
     } catch (e) {
         return readEntryTextViaJSZip(entry);

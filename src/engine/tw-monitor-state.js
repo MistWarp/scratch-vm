@@ -3,7 +3,6 @@
  */
 
 const MonitorRecord = require('./monitor-record');
-const {OrderedMap} = require('immutable');
 
 class MonitorState {
     constructor () {
@@ -116,6 +115,8 @@ class MonitorState {
     }
 
     toImmutable () {
+        // Required here: immutable is large and only this needs it.
+        const {OrderedMap} = require('immutable');
         return OrderedMap(this.map);
     }
 }
