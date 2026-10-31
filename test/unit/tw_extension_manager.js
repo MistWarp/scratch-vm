@@ -120,6 +120,10 @@ test('loadExtensionURL, getExtensionURLs, deduplication', async t => {
             appendChild: () => {}
         }
     };
+    global.window = {
+        addEventListener: () => {},
+        removeEventListener: () => {}
+    };
 
     const url1 = 'https://turbowarp.org/1.js';
     t.equal(vm.extensionManager.isExtensionURLLoaded(url1), false);
