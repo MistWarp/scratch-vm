@@ -45,7 +45,14 @@ const startWorker = behavior => {
         '../util/log': {error: () => {}},
         './tw-extension-worker-context': {isWorker: false},
         './tw-l10n': () => () => '',
-        './tw-console-capture': require('../../src/extension-support/tw-console-capture')
+        './tw-console-capture': require('../../src/extension-support/tw-console-capture'),
+        './tw-load-script-element': url => new Promise((resolve, reject) => {
+            const script = context.document.createElement('script');
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`${url} could not be loaded`));
+            script.src = url;
+            context.document.body.appendChild(script);
+        })
     })[name];
     vm.runInNewContext(source, context);
     return {result, errors};
