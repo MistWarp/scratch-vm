@@ -94,8 +94,8 @@ test('Loading project uses default extension URLs', t => {
     }).then(() => {
         t.same(events, [
             'canLoadExtensionFromProject https://extensions.turbowarp.org/lab/text.js',
-            'loadExtensionURL https://extensions.turbowarp.org/lab/text.js',
             'canLoadExtensionFromProject https://example.com/box2d.js',
+            'loadExtensionURL https://extensions.turbowarp.org/lab/text.js',
             'loadExtensionURL https://example.com/box2d.js'
         ]);
 
