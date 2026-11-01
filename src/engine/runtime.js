@@ -280,6 +280,8 @@ class Runtime extends EventEmitter {
          */
         this.turboMode = false;
 
+        this.projectName = '';
+
         /**
          * tw: Responsible for managing the VM's many timers.
          */
@@ -2041,6 +2043,10 @@ class Runtime extends EventEmitter {
         if (oldEditingTarget !== this._editingTarget) {
             this.requestToolboxExtensionsUpdate();
         }
+    }
+
+    setProjectName (name) {
+        this.projectName = typeof name === 'string' ? name : '';
     }
 
     setTurboMode (turboModeOn) {

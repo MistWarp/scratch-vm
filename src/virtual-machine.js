@@ -389,6 +389,10 @@ class VirtualMachine extends EventEmitter {
         this.runtime.setStageSize(width, height);
     }
 
+    setProjectName (name) {
+        this.runtime.setProjectName(name);
+    }
+
     setInEditor (inEditor) {
         this.runtime.setInEditor(inEditor);
     }
