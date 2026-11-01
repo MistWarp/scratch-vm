@@ -1160,3 +1160,22 @@ test('Forwarded runtime events keep all of their arguments', t => {
 
     t.end();
 });
+
+test('Setting turbo mode emits events on the runtime once each', t => {
+    const vm = new VirtualMachine();
+    const runtimeEvents = [];
+    const vmEvents = [];
+    vm.runtime.on('TURBO_MODE_ON', () => runtimeEvents.push('on'));
+    vm.runtime.on('TURBO_MODE_OFF', () => runtimeEvents.push('off'));
+    vm.on('TURBO_MODE_ON', () => vmEvents.push('on'));
+    vm.on('TURBO_MODE_OFF', () => vmEvents.push('off'));
+
+    vm.setTurboMode(true);
+    t.equal(vm.runtime.turboMode, true);
+    vm.setTurboMode(0);
+    t.equal(vm.runtime.turboMode, false);
+
+    t.same(runtimeEvents, ['on', 'off']);
+    t.same(vmEvents, ['on', 'off']);
+    t.end();
+});

@@ -2033,6 +2033,11 @@ class Runtime extends EventEmitter {
         }
     }
 
+    setTurboMode (turboModeOn) {
+        this.turboMode = !!turboModeOn;
+        this.emit(this.turboMode ? Runtime.TURBO_MODE_ON : Runtime.TURBO_MODE_OFF);
+    }
+
     /**
      * Set whether we are in 30 TPS compatibility mode.
      * @param {boolean} compatibilityModeOn True iff in compatibility mode.
@@ -2353,8 +2358,7 @@ class Runtime extends EventEmitter {
             this.setFramerate(parsed.framerate);
         }
         if (parsed.turbo) {
-            this.turboMode = true;
-            this.emit(Runtime.TURBO_MODE_ON);
+            this.setTurboMode(true);
         }
         if (parsed.interpolation) {
             this.setInterpolation(true);
