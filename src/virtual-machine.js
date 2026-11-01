@@ -167,8 +167,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.EXTENSIONS_REORDERED, info => {
             this.emit(Runtime.EXTENSIONS_REORDERED, info);
         });
-        this.runtime.on(Runtime.EXTENSION_FIELD_ADDED, (fieldName, fieldImplementation) => {
-            this.emit(Runtime.EXTENSION_FIELD_ADDED, fieldName, fieldImplementation);
+        this.runtime.on(Runtime.EXTENSION_FIELD_ADDED, fieldInfo => {
+            this.emit(Runtime.EXTENSION_FIELD_ADDED, fieldInfo);
         });
         this.runtime.on(Runtime.BLOCKSINFO_UPDATE, categoryInfo => {
             this.emit(Runtime.BLOCKSINFO_UPDATE, categoryInfo);
@@ -189,8 +189,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.PERIPHERAL_CONNECTED, () =>
             this.emit(Runtime.PERIPHERAL_CONNECTED)
         );
-        this.runtime.on(Runtime.PERIPHERAL_REQUEST_ERROR, () =>
-            this.emit(Runtime.PERIPHERAL_REQUEST_ERROR)
+        this.runtime.on(Runtime.PERIPHERAL_REQUEST_ERROR, data =>
+            this.emit(Runtime.PERIPHERAL_REQUEST_ERROR, data)
         );
         this.runtime.on(Runtime.PERIPHERAL_DISCONNECTED, () =>
             this.emit(Runtime.PERIPHERAL_DISCONNECTED)
@@ -231,8 +231,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.COMPILE_ERROR, (target, error) => {
             this.emit(Runtime.COMPILE_ERROR, target, error);
         });
-        this.runtime.on(Runtime.ASSET_PROGRESS, (finished, total) => {
-            this.emit(Runtime.ASSET_PROGRESS, finished, total);
+        this.runtime.on(Runtime.ASSET_PROGRESS, (finished, total, detail) => {
+            this.emit(Runtime.ASSET_PROGRESS, finished, total, detail);
         });
         this.runtime.on(Runtime.TURBO_MODE_OFF, () => {
             this.emit(Runtime.TURBO_MODE_OFF);
