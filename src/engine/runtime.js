@@ -280,6 +280,8 @@ class Runtime extends EventEmitter {
          */
         this.turboMode = false;
 
+        this.projectName = '';
+
         /**
          * tw: Responsible for managing the VM's many timers.
          */
@@ -1049,7 +1051,7 @@ class Runtime extends EventEmitter {
 
     handleExtensionButtonPress (buttonData) {
         const callback = this.extensionButtons.get(buttonData);
-        callback();
+        if (callback) callback();
     }
 
     /**
@@ -1085,9 +1087,6 @@ class Runtime extends EventEmitter {
         return ScratchBlocksToolbox.getBlocksXML(this._blockInfo, target);
     }
 
-    /**
-     * @returns {Array.<string>} - an array containing the scratch-blocks JSON information for each dynamic block.
-     */
     getBlocksJSON () {
         return ScratchBlocksToolbox.getBlocksJSON(this._blockInfo);
     }
@@ -1533,9 +1532,13 @@ class Runtime extends EventEmitter {
         // Look up metadata for the relevant hat.
         const hatMeta = instance._hats[requestedHatOpcode];
 
-        for (const opts in optMatchFields) {
-            if (!Object.prototype.hasOwnProperty.call(optMatchFields, opts)) continue;
-            optMatchFields[opts] = optMatchFields[opts].toUpperCase();
+        let matchFields = null;
+        if (optMatchFields) {
+            matchFields = {};
+            for (const field in optMatchFields) {
+                if (!Object.prototype.hasOwnProperty.call(optMatchFields, field)) continue;
+                matchFields[field] = String(optMatchFields[field]).toUpperCase();
+            }
         }
 
         // Consider all scripts, looking for hats with opcode `requestedHatOpcode`.
@@ -1550,8 +1553,8 @@ class Runtime extends EventEmitter {
             // This needs to happen before the block is evaluated
             // (i.e., before the predicate can be run) because "broadcast and wait"
             // needs to have a precise collection of started threads.
-            for (const matchField in optMatchFields) {
-                if (hatFields[matchField].value !== optMatchFields[matchField]) {
+            for (const matchField in matchFields) {
+                if (hatFields[matchField].value !== matchFields[matchField]) {
                     // Field mismatch.
                     return;
                 }
@@ -2039,6 +2042,15 @@ class Runtime extends EventEmitter {
         }
     }
 
+    setProjectName (name) {
+        this.projectName = typeof name === 'string' ? name : '';
+    }
+
+    setTurboMode (turboModeOn) {
+        this.turboMode = !!turboModeOn;
+        this.emit(this.turboMode ? Runtime.TURBO_MODE_ON : Runtime.TURBO_MODE_OFF);
+    }
+
     /**
      * Set whether we are in 30 TPS compatibility mode.
      * @param {boolean} compatibilityModeOn True iff in compatibility mode.
@@ -2117,10 +2129,13 @@ class Runtime extends EventEmitter {
                 const offsetX = deltaX / 2;
                 const offsetY = deltaY / 2;
                 for (const monitor of this._monitorState.valueSeq()) {
+                    const x = monitor.get('x');
+                    const y = monitor.get('y');
+                    if (typeof x !== 'number' || typeof y !== 'number') continue;
                     this.requestUpdateMonitor({
                         id: monitor.id,
-                        x: monitor.get('x') + offsetX,
-                        y: monitor.get('y') + offsetY
+                        x: x + offsetX,
+                        y: y + offsetY
                     });
                 }
                 this.emit(Runtime.MONITORS_UPDATE, this._monitorState.shallowClone());
@@ -2374,8 +2389,7 @@ class Runtime extends EventEmitter {
             this.setFramerate(parsed.framerate);
         }
         if (parsed.turbo) {
-            this.turboMode = true;
-            this.emit(Runtime.TURBO_MODE_ON);
+            this.setTurboMode(true);
         }
         if (parsed.interpolation) {
             this.setInterpolation(true);

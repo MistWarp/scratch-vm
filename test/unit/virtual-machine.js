@@ -1112,3 +1112,102 @@ test('clearFlyoutBlocks removes all of the flyout blocks', t => {
 
     t.end();
 });
+
+test('shareSoundToTarget resolves without a target', async t => {
+    const vm = new VirtualMachine();
+    const spr = new Sprite(null, vm.runtime);
+    const target = spr.createClone();
+    target.addSound({name: 'sound1'});
+    vm.runtime.targets = [target];
+    vm.editingTarget = target;
+
+    await vm.shareSoundToTarget(0, 'missing');
+    t.equal(target.getSounds().length, 1);
+    t.end();
+});
+
+test('postSpriteInfo does nothing without an editing or drag target', t => {
+    const vm = new VirtualMachine();
+    let changed = 0;
+    vm.runtime.emitProjectChanged = () => {
+        changed++;
+    };
+    t.doesNotThrow(() => vm.postSpriteInfo({x: 10}));
+    t.equal(changed, 0);
+    t.end();
+});
+
+test('Forwarded runtime events keep all of their arguments', t => {
+    const vm = new VirtualMachine();
+
+    const progress = [];
+    vm.on('ASSET_PROGRESS', (...args) => progress.push(args));
+    vm.runtime.emit('ASSET_PROGRESS', 1, 2, {name: 'a'});
+    t.same(progress, [[1, 2, {name: 'a'}]]);
+
+    const fields = [];
+    vm.on('EXTENSION_FIELD_ADDED', (...args) => fields.push(args));
+    const field = {name: 'field_test_thing', implementation: {}};
+    vm.runtime.emit('EXTENSION_FIELD_ADDED', field);
+    t.equal(fields.length, 1);
+    t.equal(fields[0].length, 1);
+    t.equal(fields[0][0], field);
+
+    const errors = [];
+    vm.on('PERIPHERAL_REQUEST_ERROR', (...args) => errors.push(args));
+    vm.runtime.emit('PERIPHERAL_REQUEST_ERROR', {message: 'x', extensionId: 'ev3'});
+    t.same(errors, [[{message: 'x', extensionId: 'ev3'}]]);
+
+    t.end();
+});
+
+test('Setting turbo mode emits events on the runtime once each', t => {
+    const vm = new VirtualMachine();
+    const runtimeEvents = [];
+    const vmEvents = [];
+    vm.runtime.on('TURBO_MODE_ON', () => runtimeEvents.push('on'));
+    vm.runtime.on('TURBO_MODE_OFF', () => runtimeEvents.push('off'));
+    vm.on('TURBO_MODE_ON', () => vmEvents.push('on'));
+    vm.on('TURBO_MODE_OFF', () => vmEvents.push('off'));
+
+    vm.setTurboMode(true);
+    t.equal(vm.runtime.turboMode, true);
+    vm.setTurboMode(0);
+    t.equal(vm.runtime.turboMode, false);
+
+    t.same(runtimeEvents, ['on', 'off']);
+    t.same(vmEvents, ['on', 'off']);
+    t.end();
+});
+
+test('setProjectName sets the name extensions read from the runtime', t => {
+    const vm = new VirtualMachine();
+    t.equal(vm.runtime.projectName, '');
+    vm.setProjectName('My game');
+    t.equal(vm.runtime.projectName, 'My game');
+    vm.setProjectName(null);
+    t.equal(vm.runtime.projectName, '');
+    t.end();
+});
+
+test('renameSprite updates block references to the deduplicated name', t => {
+    const vm = new VirtualMachine();
+    vm.emitTargetsUpdate = () => {};
+
+    const spr1 = new Sprite(null, vm.runtime);
+    spr1.name = 'foo';
+    const target1 = spr1.createClone();
+    const spr2 = new Sprite(null, vm.runtime);
+    spr2.name = 'bar';
+    const target2 = spr2.createClone();
+    vm.runtime.targets = [target1, target2];
+
+    const renames = [];
+    target1.blocks.updateAssetName = (oldName, newName, type) => renames.push([oldName, newName, type]);
+    target2.blocks.updateAssetName = () => {};
+
+    vm.renameSprite(target2.id, 'foo');
+    t.equal(target2.sprite.name, 'foo2');
+    t.same(renames, [['bar', 'foo2', 'sprite']]);
+    t.end();
+});

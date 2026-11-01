@@ -167,8 +167,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.EXTENSIONS_REORDERED, info => {
             this.emit(Runtime.EXTENSIONS_REORDERED, info);
         });
-        this.runtime.on(Runtime.EXTENSION_FIELD_ADDED, (fieldName, fieldImplementation) => {
-            this.emit(Runtime.EXTENSION_FIELD_ADDED, fieldName, fieldImplementation);
+        this.runtime.on(Runtime.EXTENSION_FIELD_ADDED, fieldInfo => {
+            this.emit(Runtime.EXTENSION_FIELD_ADDED, fieldInfo);
         });
         this.runtime.on(Runtime.BLOCKSINFO_UPDATE, categoryInfo => {
             this.emit(Runtime.BLOCKSINFO_UPDATE, categoryInfo);
@@ -189,8 +189,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.PERIPHERAL_CONNECTED, () =>
             this.emit(Runtime.PERIPHERAL_CONNECTED)
         );
-        this.runtime.on(Runtime.PERIPHERAL_REQUEST_ERROR, () =>
-            this.emit(Runtime.PERIPHERAL_REQUEST_ERROR)
+        this.runtime.on(Runtime.PERIPHERAL_REQUEST_ERROR, data =>
+            this.emit(Runtime.PERIPHERAL_REQUEST_ERROR, data)
         );
         this.runtime.on(Runtime.PERIPHERAL_DISCONNECTED, () =>
             this.emit(Runtime.PERIPHERAL_DISCONNECTED)
@@ -231,8 +231,8 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.COMPILE_ERROR, (target, error) => {
             this.emit(Runtime.COMPILE_ERROR, target, error);
         });
-        this.runtime.on(Runtime.ASSET_PROGRESS, (finished, total) => {
-            this.emit(Runtime.ASSET_PROGRESS, finished, total);
+        this.runtime.on(Runtime.ASSET_PROGRESS, (finished, total, detail) => {
+            this.emit(Runtime.ASSET_PROGRESS, finished, total, detail);
         });
         this.runtime.on(Runtime.TURBO_MODE_OFF, () => {
             this.emit(Runtime.TURBO_MODE_OFF);
@@ -353,12 +353,7 @@ class VirtualMachine extends EventEmitter {
      * @param {boolean} turboModeOn Whether turbo mode should be set.
      */
     setTurboMode (turboModeOn) {
-        this.runtime.turboMode = !!turboModeOn;
-        if (this.runtime.turboMode) {
-            this.emit(Runtime.TURBO_MODE_ON);
-        } else {
-            this.emit(Runtime.TURBO_MODE_OFF);
-        }
+        this.runtime.setTurboMode(turboModeOn);
     }
 
     /**
@@ -392,6 +387,10 @@ class VirtualMachine extends EventEmitter {
 
     setStageSize (width, height) {
         this.runtime.setStageSize(width, height);
+    }
+
+    setProjectName (name) {
+        this.runtime.setProjectName(name);
     }
 
     setInEditor (inEditor) {
@@ -1695,7 +1694,7 @@ class VirtualMachine extends EventEmitter {
                 const allTargets = this.runtime.targets;
                 for (let i = 0; i < allTargets.length; i++) {
                     const currTarget = allTargets[i];
-                    currTarget.blocks.updateAssetName(oldName, newName, 'sprite');
+                    currTarget.blocks.updateAssetName(oldName, newUnusedName, 'sprite');
                 }
 
                 if (newUnusedName !== oldName) this.emitTargetsUpdate();
@@ -2070,12 +2069,11 @@ class VirtualMachine extends EventEmitter {
         const originalSound = this.editingTarget.getSounds()[soundIndex];
         const clone = Object.assign({}, originalSound);
         const target = this.runtime.getTargetById(targetId);
+        if (!target) return Promise.resolve();
         return loadSound(clone, this.runtime, target.sprite.soundBank).then(() => {
             if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
-            if (target) {
-                target.addSound(clone);
-                this.emitTargetsUpdate();
-            }
+            target.addSound(clone);
+            this.emitTargetsUpdate();
         });
     }
 
@@ -2489,6 +2487,7 @@ class VirtualMachine extends EventEmitter {
      */
     postSpriteInfo (data) {
         const target = this._dragTarget || this.editingTarget;
+        if (!target) return;
         target.postSpriteInfo(data);
         // Post sprite info means the gui has changed something about a sprite,
         // either through the sprite info pane fields (e.g. direction, size) or
@@ -2504,7 +2503,7 @@ class VirtualMachine extends EventEmitter {
         }
         
         // Emit immediate event for collaboration sync if properties changed
-        if (Object.keys(changedProps).length > 0 && target) {
+        if (Object.keys(changedProps).length > 0) {
             this.runtime.emit(Runtime.SPRITE_INFO_CHANGED, target, changedProps);
         }
         

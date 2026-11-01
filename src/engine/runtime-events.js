@@ -88,10 +88,6 @@ const RuntimeEvents = {
      */
     AFTER_EXECUTE: 'AFTER_EXECUTE',
 
-    /**
-     * Event name for reporting asset download progress. Fired with finished, total
-     * @const {string}
-     */
     ASSET_PROGRESS: 'ASSET_PROGRESS',
 
     /**
