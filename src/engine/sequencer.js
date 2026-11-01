@@ -171,6 +171,7 @@ class Sequencer {
                     if (thread.stack.length !== 0 &&
                         thread.status !== Thread.STATUS_DONE) {
                         this.runtime.threads[nextActiveThread] = thread;
+                        thread.threadIndex = nextActiveThread;
                         nextActiveThread++;
                     } else {
                         thread.inThreadList = false;

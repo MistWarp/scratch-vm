@@ -145,6 +145,12 @@ class Thread {
         this.topBlock = firstBlock;
 
         /**
+         * Where this thread was last put in runtime.threads. Check runtime.threads[threadIndex] before trusting it.
+         * @type {number}
+         */
+        this.threadIndex = -1;
+
+        /**
          * Stack for the thread. When the sequencer enters a control structure,
          * the block is pushed onto the stack so we know where to exit.
          * @type {Array.<string>}
@@ -282,8 +288,19 @@ class Thread {
      * @returns {string} A unique ID for this target and thread.
      */
     static getIdFromTargetAndBlock (target, topBlock) {
-        // & should never appear in any IDs, so we can use it as a separator
-        return `${target.id}&${topBlock}`;
+        // A broadcast looks up an ID for every receiving script, so reuse the strings instead of building and hashing
+        // new ones each time. Target IDs can change, which starts a new set.
+        if (!target.threadIds || target.threadIdsFor !== target.id) {
+            target.threadIds = new Map();
+            target.threadIdsFor = target.id;
+        }
+        let id = target.threadIds.get(topBlock);
+        if (typeof id === 'undefined') {
+            // & should never appear in any IDs, so we can use it as a separator
+            id = `${target.id}&${topBlock}`;
+            target.threadIds.set(topBlock, id);
+        }
+        return id;
     }
 
     getId () {

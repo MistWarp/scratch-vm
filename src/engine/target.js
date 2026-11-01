@@ -40,6 +40,14 @@ class Target extends EventEmitter {
          */
         this.id = uid();
         /**
+         * Thread IDs for this target's scripts, by top block ID, and the target ID they were made for.
+         * See Thread.getIdFromTargetAndBlock.
+         * @type {?Map.<string, string>}
+         */
+        this.threadIds = null;
+        /** @type {?string} */
+        this.threadIdsFor = null;
+        /**
          * Blocks run as code for this target.
          * @type {!Blocks}
          */

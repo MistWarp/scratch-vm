@@ -1351,7 +1351,7 @@ class Runtime extends EventEmitter {
             target.blocks;
 
         thread.startStack(id);
-        this.threads.push(thread);
+        thread.threadIndex = this.threads.push(thread) - 1;
         thread.inThreadList = true;
         if (!thread.stackClick && !thread.updateMonitor) {
             this.threadMap.set(thread.getId(), thread);
@@ -1404,14 +1404,16 @@ class Runtime extends EventEmitter {
         if (!newThread.updateMonitor && this.listenerCount(RuntimeEvents.THREAD_STARTED)) {
             this.emit(RuntimeEvents.THREAD_STARTED, newThread);
         }
-        const i = this.threads.indexOf(thread);
+        // Restarting every receiver of a broadcast would search the whole list once each.
+        const i = this.threads[thread.threadIndex] === thread ? thread.threadIndex : this.threads.indexOf(thread);
         if (i > -1) {
             this.threads[i] = newThread;
+            newThread.threadIndex = i;
             thread.inThreadList = false;
             newThread.inThreadList = true;
             return newThread;
         }
-        this.threads.push(newThread);
+        newThread.threadIndex = this.threads.push(newThread) - 1;
         newThread.inThreadList = true;
         return newThread;
     }
@@ -2003,6 +2005,7 @@ class Runtime extends EventEmitter {
                     thread.inThreadList = false;
                 } else {
                     this.threads[nextThreadIndex] = thread;
+                    thread.threadIndex = nextThreadIndex;
                     nextThreadIndex++;
                 }
             }
