@@ -274,3 +274,67 @@ test('Clock is reset on runtime dispose', t => {
     t.ok(c.projectTimer() === 0);
     t.end();
 });
+
+test('handleExtensionButtonPress ignores unknown buttons', t => {
+    const rt = new Runtime();
+    t.doesNotThrow(() => rt.handleExtensionButtonPress('test_missing'));
+    let pressed = 0;
+    rt.extensionButtons.set('test_button', () => {
+        pressed++;
+    });
+    rt.handleExtensionButtonPress('test_button');
+    t.equal(pressed, 1);
+    t.end();
+});
+
+const makeHatRuntime = fieldValue => {
+    const rt = new Runtime();
+    rt._hats.test_whenNamed = {restartExistingThreads: false};
+    const target = {id: 'target'};
+    rt.allScriptsByOpcodeDo = (opcode, f) => {
+        f({blockId: 'hat', fieldsOfInputs: {NAME: {value: fieldValue}}}, target);
+    };
+    rt._pushThread = () => ({isCompiled: true, executableHat: false});
+    return rt;
+};
+
+test('startHats matches without changing the caller match fields', t => {
+    const rt = makeHatRuntime('HELLO');
+    const fields = {NAME: 'hello'};
+    t.equal(rt.startHats('test_whenNamed', fields).length, 1);
+    t.same(fields, {NAME: 'hello'});
+    t.end();
+});
+
+test('startHats accepts match values that are not strings', t => {
+    const rt = makeHatRuntime('12');
+    t.equal(rt.startHats('test_whenNamed', {NAME: 12}).length, 1);
+    t.equal(rt.startHats('test_whenNamed', {NAME: 13}).length, 0);
+    t.end();
+});
+
+test('setStageSize keeps auto-positioned monitors auto-positioned', t => {
+    const rt = new Runtime();
+    rt.requestAddMonitor(new MonitorRecord({id: 'auto'}));
+    rt.requestAddMonitor(new MonitorRecord({id: 'placed', x: 10, y: 20}));
+    rt.setStageSize(560, 420);
+    t.equal(rt._monitorState.get('auto').get('x'), null);
+    t.equal(rt._monitorState.get('auto').get('y'), null);
+    t.equal(rt._monitorState.get('placed').get('x'), 50);
+    t.equal(rt._monitorState.get('placed').get('y'), 50);
+    t.end();
+});
+
+test('getBlocksJSON leaves out entries without JSON', t => {
+    const rt = new Runtime();
+    rt._blockInfo = [{
+        blocks: [
+            {json: {type: 'test_a'}},
+            {xml: '<sep gap="36"/>'},
+            {json: null, xml: '<label text="x"></label>'},
+            {json: {type: 'test_b'}}
+        ]
+    }];
+    t.same(rt.getBlocksJSON(), [{type: 'test_a'}, {type: 'test_b'}]);
+    t.end();
+});

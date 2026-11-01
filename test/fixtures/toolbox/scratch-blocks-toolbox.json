@@ -30,7 +30,6 @@
     }
   ],
   "json": [
-    null,
     {
       "type": "toolboxtest_command",
       "inputsInline": true,
@@ -81,7 +80,6 @@
       "previousStatement": null,
       "nextStatement": null
     },
-    null,
     {
       "type": "toolboxtest_reporter",
       "inputsInline": true,
@@ -478,10 +476,6 @@
       "outputShape": 3,
       "previousStatement": null
     },
-    null,
-    null,
-    null,
-    null,
     {
       "type": "plaincolors_say",
       "inputsInline": true,

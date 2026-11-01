@@ -83,15 +83,15 @@ const RuntimeEvents = {
      */
     BEFORE_EXECUTE: 'BEFORE_EXECUTE',
 
+    RUNTIME_PAUSED: 'RUNTIME_PAUSED',
+
+    RUNTIME_UNPAUSED: 'RUNTIME_UNPAUSED',
+
     /**
      * Event called after every block in the project has been executed.
      */
     AFTER_EXECUTE: 'AFTER_EXECUTE',
 
-    /**
-     * Event name for reporting asset download progress. Fired with finished, total
-     * @const {string}
-     */
     ASSET_PROGRESS: 'ASSET_PROGRESS',
 
     /**

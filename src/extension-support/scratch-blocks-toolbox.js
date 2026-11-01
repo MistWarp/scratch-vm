@@ -676,8 +676,13 @@ const getBlocksXML = function (categories, target) {
 };
 
 const getBlocksJSON = function (categories) {
-    return categories.reduce(
-        (result, categoryInfo) => result.concat(categoryInfo.blocks.map(blockInfo => blockInfo.json)), []);
+    const result = [];
+    for (const categoryInfo of categories) {
+        for (const blockInfo of categoryInfo.blocks) {
+            if (blockInfo.json) result.push(blockInfo.json);
+        }
+    }
+    return result;
 };
 
 module.exports = {

@@ -57,6 +57,22 @@ const defaultBlockPackages = {
     scratch3_assets: require('../blocks/scratch3_assets')
 };
 
+const withListener = (listeners, listener) => (listeners === null ? [listener] : listeners.concat(listener));
+
+const withoutListener = (listeners, listener) => {
+    const index = listeners === null ? -1 : listeners.indexOf(listener);
+    if (index === -1) return listeners;
+    if (listeners.length === 1) return null;
+    return listeners.slice(0, index).concat(listeners.slice(index + 1));
+};
+
+const callListeners = listeners => {
+    for (let i = 0; i < listeners.length; i++) {
+        listeners[i]();
+    }
+};
+
+const ThreadPause = require('./thread-pause');
 const interpolate = require('./tw-interpolate');
 const FrameLoop = require('./tw-frame-loop');
 const MonitorRecord = require('./monitor-record.js');
@@ -171,6 +187,12 @@ class Runtime extends EventEmitter {
 
         this._threadsKilled = false;
 
+        this._beforeStepListeners = null;
+        this._afterStepListeners = null;
+
+        this._paused = false;
+        this._pausedThreads = null;
+
         /**
          * Live monitor threads by the block that started them. Saves a scan of every
          * thread for every monitored block, on every frame.
@@ -278,6 +300,8 @@ class Runtime extends EventEmitter {
          * @type {Boolean}
          */
         this.turboMode = false;
+
+        this.projectName = '';
 
         /**
          * tw: Responsible for managing the VM's many timers.
@@ -1046,7 +1070,7 @@ class Runtime extends EventEmitter {
 
     handleExtensionButtonPress (buttonData) {
         const callback = this.extensionButtons.get(buttonData);
-        callback();
+        if (callback) callback();
     }
 
     /**
@@ -1082,9 +1106,6 @@ class Runtime extends EventEmitter {
         return ScratchBlocksToolbox.getBlocksXML(this._blockInfo, target);
     }
 
-    /**
-     * @returns {Array.<string>} - an array containing the scratch-blocks JSON information for each dynamic block.
-     */
     getBlocksJSON () {
         return ScratchBlocksToolbox.getBlocksJSON(this._blockInfo);
     }
@@ -1529,10 +1550,18 @@ class Runtime extends EventEmitter {
         const newThreads = [];
         // Look up metadata for the relevant hat.
         const hatMeta = instance._hats[requestedHatOpcode];
+        if (this._paused && !hatMeta.edgeActivated && requestedHatOpcode !== 'event_whenbroadcastreceived' &&
+            requestedHatOpcode !== 'control_start_as_clone') {
+            return newThreads;
+        }
 
-        for (const opts in optMatchFields) {
-            if (!Object.prototype.hasOwnProperty.call(optMatchFields, opts)) continue;
-            optMatchFields[opts] = optMatchFields[opts].toUpperCase();
+        let matchFields = null;
+        if (optMatchFields) {
+            matchFields = {};
+            for (const field in optMatchFields) {
+                if (!Object.prototype.hasOwnProperty.call(optMatchFields, field)) continue;
+                matchFields[field] = String(optMatchFields[field]).toUpperCase();
+            }
         }
 
         // Consider all scripts, looking for hats with opcode `requestedHatOpcode`.
@@ -1547,8 +1576,8 @@ class Runtime extends EventEmitter {
             // This needs to happen before the block is evaluated
             // (i.e., before the predicate can be run) because "broadcast and wait"
             // needs to have a precise collection of started threads.
-            for (const matchField in optMatchFields) {
-                if (hatFields[matchField].value !== optMatchFields[matchField]) {
+            for (const matchField in matchFields) {
+                if (hatFields[matchField].value !== matchFields[matchField]) {
                     // Field mismatch.
                     return;
                 }
@@ -1855,6 +1884,40 @@ class Runtime extends EventEmitter {
         this._monitorThreads.clear();
 
         this.resetRunId();
+        this.setPaused(false);
+    }
+
+    isPaused () {
+        return this._paused;
+    }
+
+    setPaused (paused) {
+        paused = !!paused;
+        if (paused === this._paused) return;
+        this._paused = paused;
+        const clock = this.ioDevices.clock;
+        if (paused) {
+            if (!clock._paused) clock.pause();
+            this._pausedThreads = new Map();
+            for (let i = 0; i < this.threads.length; i++) {
+                this.pauseThread(this.threads[i]);
+            }
+            this.emit(Runtime.RUNTIME_PAUSED);
+        } else {
+            if (clock._paused) clock.resume();
+            const pausedThreads = this._pausedThreads;
+            this._pausedThreads = null;
+            ThreadPause.releaseThreads(pausedThreads, this.threads, this.currentMSecs);
+            this.emit(Runtime.RUNTIME_UNPAUSED);
+        }
+    }
+
+    pauseThread (thread) {
+        if (this._pausedThreads !== null) ThreadPause.holdThread(this._pausedThreads, thread, this.currentMSecs);
+    }
+
+    getPausedThreadState (thread) {
+        return this._pausedThreads === null ? null : this._pausedThreads.get(thread) || null;
     }
 
     _renderInterpolatedPositions () {
@@ -1903,6 +1966,8 @@ class Runtime extends EventEmitter {
      * inactive threads after each iteration.
      */
     _step () {
+        if (this._beforeStepListeners !== null) callListeners(this._beforeStepListeners);
+
         if (this.interpolationEnabled) {
             interpolate.setupInitialState(this);
         }
@@ -1936,11 +2001,13 @@ class Runtime extends EventEmitter {
         }
 
         // Find all edge-activated hats, and add them to threads to be evaluated.
-        for (const hatType in this._hats) {
-            if (!Object.prototype.hasOwnProperty.call(this._hats, hatType)) continue;
-            const hat = this._hats[hatType];
-            if (hat.edgeActivated) {
-                this.startHats(hatType);
+        if (!this._paused) {
+            for (const hatType in this._hats) {
+                if (!Object.prototype.hasOwnProperty.call(this._hats, hatType)) continue;
+                const hat = this._hats[hatType];
+                if (hat.edgeActivated) {
+                    this.startHats(hatType);
+                }
             }
         }
         this.redrawRequested = false;
@@ -1951,6 +2018,7 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(stepThreadsProfilerId);
         }
+        if (this._pausedThreads !== null) ThreadPause.keepThreadsHeld(this._pausedThreads, this.threads);
         this.emit(Runtime.BEFORE_EXECUTE);
         const doneThreads = this.sequencer.stepThreads();
         if (this.profiler !== null) {
@@ -1986,6 +2054,23 @@ class Runtime extends EventEmitter {
             this.profiler.stop();
             this.profiler.reportFrames();
         }
+
+        if (this._afterStepListeners !== null) callListeners(this._afterStepListeners);
+    }
+
+    addStepListener ({before, after}) {
+        if (typeof before !== 'function' && typeof after !== 'function') {
+            throw new TypeError('A step listener needs a before or after function');
+        }
+        if (typeof before === 'function') this._beforeStepListeners = withListener(this._beforeStepListeners, before);
+        if (typeof after === 'function') this._afterStepListeners = withListener(this._afterStepListeners, after);
+        let removed = false;
+        return () => {
+            if (removed) return;
+            removed = true;
+            this._beforeStepListeners = withoutListener(this._beforeStepListeners, before);
+            this._afterStepListeners = withoutListener(this._afterStepListeners, after);
+        };
     }
 
     /**
@@ -1999,6 +2084,7 @@ class Runtime extends EventEmitter {
         for (let i = 0; i < threads.length; i++) {
             if (threads[i].updateMonitor) count++;
         }
+        if (this._pausedThreads !== null) count += ThreadPause.countHeldThreads(this._pausedThreads, threads);
         return count;
     }
 
@@ -2027,6 +2113,15 @@ class Runtime extends EventEmitter {
         if (oldEditingTarget !== this._editingTarget) {
             this.requestToolboxExtensionsUpdate();
         }
+    }
+
+    setProjectName (name) {
+        this.projectName = typeof name === 'string' ? name : '';
+    }
+
+    setTurboMode (turboModeOn) {
+        this.turboMode = !!turboModeOn;
+        this.emit(this.turboMode ? Runtime.TURBO_MODE_ON : Runtime.TURBO_MODE_OFF);
     }
 
     /**
@@ -2107,10 +2202,13 @@ class Runtime extends EventEmitter {
                 const offsetX = deltaX / 2;
                 const offsetY = deltaY / 2;
                 for (const monitor of this._monitorState.valueSeq()) {
+                    const x = monitor.get('x');
+                    const y = monitor.get('y');
+                    if (typeof x !== 'number' || typeof y !== 'number') continue;
                     this.requestUpdateMonitor({
                         id: monitor.id,
-                        x: monitor.get('x') + offsetX,
-                        y: monitor.get('y') + offsetY
+                        x: x + offsetX,
+                        y: y + offsetY
                     });
                 }
                 this.emit(Runtime.MONITORS_UPDATE, this._monitorState.shallowClone());
@@ -2364,8 +2462,7 @@ class Runtime extends EventEmitter {
             this.setFramerate(parsed.framerate);
         }
         if (parsed.turbo) {
-            this.turboMode = true;
-            this.emit(Runtime.TURBO_MODE_ON);
+            this.setTurboMode(true);
         }
         if (parsed.interpolation) {
             this.setInterpolation(true);
