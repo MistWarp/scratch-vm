@@ -1179,3 +1179,13 @@ test('Setting turbo mode emits events on the runtime once each', t => {
     t.same(vmEvents, ['on', 'off']);
     t.end();
 });
+
+test('setProjectName sets the name extensions read from the runtime', t => {
+    const vm = new VirtualMachine();
+    t.equal(vm.runtime.projectName, '');
+    vm.setProjectName('My game');
+    t.equal(vm.runtime.projectName, 'My game');
+    vm.setProjectName(null);
+    t.equal(vm.runtime.projectName, '');
+    t.end();
+});
