@@ -3,30 +3,30 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-return function funXYZ () {
+return function* genXYZ () {
 runtime.ext_scratch3_looks._setCostume(target, "initial");
 runtime.ext_scratch3_looks._say("plan 6", target);
-runtime.ext_scratch3_looks._setCostume(target, (1 / 0));
-if ((target.getCostumes()[target.currentCostume].name.toLowerCase() === "good".toLowerCase())) {
+runtime.ext_scratch3_looks._setCostume(target, Infinity);
+if (target.getCostumes()[target.currentCostume].name.toLowerCase() === "good") {
 runtime.ext_scratch3_looks._say("pass infinity costume name", target);
 }
-if (((target.currentCostume + 1) === 1)) {
+if (target.currentCostume + 1 === 1) {
 runtime.ext_scratch3_looks._say("pass infinity costume number", target);
 }
 runtime.ext_scratch3_looks._setCostume(target, "initial");
-runtime.ext_scratch3_looks._setCostume(target, (1 / -0));
-if ((target.getCostumes()[target.currentCostume].name.toLowerCase() === "good".toLowerCase())) {
+runtime.ext_scratch3_looks._setCostume(target, -Infinity);
+if (target.getCostumes()[target.currentCostume].name.toLowerCase() === "good") {
 runtime.ext_scratch3_looks._say("pass -infinity costume name", target);
 }
-if (((target.currentCostume + 1) === 1)) {
+if (target.currentCostume + 1 === 1) {
 runtime.ext_scratch3_looks._say("pass -infinity costume number", target);
 }
 runtime.ext_scratch3_looks._setCostume(target, "initial");
-runtime.ext_scratch3_looks._setCostume(target, (0 / 0));
-if ((target.getCostumes()[target.currentCostume].name.toLowerCase() === "good".toLowerCase())) {
+runtime.ext_scratch3_looks._setCostume(target, NaN);
+if (target.getCostumes()[target.currentCostume].name.toLowerCase() === "good") {
 runtime.ext_scratch3_looks._say("pass nan costume name", target);
 }
-if (((target.currentCostume + 1) === 1)) {
+if (target.currentCostume + 1 === 1) {
 runtime.ext_scratch3_looks._say("pass nan costume number", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

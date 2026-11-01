@@ -3,20 +3,20 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["q9l+ZDG${I3p$=:TPs`3"];
-return function funXYZ () {
+const b0 = stage.variables["q9l+ZDG${I3p$=:TPs`3"] || stage.lookupOrCreateList("q9l+ZDG${I3p$=:TPs`3", "list");
+return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
-if ((("_" + ("" + (toBoolean((b0.value[2 - 1] ?? "")) && toBoolean((b0.value[2 - 1] ?? ""))))).toLowerCase() === "_true".toLowerCase())) {
+if (("_" + (toBoolean(b0.value[2 - 1] ?? "") && toBoolean(b0.value[2 - 1] ?? ""))).toLowerCase() === "_true") {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if ((("_" + ("" + (toBoolean((b0.value[1 - 1] ?? "")) || toBoolean((b0.value[2 - 1] ?? ""))))).toLowerCase() === "_true".toLowerCase())) {
+if (("_" + (toBoolean(b0.value[1 - 1] ?? "") || toBoolean(b0.value[2 - 1] ?? ""))).toLowerCase() === "_true") {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {
 runtime.ext_scratch3_looks._say("fail", target);
 }
-if (!toBoolean((b0.value[1 - 1] ?? ""))) {
+if (!toBoolean(b0.value[1 - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {
 runtime.ext_scratch3_looks._say("fail", target);

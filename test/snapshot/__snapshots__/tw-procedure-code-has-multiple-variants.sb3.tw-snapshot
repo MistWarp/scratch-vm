@@ -20,11 +20,11 @@ return "";
 
 // Sprite1 Zinner
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"];
+const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n");
 return function funXYZ_inner () {
 b0.value = 0;
-b0.value = (b0.value + 1);
-if ((b0.value === 1)) {
+b0.value = b0.value + 1;
+if (b0.value === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";
@@ -32,11 +32,11 @@ return "";
 
 // Sprite1 Winner
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"];
+const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n");
 return function funXYZ_inner () {
 b0.value = 0;
-b0.value = (b0.value + 1);
-if ((b0.value === 1)) {
+b0.value = b0.value + 1;
+if (b0.value === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";

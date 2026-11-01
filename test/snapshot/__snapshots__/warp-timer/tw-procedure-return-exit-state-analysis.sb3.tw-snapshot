@@ -3,12 +3,13 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables[",ea{fAW5kF+a,G5W.|*L"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "_");
+const b1 = stage.variables[",ea{fAW5kF+a,G5W.|*L"] || stage.lookupOrCreateVariable(",ea{fAW5kF+a,G5W.|*L", "s");
 return function* genXYZ () {
+var a0;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = thread.procedures["Zeval"]();
-if (((toNotNaN(+b1.value) + 0) === 0)) {
+if (((a0 = +b1.value) === a0 ? a0 : 0) === 0) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -17,12 +18,10 @@ retire(); return;
 
 // Sprite1 Zeval
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables[",ea{fAW5kF+a,G5W.|*L"];
+const b0 = stage.variables[",ea{fAW5kF+a,G5W.|*L"] || stage.lookupOrCreateVariable(",ea{fAW5kF+a,G5W.|*L", "s");
 return function funXYZ_eval () {
 b0.value = "s";
-if (((1 + 1) === 2)) {
 return "";
-}
 b0.value = 0;
 return "";
 return "";

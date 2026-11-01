@@ -3,12 +3,11 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-return function funXYZ () {
-let t;
+return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 target.setSize(100);
-target.setSize(target.size + ((t = (0 / 0)) === t ? t : 0));
-if ((Math.round(target.size) === 100)) {
+target.setSize(target.size + 0);
+if (Math.round(target.size) === 100) {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {
 runtime.ext_scratch3_looks._say("fail", target);
