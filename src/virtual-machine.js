@@ -1694,7 +1694,7 @@ class VirtualMachine extends EventEmitter {
                 const allTargets = this.runtime.targets;
                 for (let i = 0; i < allTargets.length; i++) {
                     const currTarget = allTargets[i];
-                    currTarget.blocks.updateAssetName(oldName, newName, 'sprite');
+                    currTarget.blocks.updateAssetName(oldName, newUnusedName, 'sprite');
                 }
 
                 if (newUnusedName !== oldName) this.emitTargetsUpdate();

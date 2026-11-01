@@ -1189,3 +1189,25 @@ test('setProjectName sets the name extensions read from the runtime', t => {
     t.equal(vm.runtime.projectName, '');
     t.end();
 });
+
+test('renameSprite updates block references to the deduplicated name', t => {
+    const vm = new VirtualMachine();
+    vm.emitTargetsUpdate = () => {};
+
+    const spr1 = new Sprite(null, vm.runtime);
+    spr1.name = 'foo';
+    const target1 = spr1.createClone();
+    const spr2 = new Sprite(null, vm.runtime);
+    spr2.name = 'bar';
+    const target2 = spr2.createClone();
+    vm.runtime.targets = [target1, target2];
+
+    const renames = [];
+    target1.blocks.updateAssetName = (oldName, newName, type) => renames.push([oldName, newName, type]);
+    target2.blocks.updateAssetName = () => {};
+
+    vm.renameSprite(target2.id, 'foo');
+    t.equal(target2.sprite.name, 'foo2');
+    t.same(renames, [['bar', 'foo2', 'sprite']]);
+    t.end();
+});
