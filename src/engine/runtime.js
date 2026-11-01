@@ -1087,9 +1087,6 @@ class Runtime extends EventEmitter {
         return ScratchBlocksToolbox.getBlocksXML(this._blockInfo, target);
     }
 
-    /**
-     * @returns {Array.<string>} - an array containing the scratch-blocks JSON information for each dynamic block.
-     */
     getBlocksJSON () {
         return ScratchBlocksToolbox.getBlocksJSON(this._blockInfo);
     }
