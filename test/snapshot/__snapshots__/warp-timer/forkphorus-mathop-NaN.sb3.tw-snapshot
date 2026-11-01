@@ -4,7 +4,7 @@
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "Infinity");
-return function* genXYZ () {
+return function funXYZ () {
 var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 8", target);
 b0.value = Infinity;
