@@ -792,7 +792,7 @@ test('overriding existing fonts', t => {
     t.end();
 });
 
-test('deserialize waits for renderer to load fonts', async () => {
+test('deserialize waits for renderer to load fonts', async t => {
     const zip = new JSZip();
     zip.file('8e0b5e4ad4e3b2b9a8b4e9bd0ec4de2c.ttf', new Uint8Array([1, 2, 3]));
 
@@ -829,10 +829,11 @@ test('deserialize waits for renderer to load fonts', async () => {
 
     await setCustomFontsCalled;
     await new Promise(resolve => setTimeout(resolve));
-    assert.strictEqual(deserialized, false, 'still waiting for fonts');
+    t.equal(deserialized, false, 'still waiting for fonts');
 
     resolveFontsLoaded();
     await promise;
-    assert.strictEqual(deserialized, true);
-    assert.deepEqual(rt.fontManager.getFonts().map(i => i.name), ['TestFont']);
+    t.equal(deserialized, true);
+    t.same(rt.fontManager.getFonts().map(i => i.name), ['TestFont']);
+    t.end();
 });
