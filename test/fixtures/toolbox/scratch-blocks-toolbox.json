@@ -1,0 +1,1600 @@
+{
+  "xml": [
+    {
+      "id": "toolboxtest",
+      "xml": "<category name=\"Toolbox Test\" id=\"toolboxtest\" showStatusButton=\"true\" colour=\"#0FBD8C\" secondaryColour=\"#0DA57A\" iconURI=\"data:image/png;base64,BBBB\"><button text=\"Open Documentation\" callbackKey=\"OPEN_EXTENSION_DOCS\" callbackData=\"https://example.com/docs?a=1&amp;b=2\"></button><block type=\"toolboxtest_command\"><value name=\"STEPS\"><shadow type=\"math_number\"><field name=\"NUM\">10</field></shadow></value><value name=\"WHERE\"><shadow type=\"toolboxtest_menu_reporterMenu\"><field name=\"reporterMenu\">a</field></shadow></value><field name=\"MENU\">one</field></block><sep gap=\"36\"/><block type=\"toolboxtest_reporter\"><value name=\"COLOR\"><shadow type=\"colour_picker\"><field name=\"COLOUR\">#ff0000</field></shadow></value><value name=\"ANGLE\"><shadow type=\"math_angle\"><field name=\"NUM\">90</field></shadow></value><value name=\"NOTE\"><shadow type=\"note\"><field name=\"NOTE\">60</field></shadow></value><value name=\"MATRIX\"><shadow type=\"matrix\"><field name=\"MATRIX\">1010101010101010101010101</field></shadow></value></block><block type=\"toolboxtest_plainReporter\"></block><block type=\"toolboxtest_bool\"><value name=\"B\"></value><value name=\"FANCY\"><shadow type=\"toolboxtest_fancy\"><field name=\"field_toolboxtest_fancy\">f</field></shadow></value></block><block type=\"toolboxtest_hat\"></block><block type=\"toolboxtest_event\"></block><block type=\"toolboxtest_ifElse\"><value name=\"C\"></value></block><block type=\"toolboxtest_forever\"></block><block type=\"toolboxtest_loopWithIcon\"></block><block type=\"toolboxtest_dynamic\"><mutation blockInfo=\"{&quot;opcode&quot;:&quot;dynamic&quot;,&quot;blockType&quot;:&quot;command&quot;,&quot;text&quot;:&quot;dynamic [X]&quot;,&quot;isDynamic&quot;:true,&quot;arguments&quot;:{&quot;X&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;defaultValue&quot;:{&quot;id&quot;:&quot;test.default&quot;,&quot;default&quot;:&quot;hi&quot;}}},&quot;extensions&quot;:[&quot;custom_extension&quot;,&quot;from_extension&quot;],&quot;blockShape&quot;:3,&quot;color1&quot;:&quot;#111111&quot;,&quot;color2&quot;:&quot;#222222&quot;,&quot;color3&quot;:&quot;#333333&quot;,&quot;blockIconURI&quot;:&quot;data:image/png;base64,EEEE&quot;}\"/><value name=\"X\"><shadow type=\"text\"><field name=\"TEXT\">hi</field></shadow></value></block><block type=\"toolboxtest_stageOnly\"></block><label text=\"A &lt;label&gt; &amp; more\"></label><button text=\"Make a Variable\" callbackKey=\"MAKE_A_VARIABLE\"></button><button text=\"Press me\" callbackKey=\"EXTENSION_CALLBACK\" callbackData=\"toolboxtest_press\"></button><sep gap=\"10\"/></category>"
+    },
+    {
+      "id": "plaincolors",
+      "xml": "<category name=\"Plain Colors\" id=\"plaincolors\"  colour=\"#abcdef\" secondaryColour=\"#123456\" ><block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block></category>"
+    }
+  ],
+  "xmlForStage": [
+    {
+      "id": "toolboxtest",
+      "xml": "<category name=\"Toolbox Test\" id=\"toolboxtest\" showStatusButton=\"true\" colour=\"#0FBD8C\" secondaryColour=\"#0DA57A\" iconURI=\"data:image/png;base64,BBBB\"><button text=\"Open Documentation\" callbackKey=\"OPEN_EXTENSION_DOCS\" callbackData=\"https://example.com/docs?a=1&amp;b=2\"></button><block type=\"toolboxtest_command\"><value name=\"STEPS\"><shadow type=\"math_number\"><field name=\"NUM\">10</field></shadow></value><value name=\"WHERE\"><shadow type=\"toolboxtest_menu_reporterMenu\"><field name=\"reporterMenu\">a</field></shadow></value><field name=\"MENU\">one</field></block><sep gap=\"36\"/><block type=\"toolboxtest_reporter\"><value name=\"COLOR\"><shadow type=\"colour_picker\"><field name=\"COLOUR\">#ff0000</field></shadow></value><value name=\"ANGLE\"><shadow type=\"math_angle\"><field name=\"NUM\">90</field></shadow></value><value name=\"NOTE\"><shadow type=\"note\"><field name=\"NOTE\">60</field></shadow></value><value name=\"MATRIX\"><shadow type=\"matrix\"><field name=\"MATRIX\">1010101010101010101010101</field></shadow></value></block><block type=\"toolboxtest_bool\"><value name=\"B\"></value><value name=\"FANCY\"><shadow type=\"toolboxtest_fancy\"><field name=\"field_toolboxtest_fancy\">f</field></shadow></value></block><block type=\"toolboxtest_hat\"></block><block type=\"toolboxtest_event\"></block><block type=\"toolboxtest_ifElse\"><value name=\"C\"></value></block><block type=\"toolboxtest_forever\"></block><block type=\"toolboxtest_loopWithIcon\"></block><block type=\"toolboxtest_dynamic\"><mutation blockInfo=\"{&quot;opcode&quot;:&quot;dynamic&quot;,&quot;blockType&quot;:&quot;command&quot;,&quot;text&quot;:&quot;dynamic [X]&quot;,&quot;isDynamic&quot;:true,&quot;arguments&quot;:{&quot;X&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;defaultValue&quot;:{&quot;id&quot;:&quot;test.default&quot;,&quot;default&quot;:&quot;hi&quot;}}},&quot;extensions&quot;:[&quot;custom_extension&quot;,&quot;from_extension&quot;],&quot;blockShape&quot;:3,&quot;color1&quot;:&quot;#111111&quot;,&quot;color2&quot;:&quot;#222222&quot;,&quot;color3&quot;:&quot;#333333&quot;,&quot;blockIconURI&quot;:&quot;data:image/png;base64,EEEE&quot;}\"/><value name=\"X\"><shadow type=\"text\"><field name=\"TEXT\">hi</field></shadow></value></block><block type=\"toolboxtest_stageOnly\"></block><label text=\"A &lt;label&gt; &amp; more\"></label><button text=\"Make a Variable\" callbackKey=\"MAKE_A_VARIABLE\"></button><button text=\"Press me\" callbackKey=\"EXTENSION_CALLBACK\" callbackData=\"toolboxtest_press\"></button><sep gap=\"10\"/></category>"
+    },
+    {
+      "id": "plaincolors",
+      "xml": "<category name=\"Plain Colors\" id=\"plaincolors\"  colour=\"#abcdef\" secondaryColour=\"#123456\" ><block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block></category>"
+    }
+  ],
+  "xmlForSprite": [
+    {
+      "id": "toolboxtest",
+      "xml": "<category name=\"Toolbox Test\" id=\"toolboxtest\" showStatusButton=\"true\" colour=\"#0FBD8C\" secondaryColour=\"#0DA57A\" iconURI=\"data:image/png;base64,BBBB\"><button text=\"Open Documentation\" callbackKey=\"OPEN_EXTENSION_DOCS\" callbackData=\"https://example.com/docs?a=1&amp;b=2\"></button><block type=\"toolboxtest_command\"><value name=\"STEPS\"><shadow type=\"math_number\"><field name=\"NUM\">10</field></shadow></value><value name=\"WHERE\"><shadow type=\"toolboxtest_menu_reporterMenu\"><field name=\"reporterMenu\">a</field></shadow></value><field name=\"MENU\">one</field></block><sep gap=\"36\"/><block type=\"toolboxtest_reporter\"><value name=\"COLOR\"><shadow type=\"colour_picker\"><field name=\"COLOUR\">#ff0000</field></shadow></value><value name=\"ANGLE\"><shadow type=\"math_angle\"><field name=\"NUM\">90</field></shadow></value><value name=\"NOTE\"><shadow type=\"note\"><field name=\"NOTE\">60</field></shadow></value><value name=\"MATRIX\"><shadow type=\"matrix\"><field name=\"MATRIX\">1010101010101010101010101</field></shadow></value></block><block type=\"toolboxtest_plainReporter\"></block><block type=\"toolboxtest_bool\"><value name=\"B\"></value><value name=\"FANCY\"><shadow type=\"toolboxtest_fancy\"><field name=\"field_toolboxtest_fancy\">f</field></shadow></value></block><block type=\"toolboxtest_hat\"></block><block type=\"toolboxtest_event\"></block><block type=\"toolboxtest_ifElse\"><value name=\"C\"></value></block><block type=\"toolboxtest_forever\"></block><block type=\"toolboxtest_loopWithIcon\"></block><block type=\"toolboxtest_dynamic\"><mutation blockInfo=\"{&quot;opcode&quot;:&quot;dynamic&quot;,&quot;blockType&quot;:&quot;command&quot;,&quot;text&quot;:&quot;dynamic [X]&quot;,&quot;isDynamic&quot;:true,&quot;arguments&quot;:{&quot;X&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;defaultValue&quot;:{&quot;id&quot;:&quot;test.default&quot;,&quot;default&quot;:&quot;hi&quot;}}},&quot;extensions&quot;:[&quot;custom_extension&quot;,&quot;from_extension&quot;],&quot;blockShape&quot;:3,&quot;color1&quot;:&quot;#111111&quot;,&quot;color2&quot;:&quot;#222222&quot;,&quot;color3&quot;:&quot;#333333&quot;,&quot;blockIconURI&quot;:&quot;data:image/png;base64,EEEE&quot;}\"/><value name=\"X\"><shadow type=\"text\"><field name=\"TEXT\">hi</field></shadow></value></block><label text=\"A &lt;label&gt; &amp; more\"></label><button text=\"Make a Variable\" callbackKey=\"MAKE_A_VARIABLE\"></button><button text=\"Press me\" callbackKey=\"EXTENSION_CALLBACK\" callbackData=\"toolboxtest_press\"></button><sep gap=\"10\"/></category>"
+    },
+    {
+      "id": "plaincolors",
+      "xml": "<category name=\"Plain Colors\" id=\"plaincolors\"  colour=\"#abcdef\" secondaryColour=\"#123456\" ><block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block></category>"
+    }
+  ],
+  "json": [
+    null,
+    {
+      "type": "toolboxtest_command",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2move %3 steps to %4 & %5",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "input_value",
+          "name": "STEPS"
+        },
+        {
+          "type": "input_value",
+          "name": "WHERE"
+        },
+        {
+          "type": "field_dropdown",
+          "name": "MENU",
+          "options": [
+            [
+              "one",
+              "one"
+            ],
+            [
+              "Two",
+              "2"
+            ]
+          ]
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null
+    },
+    null,
+    {
+      "type": "toolboxtest_reporter",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2value of %3 %4 %5 %6",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "input_value",
+          "name": "COLOR"
+        },
+        {
+          "type": "input_value",
+          "name": "ANGLE"
+        },
+        {
+          "type": "input_value",
+          "name": "NOTE"
+        },
+        {
+          "type": "input_value",
+          "name": "MATRIX"
+        }
+      ],
+      "output": "String",
+      "outputShape": 2
+    },
+    {
+      "type": "toolboxtest_plainReporter",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2plain",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "output": null,
+      "outputShape": 2,
+      "checkboxInFlyout": true
+    },
+    {
+      "type": "toolboxtest_bool",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2is %3 and %4",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "input_value",
+          "name": "B",
+          "check": "Boolean"
+        },
+        {
+          "type": "input_value",
+          "name": "FANCY"
+        }
+      ],
+      "output": "Boolean",
+      "outputShape": 1
+    },
+    {
+      "type": "toolboxtest_hat",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2when %3 happens",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,CCCC",
+          "width": 24,
+          "height": 24,
+          "flip_rtl": true
+        }
+      ],
+      "outputShape": 3,
+      "nextStatement": null
+    },
+    {
+      "type": "toolboxtest_event",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2when event",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "outputShape": 3,
+      "nextStatement": null
+    },
+    {
+      "type": "toolboxtest_ifElse",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2if %3 then",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "input_value",
+          "name": "C",
+          "check": "Boolean"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null,
+      "message1": "%1",
+      "args1": [
+        {
+          "type": "input_statement",
+          "name": "SUBSTACK"
+        }
+      ],
+      "message2": "else",
+      "message3": "%1",
+      "args3": [
+        {
+          "type": "input_statement",
+          "name": "SUBSTACK2"
+        }
+      ]
+    },
+    {
+      "type": "toolboxtest_forever",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2forever",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "message1": "%1",
+      "args1": [
+        {
+          "type": "input_statement",
+          "name": "SUBSTACK"
+        }
+      ],
+      "lastDummyAlign2": "RIGHT",
+      "message2": "%1",
+      "args2": [
+        {
+          "type": "field_image",
+          "src": "media://repeat.svg",
+          "width": 24,
+          "height": 24,
+          "alt": "*",
+          "flip_rtl": true
+        }
+      ]
+    },
+    {
+      "type": "toolboxtest_loopWithIcon",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2loop",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null,
+      "message1": "%1",
+      "args1": [
+        {
+          "type": "input_statement",
+          "name": "SUBSTACK"
+        }
+      ],
+      "lastDummyAlign2": "RIGHT",
+      "message2": "%1",
+      "args2": [
+        {
+          "type": "field_image",
+          "src": "data:image/svg+xml;base64,DDDD",
+          "width": 24,
+          "height": 24,
+          "alt": "*",
+          "flip_rtl": true
+        }
+      ]
+    },
+    {
+      "type": "toolboxtest_dynamic",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "scratch_extension",
+        "custom_extension"
+      ],
+      "colour": "#111111",
+      "colourSecondary": "#222222",
+      "colourTertiary": "#333333",
+      "message0": "%1 %2dynamic %3",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,EEEE",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        },
+        {
+          "type": "input_value",
+          "name": "X"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null
+    },
+    {
+      "type": "toolboxtest_hidden",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2hidden",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null
+    },
+    {
+      "type": "toolboxtest_stageOnly",
+      "inputsInline": true,
+      "category": "Toolbox Test",
+      "extensions": [
+        "from_extension",
+        "default_extension_colors",
+        "scratch_extension"
+      ],
+      "colour": "#0FBD8C",
+      "colourSecondary": "#0DA57A",
+      "colourTertiary": "#0B8E69",
+      "message0": "%1 %2stage only",
+      "args0": [
+        {
+          "type": "field_image",
+          "src": "data:image/png;base64,AAAA",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "type": "field_vertical_separator"
+        }
+      ],
+      "outputShape": 3,
+      "previousStatement": null
+    },
+    null,
+    null,
+    null,
+    null,
+    {
+      "type": "plaincolors_say",
+      "inputsInline": true,
+      "category": "Plain Colors",
+      "extensions": [
+        "from_extension"
+      ],
+      "colour": "#abcdef",
+      "colourSecondary": "#123456",
+      "colourTertiary": "#654321",
+      "outputShape": 3,
+      "previousStatement": null,
+      "nextStatement": null,
+      "args0": [
+        {
+          "type": "input_value",
+          "name": "MESSAGE"
+        }
+      ],
+      "message0": "say %1"
+    }
+  ],
+  "hats": {
+    "toolboxtest_hat": {
+      "edgeActivated": true
+    },
+    "toolboxtest_event": {
+      "edgeActivated": false,
+      "restartExistingThreads": true
+    }
+  },
+  "flowing": {
+    "toolboxtest_ifElse": {
+      "conditional": true,
+      "loop": false
+    },
+    "toolboxtest_forever": {
+      "conditional": false,
+      "loop": true
+    },
+    "toolboxtest_loopWithIcon": {
+      "conditional": false,
+      "loop": true
+    }
+  },
+  "primitives": [
+    "toolboxtest_command",
+    "toolboxtest_reporter",
+    "toolboxtest_plainReporter",
+    "toolboxtest_bool",
+    "toolboxtest_hat",
+    "toolboxtest_ifElse",
+    "toolboxtest_forever",
+    "toolboxtest_loopWithIcon",
+    "toolboxtest_dynamic",
+    "toolboxtest_hidden",
+    "toolboxtest_stageOnly"
+  ],
+  "extensionButtons": [
+    "toolboxtest_press"
+  ],
+  "menuId": "ext_menu_menu",
+  "inlineImage": {
+    "type": "field_image",
+    "src": "",
+    "width": 24,
+    "height": 24,
+    "flip_rtl": false
+  },
+  "customFieldType": {
+    "json": {
+      "type": "ext_field",
+      "message0": "%1",
+      "inputsInline": true,
+      "output": "Number",
+      "colour": "#1",
+      "colourSecondary": "#2",
+      "colourTertiary": "#3",
+      "outputShape": 1,
+      "args0": [
+        {
+          "name": "field_ext_field",
+          "type": "field_ext_field"
+        }
+      ]
+    }
+  },
+  "menuItems": [
+    [
+      "a",
+      "a"
+    ],
+    [
+      "B",
+      "b"
+    ]
+  ],
+  "events": [
+    [
+      "EXTENSION_FIELD_ADDED",
+      {
+        "name": "field_toolboxtest_fancy",
+        "implementation": {}
+      }
+    ],
+    [
+      "EXTENSION_ADDED",
+      {
+        "id": "toolboxtest",
+        "name": "Toolbox Test",
+        "showStatusButton": true,
+        "blockIconURI": "data:image/png;base64,AAAA",
+        "menuIconURI": "data:image/png;base64,BBBB",
+        "color1": "#0FBD8C",
+        "color2": "#0DA57A",
+        "color3": "#0B8E69",
+        "blocks": [
+          {
+            "info": {},
+            "xml": "<button text=\"Open Documentation\" callbackKey=\"OPEN_EXTENSION_DOCS\" callbackData=\"https://example.com/docs?a=1&amp;b=2\"></button>"
+          },
+          {
+            "info": {
+              "opcode": "command",
+              "blockType": "command",
+              "text": "move [STEPS] steps to [WHERE] & [MENU]",
+              "arguments": {
+                "STEPS": {
+                  "type": "number",
+                  "defaultValue": 10
+                },
+                "WHERE": {
+                  "type": "string",
+                  "menu": "reporterMenu",
+                  "defaultValue": "a"
+                },
+                "MENU": {
+                  "type": "string",
+                  "menu": "staticMenu",
+                  "defaultValue": "one"
+                }
+              },
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_command",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2move %3 steps to %4 & %5",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "input_value",
+                  "name": "STEPS"
+                },
+                {
+                  "type": "input_value",
+                  "name": "WHERE"
+                },
+                {
+                  "type": "field_dropdown",
+                  "name": "MENU",
+                  "options": [
+                    [
+                      "one",
+                      "one"
+                    ],
+                    [
+                      "Two",
+                      "2"
+                    ]
+                  ]
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_command\"><value name=\"STEPS\"><shadow type=\"math_number\"><field name=\"NUM\">10</field></shadow></value><value name=\"WHERE\"><shadow type=\"toolboxtest_menu_reporterMenu\"><field name=\"reporterMenu\">a</field></shadow></value><field name=\"MENU\">one</field></block>"
+          },
+          {
+            "info": "---",
+            "xml": "<sep gap=\"36\"/>"
+          },
+          {
+            "info": {
+              "opcode": "reporter",
+              "blockType": "reporter",
+              "text": "value of [COLOR] [ANGLE] [NOTE] [MATRIX]",
+              "arguments": {
+                "COLOR": {
+                  "type": "color",
+                  "defaultValue": "#ff0000"
+                },
+                "ANGLE": {
+                  "type": "angle",
+                  "defaultValue": 90
+                },
+                "NOTE": {
+                  "type": "note",
+                  "defaultValue": 60
+                },
+                "MATRIX": {
+                  "type": "matrix",
+                  "defaultValue": "1010101010101010101010101"
+                }
+              },
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_reporter",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2value of %3 %4 %5 %6",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "input_value",
+                  "name": "COLOR"
+                },
+                {
+                  "type": "input_value",
+                  "name": "ANGLE"
+                },
+                {
+                  "type": "input_value",
+                  "name": "NOTE"
+                },
+                {
+                  "type": "input_value",
+                  "name": "MATRIX"
+                }
+              ],
+              "output": "String",
+              "outputShape": 2
+            },
+            "xml": "<block type=\"toolboxtest_reporter\"><value name=\"COLOR\"><shadow type=\"colour_picker\"><field name=\"COLOUR\">#ff0000</field></shadow></value><value name=\"ANGLE\"><shadow type=\"math_angle\"><field name=\"NUM\">90</field></shadow></value><value name=\"NOTE\"><shadow type=\"note\"><field name=\"NOTE\">60</field></shadow></value><value name=\"MATRIX\"><shadow type=\"matrix\"><field name=\"MATRIX\">1010101010101010101010101</field></shadow></value></block>"
+          },
+          {
+            "info": {
+              "opcode": "plainReporter",
+              "blockType": "reporter",
+              "text": "plain",
+              "allowDropAnywhere": true,
+              "filter": [
+                "sprite"
+              ],
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_plainReporter",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2plain",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "output": null,
+              "outputShape": 2,
+              "checkboxInFlyout": true
+            },
+            "xml": "<block type=\"toolboxtest_plainReporter\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "bool",
+              "blockType": "Boolean",
+              "text": "is [B] and [FANCY]",
+              "arguments": {
+                "B": {
+                  "type": "Boolean"
+                },
+                "FANCY": {
+                  "type": "fancy",
+                  "defaultValue": "f"
+                }
+              },
+              "disableMonitor": true,
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_bool",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2is %3 and %4",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "input_value",
+                  "name": "B",
+                  "check": "Boolean"
+                },
+                {
+                  "type": "input_value",
+                  "name": "FANCY"
+                }
+              ],
+              "output": "Boolean",
+              "outputShape": 1
+            },
+            "xml": "<block type=\"toolboxtest_bool\"><value name=\"B\"></value><value name=\"FANCY\"><shadow type=\"toolboxtest_fancy\"><field name=\"field_toolboxtest_fancy\">f</field></shadow></value></block>"
+          },
+          {
+            "info": {
+              "opcode": "hat",
+              "blockType": "hat",
+              "text": "when [IMG] happens",
+              "arguments": {
+                "IMG": {
+                  "type": "image",
+                  "dataURI": "data:image/png;base64,CCCC",
+                  "flipRTL": true
+                }
+              },
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69",
+              "isEdgeActivated": true
+            },
+            "json": {
+              "type": "toolboxtest_hat",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2when %3 happens",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,CCCC",
+                  "width": 24,
+                  "height": 24,
+                  "flip_rtl": true
+                }
+              ],
+              "outputShape": 3,
+              "nextStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_hat\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "event",
+              "blockType": "event",
+              "text": "when event",
+              "isEdgeActivated": false,
+              "shouldRestartExistingThreads": true,
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_event",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2when event",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "outputShape": 3,
+              "nextStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_event\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "ifElse",
+              "blockType": "conditional",
+              "text": [
+                "if [C] then",
+                "else"
+              ],
+              "branchCount": 2,
+              "arguments": {
+                "C": {
+                  "type": "Boolean"
+                }
+              },
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_ifElse",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2if %3 then",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "input_value",
+                  "name": "C",
+                  "check": "Boolean"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null,
+              "message1": "%1",
+              "args1": [
+                {
+                  "type": "input_statement",
+                  "name": "SUBSTACK"
+                }
+              ],
+              "message2": "else",
+              "message3": "%1",
+              "args3": [
+                {
+                  "type": "input_statement",
+                  "name": "SUBSTACK2"
+                }
+              ]
+            },
+            "xml": "<block type=\"toolboxtest_ifElse\"><value name=\"C\"></value></block>"
+          },
+          {
+            "info": {
+              "opcode": "forever",
+              "blockType": "loop",
+              "text": "forever",
+              "isTerminal": true,
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69",
+              "branchCount": 1,
+              "branchIconURI": "media://repeat.svg"
+            },
+            "json": {
+              "type": "toolboxtest_forever",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2forever",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "message1": "%1",
+              "args1": [
+                {
+                  "type": "input_statement",
+                  "name": "SUBSTACK"
+                }
+              ],
+              "lastDummyAlign2": "RIGHT",
+              "message2": "%1",
+              "args2": [
+                {
+                  "type": "field_image",
+                  "src": "media://repeat.svg",
+                  "width": 24,
+                  "height": 24,
+                  "alt": "*",
+                  "flip_rtl": true
+                }
+              ]
+            },
+            "xml": "<block type=\"toolboxtest_forever\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "loopWithIcon",
+              "blockType": "loop",
+              "text": "loop",
+              "branchIconURI": "data:image/svg+xml;base64,DDDD",
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69",
+              "branchCount": 1
+            },
+            "json": {
+              "type": "toolboxtest_loopWithIcon",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2loop",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null,
+              "message1": "%1",
+              "args1": [
+                {
+                  "type": "input_statement",
+                  "name": "SUBSTACK"
+                }
+              ],
+              "lastDummyAlign2": "RIGHT",
+              "message2": "%1",
+              "args2": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/svg+xml;base64,DDDD",
+                  "width": 24,
+                  "height": 24,
+                  "alt": "*",
+                  "flip_rtl": true
+                }
+              ]
+            },
+            "xml": "<block type=\"toolboxtest_loopWithIcon\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "dynamic",
+              "blockType": "command",
+              "text": "dynamic [X]",
+              "isDynamic": true,
+              "arguments": {
+                "X": {
+                  "type": "string",
+                  "defaultValue": {
+                    "id": "test.default",
+                    "default": "hi"
+                  }
+                }
+              },
+              "extensions": [
+                "custom_extension",
+                "from_extension"
+              ],
+              "blockShape": 3,
+              "color1": "#111111",
+              "color2": "#222222",
+              "color3": "#333333",
+              "blockIconURI": "data:image/png;base64,EEEE"
+            },
+            "json": {
+              "type": "toolboxtest_dynamic",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "scratch_extension",
+                "custom_extension"
+              ],
+              "colour": "#111111",
+              "colourSecondary": "#222222",
+              "colourTertiary": "#333333",
+              "message0": "%1 %2dynamic %3",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,EEEE",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                },
+                {
+                  "type": "input_value",
+                  "name": "X"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_dynamic\"><mutation blockInfo=\"{&quot;opcode&quot;:&quot;dynamic&quot;,&quot;blockType&quot;:&quot;command&quot;,&quot;text&quot;:&quot;dynamic [X]&quot;,&quot;isDynamic&quot;:true,&quot;arguments&quot;:{&quot;X&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;defaultValue&quot;:{&quot;id&quot;:&quot;test.default&quot;,&quot;default&quot;:&quot;hi&quot;}}},&quot;extensions&quot;:[&quot;custom_extension&quot;,&quot;from_extension&quot;],&quot;blockShape&quot;:3,&quot;color1&quot;:&quot;#111111&quot;,&quot;color2&quot;:&quot;#222222&quot;,&quot;color3&quot;:&quot;#333333&quot;,&quot;blockIconURI&quot;:&quot;data:image/png;base64,EEEE&quot;}\"/><value name=\"X\"><shadow type=\"text\"><field name=\"TEXT\">hi</field></shadow></value></block>"
+          },
+          {
+            "info": {
+              "opcode": "hidden",
+              "blockType": "command",
+              "text": "hidden",
+              "hideFromPalette": true,
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_hidden",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2hidden",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_hidden\"></block>"
+          },
+          {
+            "info": {
+              "opcode": "stageOnly",
+              "blockType": "command",
+              "text": "stage only",
+              "filter": [
+                "stage"
+              ],
+              "isTerminal": true,
+              "color1": "#0FBD8C",
+              "color2": "#0DA57A",
+              "color3": "#0B8E69"
+            },
+            "json": {
+              "type": "toolboxtest_stageOnly",
+              "inputsInline": true,
+              "category": "Toolbox Test",
+              "extensions": [
+                "from_extension",
+                "default_extension_colors",
+                "scratch_extension"
+              ],
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "message0": "%1 %2stage only",
+              "args0": [
+                {
+                  "type": "field_image",
+                  "src": "data:image/png;base64,AAAA",
+                  "width": 40,
+                  "height": 40
+                },
+                {
+                  "type": "field_vertical_separator"
+                }
+              ],
+              "outputShape": 3,
+              "previousStatement": null
+            },
+            "xml": "<block type=\"toolboxtest_stageOnly\"></block>"
+          },
+          {
+            "info": {
+              "blockType": "label",
+              "text": "A <label> & more"
+            },
+            "xml": "<label text=\"A &lt;label&gt; &amp; more\"></label>"
+          },
+          {
+            "info": {
+              "blockType": "button",
+              "text": "Make a Variable",
+              "func": "MAKE_A_VARIABLE"
+            },
+            "xml": "<button text=\"Make a Variable\" callbackKey=\"MAKE_A_VARIABLE\"></button>"
+          },
+          {
+            "info": {
+              "blockType": "button",
+              "text": "Press me",
+              "func": "press"
+            },
+            "xml": "<button text=\"Press me\" callbackKey=\"EXTENSION_CALLBACK\" callbackData=\"toolboxtest_press\"></button>"
+          },
+          {
+            "info": {
+              "blockType": "xml",
+              "xml": "<sep gap=\"10\"/>"
+            },
+            "xml": "<sep gap=\"10\"/>"
+          }
+        ],
+        "customFieldTypes": {
+          "fancy": {
+            "fieldName": "fancy",
+            "extendedName": "toolboxtest_fancy",
+            "argumentTypeInfo": {
+              "shadow": {
+                "type": "toolboxtest_fancy",
+                "fieldName": "field_toolboxtest_fancy"
+              }
+            },
+            "scratchBlocksDefinition": {
+              "json": {
+                "type": "toolboxtest_fancy",
+                "message0": "%1",
+                "inputsInline": true,
+                "output": "String",
+                "colour": "#0FBD8C",
+                "colourSecondary": "#0DA57A",
+                "colourTertiary": "#0B8E69",
+                "outputShape": 2,
+                "args0": [
+                  {
+                    "name": "field_toolboxtest_fancy",
+                    "type": "field_toolboxtest_fancy"
+                  }
+                ]
+              }
+            },
+            "fieldImplementation": {}
+          }
+        },
+        "menus": [
+          {
+            "json": {
+              "message0": "%1",
+              "type": "toolboxtest_menu_staticMenu",
+              "inputsInline": true,
+              "output": "String",
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "outputShape": 3,
+              "args0": [
+                {
+                  "type": "field_dropdown",
+                  "name": "staticMenu",
+                  "options": [
+                    [
+                      "one",
+                      "one"
+                    ],
+                    [
+                      "Two",
+                      "2"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "json": {
+              "message0": "%1",
+              "type": "toolboxtest_menu_reporterMenu",
+              "inputsInline": true,
+              "output": "String",
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "outputShape": 2,
+              "args0": [
+                {
+                  "type": "field_dropdown",
+                  "name": "reporterMenu",
+                  "options": [
+                    [
+                      "a",
+                      "a"
+                    ],
+                    [
+                      "b",
+                      "b"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "json": {
+              "message0": "%1",
+              "type": "toolboxtest_menu_dynamicMenu",
+              "inputsInline": true,
+              "output": "String",
+              "colour": "#0FBD8C",
+              "colourSecondary": "#0DA57A",
+              "colourTertiary": "#0B8E69",
+              "outputShape": 3,
+              "args0": [
+                {
+                  "type": "field_dropdown",
+                  "name": "dynamicMenu"
+                }
+              ]
+            }
+          }
+        ],
+        "menuInfo": {
+          "staticMenu": {
+            "items": [
+              "one",
+              {
+                "text": "Two",
+                "value": "2"
+              }
+            ]
+          },
+          "reporterMenu": {
+            "acceptReporters": true,
+            "items": [
+              "a",
+              "b"
+            ]
+          },
+          "dynamicMenu": {}
+        }
+      }
+    ],
+    [
+      "EXTENSION_ADDED",
+      {
+        "id": "plaincolors",
+        "name": "Plain Colors",
+        "color1": "#abcdef",
+        "color2": "#123456",
+        "color3": "#654321",
+        "blocks": [
+          {
+            "info": {
+              "opcode": "say",
+              "blockType": "command",
+              "text": "say [MESSAGE]",
+              "arguments": {
+                "MESSAGE": {
+                  "type": "string",
+                  "defaultValue": "Hello <world> & \"you\""
+                }
+              },
+              "color1": "#abcdef",
+              "color2": "#123456",
+              "color3": "#654321"
+            },
+            "json": {
+              "type": "plaincolors_say",
+              "inputsInline": true,
+              "category": "Plain Colors",
+              "extensions": [
+                "from_extension"
+              ],
+              "colour": "#abcdef",
+              "colourSecondary": "#123456",
+              "colourTertiary": "#654321",
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null,
+              "args0": [
+                {
+                  "type": "input_value",
+                  "name": "MESSAGE"
+                }
+              ],
+              "message0": "say %1"
+            },
+            "xml": "<block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block>"
+          }
+        ],
+        "customFieldTypes": {},
+        "menus": [],
+        "menuInfo": {}
+      }
+    ],
+    [
+      "BLOCKSINFO_UPDATE",
+      {
+        "id": "plaincolors",
+        "name": "Renamed",
+        "color1": "#abcdef",
+        "color2": "#123456",
+        "color3": "#654321",
+        "blocks": [
+          {
+            "info": {
+              "opcode": "say",
+              "blockType": "command",
+              "text": "say [MESSAGE]",
+              "arguments": {
+                "MESSAGE": {
+                  "type": "string",
+                  "defaultValue": "Hello <world> & \"you\""
+                }
+              },
+              "color1": "#abcdef",
+              "color2": "#123456",
+              "color3": "#654321"
+            },
+            "json": {
+              "type": "plaincolors_say",
+              "inputsInline": true,
+              "category": "Renamed",
+              "extensions": [
+                "from_extension"
+              ],
+              "colour": "#abcdef",
+              "colourSecondary": "#123456",
+              "colourTertiary": "#654321",
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null,
+              "args0": [
+                {
+                  "type": "input_value",
+                  "name": "MESSAGE"
+                }
+              ],
+              "message0": "say %1"
+            },
+            "xml": "<block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block>"
+          }
+        ],
+        "customFieldTypes": {},
+        "menus": [],
+        "menuInfo": {}
+      }
+    ],
+    [
+      "BLOCKSINFO_UPDATE",
+      {
+        "id": "plaincolors",
+        "name": "Plain Colors",
+        "color1": "#abcdef",
+        "color2": "#123456",
+        "color3": "#654321",
+        "blocks": [
+          {
+            "info": {
+              "opcode": "say",
+              "blockType": "command",
+              "text": "say [MESSAGE]",
+              "arguments": {
+                "MESSAGE": {
+                  "type": "string",
+                  "defaultValue": "Hello <world> & \"you\""
+                }
+              },
+              "color1": "#abcdef",
+              "color2": "#123456",
+              "color3": "#654321"
+            },
+            "json": {
+              "type": "plaincolors_say",
+              "inputsInline": true,
+              "category": "Plain Colors",
+              "extensions": [
+                "from_extension"
+              ],
+              "colour": "#abcdef",
+              "colourSecondary": "#123456",
+              "colourTertiary": "#654321",
+              "outputShape": 3,
+              "previousStatement": null,
+              "nextStatement": null,
+              "args0": [
+                {
+                  "type": "input_value",
+                  "name": "MESSAGE"
+                }
+              ],
+              "message0": "say %1"
+            },
+            "xml": "<block type=\"plaincolors_say\"><value name=\"MESSAGE\"><shadow type=\"text\"><field name=\"TEXT\">Hello &lt;world&gt; &amp; &quot;you&quot;</field></shadow></value></block>"
+          }
+        ],
+        "customFieldTypes": {},
+        "menus": [],
+        "menuInfo": {}
+      }
+    ]
+  ]
+}
