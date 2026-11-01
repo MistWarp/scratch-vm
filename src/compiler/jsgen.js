@@ -207,6 +207,8 @@ class Frame {
     }
 }
 
+const rethrowRetire = error => `if (${error} === ${jsexecute.RETIRE_MAGIC}) throw ${error};`;
+
 class JSGenerator {
     /**
      * @param {IntermediateScript} script
@@ -1002,7 +1004,7 @@ class JSGenerator {
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
         case StackOpcode.LIST_SET_ARRAY:
-            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInputAt(node.array, Precedence.LOWEST)}); } catch {}\n`;
+            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInputAt(node.array, Precedence.LOWEST)}); } catch (e) { ${rethrowRetire('e')} }\n`;
             break;
 
         case StackOpcode.LOOKS_LAYER_BACKWARD:
@@ -1511,6 +1513,7 @@ class JSGenerator {
                 input,
                 field,
                 cast,
+                rethrowRetire,
                 mutation: node.mutation,
                 runtime: 'runtime',
                 target: 'target',
@@ -1525,6 +1528,7 @@ class JSGenerator {
         const source = compiler.compile({
             input,
             field,
+            rethrowRetire,
             mutation: node.mutation,
             runtime: 'runtime',
             target: 'target',
@@ -1584,6 +1588,7 @@ class JSGenerator {
             stage: 'stage',
             branch,
             yieldLoop,
+            rethrowRetire,
             blockType: node.blockType,
             branchCount: node.branchCount
         };
