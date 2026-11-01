@@ -742,7 +742,6 @@ class Blocks {
         if (Object.prototype.hasOwnProperty.call(this._blocks, block.id)) {
             return;
         }
-        // No prototype pollution.
         if (block.id === '__proto__') {
             return;
         }
