@@ -20,7 +20,7 @@ while (thread.timer.timeElapsed() < a1) {
 yield;
 }
 thread.timer = null;
-if ((limitPrecision(target.x) === 100)) {
+if (limitPrecision(target.x) === 100) {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {
 runtime.ext_scratch3_looks._say("fail", target);

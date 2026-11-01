@@ -3,8 +3,8 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A");
+const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B");
 return function* genXYZ () {
 b0.value = 0;
 b1.value = 0;
@@ -18,20 +18,20 @@ retire(); return;
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
-const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"];
-return function funXYZ () {
-let t;
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A");
+const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B");
+return function* genXYZ () {
+var a0, a1;
 if (compareGreaterThan(b0.value, 3)) {
 if (compareLessThan(b1.value, b0.value)) {
-thread.procedures["ZOK %s"]("");
+yield* thread.procedures["ZOK %s"]("");
 } else {
-thread.procedures["ZFAIL %s"]("");
+yield* thread.procedures["ZFAIL %s"]("");
 }
 } else {
 target.setCostume(target.currentCostume + 1);
-b0.value = (((t = +b0.value) === t ? t : 0) + 1);
-b1.value = (((t = +b1.value) === t ? t : 0) + 1);
+b0.value = ((a0 = +b0.value) === a0 ? a0 : 0) + 1;
+b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
 }
 retire(); return;
@@ -39,22 +39,22 @@ retire(); return;
 
 // Sprite1 ZOK %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-return function funXYZ_OK_ (p0) {
+return function* genXYZ_OK_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
-runtime.ext_scratch3_looks._say(("pass " + ("" + p0)), target);
+runtime.ext_scratch3_looks._say("pass " + p0, target);
 runtime.ext_scratch3_looks._say("end", target);
 runtime.stopAll();
-retire(); throw 1;
+retire(); yield;
 return "";
 }; })
 
 // Sprite1 ZFAIL %s
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-return function funXYZ_FAIL_ (p0) {
+return function* genXYZ_FAIL_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
-runtime.ext_scratch3_looks._say(("fail " + ("" + p0)), target);
+runtime.ext_scratch3_looks._say("fail " + p0, target);
 runtime.ext_scratch3_looks._say("end", target);
 runtime.stopAll();
-retire(); throw 1;
+retire(); yield;
 return "";
 }; })

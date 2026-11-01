@@ -3,24 +3,22 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["k|@-`:^^Mo+E}$({|2/P"];
-const b1 = stage.variables["t2m05.oW;5f0=GL30@pV"];
-return function funXYZ () {
+const b0 = stage.variables["k|@-`:^^Mo+E}$({|2/P"] || stage.lookupOrCreateVariable("k|@-`:^^Mo+E}$({|2/P", "Infinity");
+const b1 = stage.variables["t2m05.oW;5f0=GL30@pV"] || stage.lookupOrCreateVariable("t2m05.oW;5f0=GL30@pV", "-Infinity");
+return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 4", target);
-b0.value = (1 / 0);
-b1.value = (-1 / 0);
-if ((("" + (b0.value + b1.value)).toLowerCase() === "NaN".toLowerCase())) {
+b0.value = Infinity;
+b1.value = -Infinity;
+if (("" + (b0.value + b1.value)).toLowerCase() === "nan") {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if ((("" + (b0.value - b0.value)).toLowerCase() === "NaN".toLowerCase())) {
+if (("" + (b0.value - b0.value)).toLowerCase() === "nan") {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if ((("" + (b0.value * 0)).toLowerCase() === "NaN".toLowerCase())) {
+if (("" + b0.value * 0).toLowerCase() === "nan") {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if ((("" + (0 / 0)).toLowerCase() === "NaN".toLowerCase())) {
 runtime.ext_scratch3_looks._say("pass 1", target);
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })

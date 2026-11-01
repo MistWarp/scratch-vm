@@ -5,18 +5,10 @@
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 4", target);
-if (!(0 < 0)) {
 runtime.ext_scratch3_looks._say("pass not 1e-324 < 0", target);
-}
-if ((0 === 0)) {
 runtime.ext_scratch3_looks._say("pass not 1e-324 = 0", target);
-}
-if (!(0 > 0)) {
 runtime.ext_scratch3_looks._say("pass not 1e-324 > 0", target);
-}
-if ((0 === 0)) {
 runtime.ext_scratch3_looks._say("pass 0.000[...]0001 = 0", target);
-}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
