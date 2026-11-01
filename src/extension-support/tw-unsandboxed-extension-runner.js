@@ -96,6 +96,10 @@ const setupUnsandboxedExtensionAPI = (vm, onRegister) => new Promise(resolve => 
         if (!parsed) {
             return false;
         }
+        // eslint-disable-next-line no-script-url
+        if (parsed.protocol === 'javascript:') {
+            return false;
+        }
         return vm.securityManager.canEmbed(parsed.href);
     };
 

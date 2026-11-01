@@ -7,6 +7,7 @@ const log = require('../util/log');
 const {isWorker} = require('./tw-extension-worker-context');
 const createTranslate = require('./tw-l10n');
 const {CONSOLE_LEVELS, formatConsoleArgs, locateInStack} = require('./tw-console-capture');
+const loadScriptElement = require('./tw-load-script-element');
 
 const translate = createTranslate(null);
 
@@ -22,16 +23,6 @@ const readEmbeddedSource = url => {
         .catch(() => null);
 };
 
-const appendScript = src => new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.onload = () => resolve();
-    script.onerror = () => {
-        reject(new Error(`Error in sandboxed script: ${src}. Check the console for more information.`));
-    };
-    script.src = src;
-    document.body.appendChild(script);
-});
-
 const loadScripts = url => {
     if (isWorker) {
         scriptNames = [url];
@@ -40,13 +31,13 @@ const loadScripts = url => {
     }
     scriptNames = [url];
     return readEmbeddedSource(url).then(source => {
-        if (source === null) return appendScript(url);
+        if (source === null) return loadScriptElement(url);
         const name = `mistwarp-extension:///sandboxed-${++scriptCounter}.js`;
         const blobURL = URL.createObjectURL(new Blob([`${source}\n//# sourceURL=${name}`], {
             type: 'text/javascript'
         }));
         scriptNames = [blobURL, name];
-        return appendScript(blobURL).finally(() => URL.revokeObjectURL(blobURL));
+        return loadScriptElement(blobURL).finally(() => URL.revokeObjectURL(blobURL));
     });
 };
 

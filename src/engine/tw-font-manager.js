@@ -174,8 +174,9 @@ class FontManager extends EventEmitter {
             fallback,
             asset
         });
-        this.updateRenderer();
+        const promise = this.updateRenderer();
         this.changed();
+        return promise;
     }
 
     /**
@@ -211,9 +212,11 @@ class FontManager extends EventEmitter {
         this.changed();
     }
 
+    /**
+     */
     updateRenderer () {
         if (!this.runtime.renderer || !this.runtime.renderer.setCustomFonts) {
-            return;
+            return Promise.resolve();
         }
 
         const fontfaces = {};
@@ -225,7 +228,7 @@ class FontManager extends EventEmitter {
                 fontfaces[family] = fontface;
             }
         }
-        this.runtime.renderer.setCustomFonts(fontfaces);
+        return this.runtime.renderer.setCustomFonts(fontfaces);
     }
 
     /**
@@ -276,6 +279,7 @@ class FontManager extends EventEmitter {
             return;
         }
 
+        const fontPromises = [];
         for (const font of json) {
             if (!font || typeof font !== 'object') {
                 continue;
@@ -312,12 +316,14 @@ class FontManager extends EventEmitter {
                         log.warn(`could not load font asset: ${md5ext}`);
                         continue;
                     }
-                    this.addCustomFont(family, fallback, asset);
+                    fontPromises.push(this.addCustomFont(family, fallback, asset));
                 }
             } catch (e) {
                 log.error('could not add font', e);
             }
         }
+
+        await Promise.all(fontPromises);
     }
 }
 

@@ -974,6 +974,7 @@ class VirtualMachine extends EventEmitter {
         if (wholeProject === true) {
             this._unloadOutdatedExtensions(extensionIDs, extensionURLs);
         }
+        const customExtensions = [];
         for (const extensionID of extensionIDs) {
             ensureActive();
             if (
@@ -997,9 +998,10 @@ class VirtualMachine extends EventEmitter {
                 if (!url) {
                     throw new Error(`Unknown extension: ${extensionID}`);
                 }
-                await loadFromProject(extensionID, url);
+                customExtensions.push([extensionID, url]);
             }
         }
+        await Promise.all(customExtensions.map(([extensionID, url]) => loadFromProject(extensionID, url)));
         return Promise.all(extensionPromises);
     }
 
