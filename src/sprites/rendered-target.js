@@ -4,6 +4,7 @@ const Cast = require('../util/cast');
 const Clone = require('../util/clone');
 const Target = require('../engine/target');
 const StageLayering = require('../engine/stage-layering');
+const RuntimeEvents = require('../engine/runtime-events');
 const {isMapComment, remapMapCommentText} = require('../serialization/reserved-comments');
 
 /**
@@ -939,8 +940,12 @@ class RenderedTarget extends Target {
      * @return {RenderedTarget} New clone.
      */
     makeClone () {
-        if (!this.runtime.clonesAvailable() || this.isStage) {
-            return null; // Hit max clone limit, or this is the stage.
+        if (this.isStage) return null;
+        if (!this.runtime.clonesAvailable()) {
+            if (this.runtime.listenerCount(RuntimeEvents.CLONE_LIMIT_REACHED)) {
+                this.runtime.emit(RuntimeEvents.CLONE_LIMIT_REACHED, this);
+            }
+            return null;
         }
         this.runtime.changeCloneCounter(1);
         const newClone = this.sprite.createClone();

@@ -122,3 +122,22 @@ test('handlers also get the whole meta being saved or loaded', async t => {
     t.equal(JSON.parse(vm.toJSON()).meta.semver, '3.0.0');
     t.end();
 });
+
+test('a handler changing the loaded meta does not change what the VM loads', async t => {
+    const vm = new VirtualMachine();
+    const mismatches = [];
+    vm.runtime.on('PLATFORM_MISMATCH', (platform, proceed) => {
+        mismatches.push(platform.name);
+        proceed();
+    });
+    vm.registerProjectMetadata('created', {
+        deserialize: (value, meta) => {
+            meta.platform.name = 'Changed';
+        }
+    });
+    const json = JSON.parse(vm.toJSON());
+    json.meta.platform = {name: 'Other', url: 'https://example.com/'};
+    await vm.loadProject(JSON.stringify(json));
+    t.same(mismatches, ['Other']);
+    t.end();
+});

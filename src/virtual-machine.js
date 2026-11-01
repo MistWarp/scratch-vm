@@ -931,7 +931,7 @@ class VirtualMachine extends EventEmitter {
     }
 
     _deserializeProjectMetadata (meta) {
-        const loaded = Object.assign({}, meta !== null && typeof meta === 'object' ? meta : {});
+        const loaded = meta !== null && typeof meta === 'object' ? JSON.parse(JSON.stringify(meta)) : {};
         for (const [key, handler] of this._projectMetadata) {
             if (!handler.deserialize) continue;
             try {

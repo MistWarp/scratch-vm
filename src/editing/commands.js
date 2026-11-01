@@ -34,6 +34,7 @@ const INDEXED = {
 };
 const REORDERS = ['reorderTarget', 'reorderCostume', 'reorderSound'];
 const DELETES = ['deleteCostume', 'deleteSound'];
+const LOADS = ['duplicateCostume', 'duplicateSound', 'shareCostumeToTarget', 'shareSoundToTarget'];
 const clampIndex = (index, list) => MathUtil.clamp(index, 0, list.length - 1);
 const SPRITE_INFO = ['x', 'y', 'direction', 'size', 'visible', 'rotationStyle', 'draggable'];
 const CODE_METHODS = ['blockEvent', 'shareBlocksToTarget', 'addSprite', 'duplicateSprite', 'deleteSprite',
@@ -174,11 +175,8 @@ class EditingCommands {
 
     refuse (method, error) {
         this.vm.emit(VirtualMachineEvents.EDIT_COMMAND_ERROR, error);
-        if (REORDERS.includes(method)) return false;
         if (DELETES.includes(method)) return null;
-        const refused = Promise.reject(error);
-        refused.catch(() => {});
-        return refused;
+        if (LOADS.includes(method)) return Promise.resolve(null);
     }
 
     targetState (target, includeCode = true) {

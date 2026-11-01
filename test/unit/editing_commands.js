@@ -322,13 +322,17 @@ test('a command for an item that no longer exists reports it without a rejected 
 
     t.equal(host.deleteSound(99), null);
     t.equal(host.deleteCostume(99), null);
-    await t.rejects(host.renameCostume(99, 'gone'), /no longer exists/);
-    host.renameSound(99, 'gone');
+    t.equal(host.renameCostume(99, 'gone'), undefined);
+    t.equal(host.renameSound(99, 'gone'), undefined);
+    t.equal(await host.duplicateCostume(99), null);
+    t.equal(await host.duplicateSound(99), null);
+    t.equal(await host.shareCostumeToTarget(99, stage(host).id), null);
+    host.shareSoundToTarget(99, stage(host).id).then(value => t.equal(value, null));
     await new Promise(resolve => setTimeout(resolve, 0));
 
     process.removeListener('unhandledRejection', onUnhandled);
     t.same(unhandled, []);
-    t.equal(errors.length, 4);
+    t.equal(errors.length, 8);
     t.equal(sprite(host).getSounds().length, 1);
     t.end();
 });

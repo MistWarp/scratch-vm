@@ -1635,6 +1635,12 @@ class Runtime extends EventEmitter {
                 this.sequencer.retireThread(thread);
             }
         }
+        if (this._pausedThreads !== null) {
+            for (let i = 0; i < newThreads.length; i++) this.pauseThread(newThreads[i]);
+        }
+        if (this.listenerCount(RuntimeEvents.HATS_STARTED)) {
+            this.emit(RuntimeEvents.HATS_STARTED, requestedHatOpcode, optMatchFields, newThreads);
+        }
         return newThreads;
     }
 

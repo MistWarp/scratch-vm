@@ -156,3 +156,144 @@ test('the VM exposes and forwards pausing', t => {
     t.same(events, ['paused', 'unpaused']);
     t.end();
 });
+
+const broadcastProject = () => {
+    const costume = {name: 'c',
+        assetId: 'cd21514d0531fdffb22204e0ec5ed84a',
+        md5ext: 'cd21514d0531fdffb22204e0ec5ed84a.svg',
+        dataFormat: 'svg',
+        rotationCenterX: 0,
+        rotationCenterY: 0};
+    const block = (opcode, extra) => Object.assign({opcode,
+        next: null,
+        parent: null,
+        inputs: {},
+        fields: {},
+        shadow: false,
+        topLevel: false}, extra);
+    const receiver = (id, message, variable) => ({
+        [`${id}hat`]: block('event_whenbroadcastreceived', {next: `${id}loop`,
+            topLevel: true,
+            x: 0,
+            y: 0,
+            fields: {BROADCAST_OPTION: [message, `${message}-id`]}}),
+        [`${id}loop`]: block('control_forever', {parent: `${id}hat`, inputs: {SUBSTACK: [2, `${id}inc`]}}),
+        [`${id}inc`]: block('data_changevariableby', {parent: `${id}loop`,
+            inputs: {VALUE: [1, [4, '1']]},
+            fields: {VARIABLE: [variable, variable]}})
+    });
+    return {
+        targets: [
+            {isStage: true,
+                name: 'Stage',
+                variables: {a: ['a', 0], b: ['b', 0]},
+                lists: {},
+                broadcasts: {'go-id': 'go', 'other-id': 'other'},
+                blocks: {},
+                comments: {},
+                currentCostume: 0,
+                costumes: [costume],
+                sounds: [],
+                volume: 100,
+                layerOrder: 0},
+            {isStage: false,
+                name: 'Sprite1',
+                variables: {},
+                lists: {},
+                broadcasts: {},
+                blocks: Object.assign(receiver('go', 'go', 'a'), receiver('other', 'other', 'b')),
+                comments: {},
+                currentCostume: 0,
+                costumes: [costume],
+                sounds: [],
+                volume: 100,
+                layerOrder: 1,
+                visible: true,
+                x: 0,
+                y: 0,
+                size: 100,
+                direction: 90,
+                draggable: false,
+                rotationStyle: 'all around'}
+        ],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0'}
+    };
+};
+
+for (const compiled of [false, true]) {
+    test(`broadcasts while paused start held threads, compiled ${compiled}`, async t => {
+        const vm = new VirtualMachine();
+        vm.setCompilerOptions({enabled: compiled});
+        await vm.loadProject(broadcastProject());
+        const rt = vm.runtime;
+        const value = name => Number(rt.getTargetForStage().variables[name].value);
+        const broadcast = message => rt.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: message});
+
+        broadcast('go');
+        rt._step();
+        rt._step();
+        t.ok(value('a') > 0);
+
+        rt.setPaused(true);
+        const before = value('a');
+        const [restarted] = broadcast('go');
+        const [started] = broadcast('other');
+        t.ok(restarted, 'the go receiver restarts');
+        t.ok(started, 'the other receiver starts');
+        t.not(rt.getPausedThreadState(restarted), null, 'a restarted held thread stays held');
+        t.not(rt.getPausedThreadState(started), null, 'a newly started thread is held');
+        for (let i = 0; i < 3; i++) rt._step();
+        t.equal(value('a'), before);
+        t.equal(value('b'), 0);
+        t.equal(rt.isPaused(), true);
+
+        rt.setPaused(false);
+        rt._step();
+        rt._step();
+        t.ok(value('a') > 0);
+        t.ok(value('b') > 0, 'unpausing runs the threads started while paused');
+        vm.quit();
+        t.end();
+    });
+}
+
+test('stack clicks still run while paused', t => {
+    const rt = new Runtime();
+    rt.setPaused(true);
+    const thread = new Thread('block');
+    thread.stackClick = true;
+    rt.threads.push(thread);
+    t.equal(rt.getPausedThreadState(thread), null);
+    t.end();
+});
+
+test('startHats reports the hats it started', async t => {
+    const vm = new VirtualMachine();
+    await vm.loadProject(broadcastProject());
+    const reports = [];
+    vm.runtime.on('HATS_STARTED', (opcode, fields, threads) => reports.push([opcode, fields, threads.length]));
+    vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'go'});
+    vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'nobody'});
+    t.same(reports, [
+        ['event_whenbroadcastreceived', {BROADCAST_OPTION: 'go'}, 1],
+        ['event_whenbroadcastreceived', {BROADCAST_OPTION: 'nobody'}, 0]
+    ]);
+    vm.quit();
+    t.end();
+});
+
+test('making a clone past the limit reports it', async t => {
+    const vm = new VirtualMachine();
+    await vm.loadProject(broadcastProject());
+    const sprite = vm.runtime.targets.find(target => !target.isStage);
+    const refused = [];
+    vm.runtime.on('CLONE_LIMIT_REACHED', target => refused.push(target));
+    vm.runtime.clonesAvailable = () => false;
+    t.equal(sprite.makeClone(), null);
+    t.equal(vm.runtime.getTargetForStage().makeClone(), null);
+    t.same(refused, [sprite]);
+    vm.quit();
+    t.end();
+});
