@@ -4,7 +4,7 @@
  * JSON and then generates all needed scratch-vm runtime structures.
  */
 
-const Runtime = require('../engine/runtime');
+const RuntimeEvents = require('../engine/runtime-events');
 const Blocks = require('../engine/blocks');
 const Sprite = require('../sprites/sprite');
 const Variable = require('../engine/variable');
@@ -23,6 +23,7 @@ const {loadCostume} = require('../import/load-costume.js');
 const {loadSound} = require('../import/load-sound.js');
 const {deserializeCostume, deserializeSound} = require('./deserialize-assets.js');
 const ProjectAssetLoad = require('./project-asset-load');
+const {CORE_OPCODE_PREFIXES} = require('../extension-support/core-extensions');
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -58,23 +59,6 @@ const INPUT_SAME_BLOCK_SHADOW = 1; // unobscured shadow
 const INPUT_BLOCK_NO_SHADOW = 2; // no shadow
 const INPUT_DIFF_BLOCK_SHADOW = 3; // obscured shadow
 // There shouldn't be a case where block is null, but shadow is present...
-
-// Constants used during deserialization of an SB3 file
-const CORE_EXTENSIONS = [
-    'argument',
-    'assets',
-    'colour',
-    'control',
-    'data',
-    'event',
-    'looks',
-    'math',
-    'motion',
-    'operator',
-    'procedures',
-    'sensing',
-    'sound'
-];
 
 // Constants referring to 'primitive' blocks that are usually shadows,
 // or in the case of variables and lists, appear quite often in projects
@@ -601,7 +585,7 @@ const getExtensionIdForOpcode = function (opcode) {
     const index = opcode.indexOf('_');
     const forbiddenSymbols = /[^\w-]/g;
     const prefix = opcode.substring(0, index).replace(forbiddenSymbols, '-');
-    if (CORE_EXTENSIONS.indexOf(prefix) === -1) {
+    if (CORE_OPCODE_PREFIXES.indexOf(prefix) === -1) {
         if (prefix !== '') return prefix;
     }
 };
@@ -1963,13 +1947,13 @@ const checkPlatformCompatibility = (json, runtime) => {
         return;
     }
 
-    let pending = runtime.listenerCount(Runtime.PLATFORM_MISMATCH);
+    let pending = runtime.listenerCount(RuntimeEvents.PLATFORM_MISMATCH);
     if (pending === 0) {
         return;
     }
 
     return new Promise(resolve => {
-        runtime.emit(Runtime.PLATFORM_MISMATCH, json.meta.platform, () => {
+        runtime.emit(RuntimeEvents.PLATFORM_MISMATCH, json.meta.platform, () => {
             pending--;
             if (pending === 0) {
                 resolve();

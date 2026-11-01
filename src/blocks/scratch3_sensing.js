@@ -1,6 +1,7 @@
 const Cast = require('../util/cast');
 const Timer = require('../util/timer');
 const getMonitorIdForBlockWithArgs = require('../util/get-monitor-id');
+const RuntimeEvents = require('../engine/runtime-events');
 
 class Scratch3SensingBlocks {
     constructor (runtime) {
@@ -121,7 +122,7 @@ class Scratch3SensingBlocks {
             const [_question, resolve, target, wasVisible, wasStage] = questionObj;
             // If the target was visible when asked, hide the say bubble unless the target was the stage.
             if (wasVisible && !wasStage) {
-                this.runtime.emit('SAY', target, 'say', '');
+                this.runtime.emit(RuntimeEvents.SAY, target, 'say', '');
             }
             resolve();
             this._askNextQuestion();
@@ -142,17 +143,17 @@ class Scratch3SensingBlocks {
             // If the target is visible, emit a blank question and use the
             // say event to trigger a bubble unless the target was the stage.
             if (wasVisible && !wasStage) {
-                this.runtime.emit('SAY', target, 'say', question);
-                this.runtime.emit('QUESTION', '');
+                this.runtime.emit(RuntimeEvents.SAY, target, 'say', question);
+                this.runtime.emit(RuntimeEvents.QUESTION, '');
             } else {
-                this.runtime.emit('QUESTION', question);
+                this.runtime.emit(RuntimeEvents.QUESTION, question);
             }
         }
     }
 
     _clearAllQuestions () {
         this._questionList = [];
-        this.runtime.emit('QUESTION', null);
+        this.runtime.emit(RuntimeEvents.QUESTION, null);
     }
 
     _clearTargetQuestions (stopTarget) {
@@ -162,11 +163,11 @@ class Scratch3SensingBlocks {
         ));
 
         if (currentlyAsking) {
-            this.runtime.emit('SAY', stopTarget, 'say', '');
+            this.runtime.emit(RuntimeEvents.SAY, stopTarget, 'say', '');
             if (this._questionList.length > 0) {
                 this._askNextQuestion();
             } else {
-                this.runtime.emit('QUESTION', null);
+                this.runtime.emit(RuntimeEvents.QUESTION, null);
             }
         }
     }

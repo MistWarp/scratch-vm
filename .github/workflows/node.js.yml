@@ -11,6 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -18,5 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: node scripts/check-conventions.mjs --base=origin/${{ github.base_ref }}
+        if: github.event_name == 'pull_request'
       - run: npm run build
       - run: npm run tap

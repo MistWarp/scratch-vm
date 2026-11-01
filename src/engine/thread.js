@@ -1,13 +1,11 @@
 const log = require('../util/log');
+const compile = require('../compiler/compile');
 
 /**
  * Recycle bin for empty stackFrame objects
  * @type Array<_StackFrame>
  */
 const _stackFrameFreeList = [];
-
-/** The compiler, loaded on first use. */
-let compile = null;
 
 /** Shared by every compiled thread whose script calls no custom blocks. */
 const NO_PROCEDURES = Object.freeze({});
@@ -492,10 +490,6 @@ class Thread {
         if (!this.blockContainer) {
             return;
         }
-
-        // importing the compiler here avoids circular dependency issues; resolving it once keeps require() off the
-        // path of every thread start
-        if (!compile) compile = require('../compiler/compile');
 
         this.triedToCompile = true;
 

@@ -1,4 +1,4 @@
-const Thread = require('./thread');
+const ThreadStatus = require('./thread-status');
 const Timer = require('../util/timer');
 
 /**
@@ -105,14 +105,14 @@ class BlockUtility {
      * Set the thread to yield.
      */
     yield () {
-        this.thread.status = Thread.STATUS_YIELD;
+        this.thread.status = ThreadStatus.STATUS_YIELD;
     }
 
     /**
      * Set the thread to yield until the next tick of the runtime.
      */
     yieldTick () {
-        this.thread.status = Thread.STATUS_YIELD_TICK;
+        this.thread.status = ThreadStatus.STATUS_YIELD_TICK;
     }
 
     /**

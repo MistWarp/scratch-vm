@@ -1,4 +1,5 @@
 const uid = require('../util/uid');
+const VirtualMachineEvents = require('../virtual-machine-events');
 const Variable = require('../engine/variable');
 const Comment = require('../engine/comment');
 const Frame = require('../engine/frame');
@@ -152,7 +153,7 @@ class EditingCommands {
         } catch (error) {
             result = Promise.reject(error);
         }
-        result.catch(error => vm.emit('EDIT_COMMAND_ERROR', error));
+        result.catch(error => vm.emit(VirtualMachineEvents.EDIT_COMMAND_ERROR, error));
         return restore || result;
     }
 
