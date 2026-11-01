@@ -43,6 +43,10 @@ const RAW_SOURCE_REPORTERS = new Map([
     ['patching_jsboolean', InputType.BOOLEAN]
 ]);
 
+const rawSourceYields = fragments => fragments.some(fragment => fragment.yields || (
+    fragment.opcode === InputOpcode.CONSTANT && /\byield\b/.test(`${fragment.inputs.value}`)
+));
+
 const rawSourceAllowed = (runtime, opcode) => {
     const manager = runtime.extensionManager;
     if (!manager) return true;
@@ -138,7 +142,6 @@ class ScriptTreeGenerator {
         this.script.procedureVariant = procedureVariant;
         this.script.procedureCode = procedureCode;
         this.script.isProcedure = true;
-        this.script.yields = false;
 
         const paramNamesIdsAndDefaults = this.blocks.getProcedureParamNamesIdsAndDefaults(procedureCode);
         if (paramNamesIdsAndDefaults === null) {
@@ -695,15 +698,13 @@ class ScriptTreeGenerator {
      */
     descendStackedBlock (block) {
         if (RAW_SOURCE_COMMANDS.has(block.opcode) && rawSourceAllowed(this.runtime, block.opcode)) {
-            return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {
-                fragments: this.descendRawSourceFragments(block)
-            });
+            const fragments = this.descendRawSourceFragments(block);
+            return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {fragments}, rawSourceYields(fragments));
         }
         const rawSourceType = RAW_SOURCE_REPORTERS.get(block.opcode);
         if (rawSourceType && rawSourceAllowed(this.runtime, block.opcode)) {
-            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
-                input: this.descendRawSourceInput(block, rawSourceType)
-            });
+            const input = this.descendRawSourceInput(block, rawSourceType);
+            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {input}, input.yields);
         }
 
         const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
@@ -741,7 +742,7 @@ class ScriptTreeGenerator {
                 target: this.descendInputOfBlock(block, 'CLONE_OPTION').toType(InputType.STRING)
             });
         case 'control_delete_this_clone':
-            return new IntermediateStackBlock(StackOpcode.CONTROL_CLONE_DELETE, {}, true);
+            return new IntermediateStackBlock(StackOpcode.CONTROL_CLONE_DELETE);
         case 'control_forever':
             return new IntermediateStackBlock(StackOpcode.CONTROL_WHILE, {
                 condition: this.createConstantInput(true).toType(InputType.BOOLEAN),
@@ -787,7 +788,7 @@ class ScriptTreeGenerator {
         case 'control_stop': {
             const level = block.fields.STOP_OPTION.value;
             if (level === 'all') {
-                return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_ALL, {}, true);
+                return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_ALL);
             } else if (level === 'other scripts in sprite' || level === 'other scripts in stage') {
                 return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_OTHERS);
             } else if (level === 'this script') {
@@ -1188,6 +1189,8 @@ class ScriptTreeGenerator {
             }
 
             const node = this.descendStackedBlock(block);
+            node.blockId = blockId;
+
             this.script.yields = this.script.yields || node.yields;
             result.blocks.push(node);
 
@@ -1295,9 +1298,10 @@ class ScriptTreeGenerator {
             return null;
         }
         try {
+            const input = this.descendInput(block);
             return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
-                input: this.descendInput(block)
-            });
+                input
+            }, input.yields);
         } catch (e) {
             return null;
         }
@@ -1485,9 +1489,8 @@ class ScriptTreeGenerator {
      * @returns {IntermediateInput}
      */
     descendRawSourceInput (block, type) {
-        return new IntermediateInput(InputOpcode.RAW_SOURCE, type, {
-            fragments: this.descendRawSourceFragments(block)
-        });
+        const fragments = this.descendRawSourceFragments(block);
+        return new IntermediateInput(InputOpcode.RAW_SOURCE, type, {fragments}, rawSourceYields(fragments));
     }
 
     descendCompilerExtensionInput (block, compiler, inputType = compiler.type) {
@@ -1652,8 +1655,10 @@ class ScriptTreeGenerator {
             // interpreter parity, but the reuslt is ignored.
             const opcodeFunction = this.runtime.getOpcodeFunction(opcode);
             if (opcodeFunction) {
+                const hat = this.descendCompatLayerStack(hatBlock);
+                this.script.yields = this.script.yields || hat.yields;
                 return new IntermediateStack([
-                    this.descendCompatLayerStack(hatBlock),
+                    hat,
                     ...this.walkStack(nextBlock).blocks
                 ]);
             }

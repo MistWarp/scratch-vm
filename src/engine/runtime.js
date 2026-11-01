@@ -27,6 +27,7 @@ const fetchWithTimeout = require('../util/fetch-with-timeout');
 const platform = require('./tw-platform.js');
 const safeStringify = require('../util/tw-safe-stringify.js');
 const MonitorState = require('./tw-monitor-state.js');
+const Sampler = require('./tw-sampler.js');
 const RuntimeEvents = require('./runtime-events');
 const ScratchBlocksToolbox = require('../extension-support/scratch-blocks-toolbox');
 const ProjectOptionsComment = require('../serialization/project-options-comment');
@@ -355,6 +356,8 @@ class Runtime extends EventEmitter {
          * @type {Profiler}
          */
         this.profiler = null;
+
+        this.sampler = new Sampler(this);
 
         this.cloudOptions = {
             limit: 10
@@ -1930,6 +1933,7 @@ class Runtime extends EventEmitter {
 
         if (this.renderer) {
             this._drawFrame();
+            if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.IDLE;
         }
     }
 
@@ -1946,6 +1950,7 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(rendererDrawProfilerId);
         }
+        if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.RENDERER;
         this.renderer.draw();
         if (this.profiler !== null) {
             this.profiler.stop();
@@ -1966,6 +1971,7 @@ class Runtime extends EventEmitter {
      * inactive threads after each iteration.
      */
     _step () {
+        if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.RUNTIME;
         if (this._beforeStepListeners !== null) callListeners(this._beforeStepListeners);
 
         if (this.interpolationEnabled) {
@@ -2038,6 +2044,7 @@ class Runtime extends EventEmitter {
 
         if (this.renderer && !this.frameLoop._interpolationAnimation && !this.frameLoop.deferDraw) {
             this._drawFrame();
+            if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.RUNTIME;
         }
 
         if (this._refreshTargets) {
@@ -2056,6 +2063,7 @@ class Runtime extends EventEmitter {
         }
 
         if (this._afterStepListeners !== null) callListeners(this._afterStepListeners);
+        if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.IDLE;
     }
 
     addStepListener ({before, after}) {
