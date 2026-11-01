@@ -2248,7 +2248,10 @@ class Runtime extends EventEmitter {
         const argumentNames = options.arguments || [];
         const names = argumentNames;
         const ids = argumentNames.map((_, i) => `arg${i}`);
-        const defaults = argumentNames.map(() => '');
+        const argumentDefaults = options.argumentDefaults || [];
+        const defaults = argumentNames.map((_, i) => (
+            typeof argumentDefaults[i] === 'undefined' ? '' : `${argumentDefaults[i]}`
+        ));
         this.addonBlocks[procedureCode] = {
             namesIdsDefaults: [names, ids, defaults],
             ...options
@@ -2277,6 +2280,18 @@ class Runtime extends EventEmitter {
                 };
                 this._blockInfo.unshift(blockInfo);
             }
+
+            const argumentTypes = procedureCode.match(/%[nbs]/g) || [];
+            const shadows = argumentTypes.map((type, i) => {
+                if (defaults[i] === '' || (type !== '%s' && type !== '%n')) {
+                    return '';
+                }
+                const shadowType = type === '%n' ? 'math_number' : 'text';
+                const fieldName = type === '%n' ? 'NUM' : 'TEXT';
+                return `<value name="${xmlEscape(ids[i])}"><shadow type="${shadowType}">` +
+                    `<field name="${fieldName}">${xmlEscape(defaults[i])}</field></shadow></value>`;
+            }).join('');
+
             blockInfo.blocks.push({
                 info: {},
                 xml:
@@ -2286,7 +2301,7 @@ class Runtime extends EventEmitter {
                     ` argumentids="${xmlEscape(JSON.stringify(ids))}"` +
                     ` argumentdefaults="${xmlEscape(JSON.stringify(defaults))}"` +
                     `${options.return ? ` return="${xmlEscape(options.return.toString())}"` : ''}` +
-                    '></mutation></block>'
+                    `></mutation>${shadows}</block>`
             });
         }
 

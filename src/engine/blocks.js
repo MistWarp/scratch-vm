@@ -742,6 +742,9 @@ class Blocks {
         if (Object.prototype.hasOwnProperty.call(this._blocks, block.id)) {
             return;
         }
+        if (block.id === '__proto__') {
+            return;
+        }
         // Create new block.
         this._blocks[block.id] = block;
         this.revision++;

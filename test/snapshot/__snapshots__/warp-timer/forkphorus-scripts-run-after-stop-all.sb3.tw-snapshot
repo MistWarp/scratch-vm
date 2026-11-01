@@ -1,0 +1,93 @@
+// TW Snapshot
+// Input SHA-256: 53f9471a2e476b366db519bae1d739833c0210dd92ca501a29a3dfce9a1f960d
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "3loop" });
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+const b0 = stage.variables["5*)/o6gQzEw)31Ah!j:j"] || stage.lookupOrCreateVariable("5*)/o6gQzEw)31Ah!j:j", "3");
+const b1 = stage.variables["sYUvu8`..xuGcWX3!B1k"] || stage.lookupOrCreateVariable("sYUvu8`..xuGcWX3!B1k", "1");
+return function* genXYZ () {
+var a0, a1;
+while (!compareGreaterThan(b0.value, 2)) {
+b0.value = ((a0 = +b0.value) === a0 ? a0 : 0) + 1;
+yield;
+}
+if (((a1 = +b1.value) === a1 ? a1 : 0) === 1) {
+yield* thread.procedures["ZOK %s"]("");
+} else {
+if (compareEqual(b1.value, 0)) {
+yield* thread.procedures["ZFAIL %s"]("variable 1 haven't been incremented");
+} else {
+yield* thread.procedures["ZFAIL %s"]("variable 1 got incremented multiple times");
+}
+}
+retire(); return;
+}; })
+
+// Sprite1 ZOK %s
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ_OK_ (p0) {
+runtime.ext_scratch3_looks._say("plan 1", target);
+runtime.ext_scratch3_looks._say("pass " + p0, target);
+runtime.ext_scratch3_looks._say("end", target);
+runtime.stopAll();
+retire(); yield;
+return "";
+}; })
+
+// Sprite1 ZFAIL %s
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ_FAIL_ (p0) {
+runtime.ext_scratch3_looks._say("plan 1", target);
+runtime.ext_scratch3_looks._say("fail " + p0, target);
+runtime.ext_scratch3_looks._say("end", target);
+runtime.stopAll();
+retire(); yield;
+return "";
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+const b0 = stage.variables["sYUvu8`..xuGcWX3!B1k"] || stage.lookupOrCreateVariable("sYUvu8`..xuGcWX3!B1k", "1");
+const b1 = stage.variables["5*)/o6gQzEw)31Ah!j:j"] || stage.lookupOrCreateVariable("5*)/o6gQzEw)31Ah!j:j", "3");
+return function* genXYZ () {
+b0.value = 0;
+b1.value = 0;
+startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "1" });
+startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "2" });
+startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "3" });
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+runtime.stopAll();
+retire(); return;
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "1loop" });
+retire(); return;
+}; })
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+const b0 = stage.variables["sYUvu8`..xuGcWX3!B1k"] || stage.lookupOrCreateVariable("sYUvu8`..xuGcWX3!B1k", "1");
+return function* genXYZ () {
+var a0;
+while (true) {
+b0.value = ((a0 = +b0.value) === a0 ? a0 : 0) + 1;
+yield;
+}
+retire(); return;
+}; })

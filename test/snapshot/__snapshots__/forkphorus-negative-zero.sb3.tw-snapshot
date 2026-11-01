@@ -1,0 +1,42 @@
+// TW Snapshot
+// Input SHA-256: 392c8fcd9ce3e05cfb9ec1f39713073fca6c3a702fbd49697e2e496376e6b4f6
+
+// Sprite1 script
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ () {
+yield* thread.procedures["ZassertTrue %b %s"](true, "1/0");
+yield* thread.procedures["ZassertTrue %b %s"](true, "1/-0");
+yield* thread.procedures["ZOK %s"]("ok");
+retire(); return;
+}; })
+
+// Sprite1 ZassertTrue %b %s
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ_assertTrue__ (p0,p1) {
+if (!toBoolean(p0)) {
+yield* thread.procedures["ZFAIL %s"](p1);
+}
+return "";
+}; })
+
+// Sprite1 ZOK %s
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ_OK_ (p0) {
+runtime.ext_scratch3_looks._say("plan 1", target);
+runtime.ext_scratch3_looks._say("pass " + p0, target);
+runtime.ext_scratch3_looks._say("end", target);
+runtime.stopAll();
+retire(); yield;
+return "";
+}; })
+
+// Sprite1 ZFAIL %s
+(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+return function* genXYZ_FAIL_ (p0) {
+runtime.ext_scratch3_looks._say("plan 1", target);
+runtime.ext_scratch3_looks._say("fail " + p0, target);
+runtime.ext_scratch3_looks._say("end", target);
+runtime.stopAll();
+retire(); yield;
+return "";
+}; })

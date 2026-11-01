@@ -272,6 +272,9 @@ test('canEmbed', async t => {
         href: 'https://example.com/'
     };
 
+    vm.securityManager.canEmbed = () => t.fail('should not call security manager for javascript:');
+    t.equal(await global.Scratch.canEmbed('javascript:alert(1)'), false);
+
     const calledWithURLs = [];
     vm.securityManager.canEmbed = async url => {
         calledWithURLs.push(url);
@@ -315,5 +318,22 @@ test('canDownload', async t => {
         ['http://example.com/', 'dangerous.html']
     ]);
 
+    t.end();
+});
+
+test('Every project extension is asked about before any answer arrives', async t => {
+    const vm = new VirtualMachine();
+    vm.extensionManager.loadExtensionURL = () => Promise.resolve();
+    const asked = [];
+    const answers = [];
+    vm.securityManager.canLoadExtensionFromProject = url => {
+        asked.push(url);
+        return new Promise(resolve => answers.push(resolve));
+    };
+    const loading = vm.loadProject(testProject);
+    while (asked.length < 2) await new Promise(resolve => setTimeout(resolve));
+    t.same(new Set(asked), new Set([FETCH_EXTENSION, BITWISE_EXTENSION]));
+    for (const answer of answers) answer(true);
+    await loading;
     t.end();
 });
