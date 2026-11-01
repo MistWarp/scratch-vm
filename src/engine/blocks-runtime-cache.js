@@ -62,17 +62,30 @@ class RuntimeScriptCache {
 
 /**
  * Get an array of scripts from a block container prefiltered to match opcode.
- * @param {Blocks} container - Container of blocks
+ * @param {Blocks} blocks - Container of blocks
  * @param {string} opcode - Opcode to filter top blocks by
+ * @returns {Array.<RuntimeScriptCache>} - Array of RuntimeScriptCache cache
+ *   objects
  */
-exports.getScripts = function () {
-    throw new Error('blocks.js has not initialized BlocksRuntimeCache');
+exports.getScripts = function (blocks, opcode) {
+    let scripts = blocks._cache.scripts[opcode];
+    if (!scripts) {
+        scripts = blocks._cache.scripts[opcode] = [];
+
+        const allScripts = blocks._scripts;
+        for (let i = 0; i < allScripts.length; i++) {
+            const topBlockId = allScripts[i];
+            const block = blocks.getBlock(topBlockId);
+            if (block.opcode === opcode) {
+                scripts.push(new RuntimeScriptCache(blocks, topBlockId));
+            }
+        }
+    }
+    return scripts;
 };
 
 /**
- * Exposed RuntimeScriptCache class used by integration in blocks.js.
+ * Exposed RuntimeScriptCache class.
  * @private
  */
 exports._RuntimeScriptCache = RuntimeScriptCache;
-
-require('./blocks');
