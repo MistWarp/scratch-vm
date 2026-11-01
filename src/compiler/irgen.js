@@ -43,6 +43,10 @@ const RAW_SOURCE_REPORTERS = new Map([
     ['patching_jsboolean', InputType.BOOLEAN]
 ]);
 
+const rawSourceYields = fragments => fragments.some(fragment => fragment.yields || (
+    fragment.opcode === InputOpcode.CONSTANT && /\byield\b/.test(`${fragment.inputs.value}`)
+));
+
 const rawSourceAllowed = (runtime, opcode) => {
     const manager = runtime.extensionManager;
     if (!manager) return true;
@@ -694,15 +698,13 @@ class ScriptTreeGenerator {
      */
     descendStackedBlock (block) {
         if (RAW_SOURCE_COMMANDS.has(block.opcode) && rawSourceAllowed(this.runtime, block.opcode)) {
-            return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {
-                fragments: this.descendRawSourceFragments(block)
-            });
+            const fragments = this.descendRawSourceFragments(block);
+            return new IntermediateStackBlock(StackOpcode.RAW_SOURCE, {fragments}, rawSourceYields(fragments));
         }
         const rawSourceType = RAW_SOURCE_REPORTERS.get(block.opcode);
         if (rawSourceType && rawSourceAllowed(this.runtime, block.opcode)) {
-            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {
-                input: this.descendRawSourceInput(block, rawSourceType)
-            });
+            const input = this.descendRawSourceInput(block, rawSourceType);
+            return new IntermediateStackBlock(StackOpcode.VISUAL_REPORT, {input}, input.yields);
         }
 
         const compilerExtension = this.runtime.compilerExtensions.get(block.opcode);
@@ -1485,9 +1487,8 @@ class ScriptTreeGenerator {
      * @returns {IntermediateInput}
      */
     descendRawSourceInput (block, type) {
-        return new IntermediateInput(InputOpcode.RAW_SOURCE, type, {
-            fragments: this.descendRawSourceFragments(block)
-        });
+        const fragments = this.descendRawSourceFragments(block);
+        return new IntermediateInput(InputOpcode.RAW_SOURCE, type, {fragments}, rawSourceYields(fragments));
     }
 
     descendCompilerExtensionInput (block, compiler, inputType = compiler.type) {
