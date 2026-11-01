@@ -16,6 +16,7 @@ const ExtensionManager = require('./extension-support/extension-manager');
 const log = require('./util/log');
 const MathUtil = require('./util/math-util');
 const Runtime = require('./engine/runtime');
+const VirtualMachineEvents = require('./virtual-machine-events');
 const RenderedTarget = require('./sprites/rendered-target');
 const Sprite = require('./sprites/sprite');
 const StringUtil = require('./util/string-util');
@@ -316,7 +317,7 @@ class VirtualMachine extends EventEmitter {
             },
 
             i_will_not_ask_for_help_when_these_break: () => {
-                this.emit('LEGACY_EXTENSION_API', 'i_will_not_ask_for_help_when_these_break');
+                this.emit(VirtualMachineEvents.LEGACY_EXTENSION_API, 'i_will_not_ask_for_help_when_these_break');
 
                 const oldCompilerCompatibility = require('./compiler/old-compiler-compatibility.js');
                 oldCompilerCompatibility.enabled = true;
@@ -519,7 +520,7 @@ class VirtualMachine extends EventEmitter {
             if (key === 'target' || key === 'blockContainer') return;
             return value;
         }, 2);
-        this.emit('playgroundData', {
+        this.emit(VirtualMachineEvents.PLAYGROUND_DATA, {
             blocks: this.editingTarget.blocks,
             threads: filteredThreadData
         });
@@ -888,7 +889,7 @@ class VirtualMachine extends EventEmitter {
      * @param {number} [total] How much there is in total, in the same unit.
      */
     emitLoadProgress (stage, loaded, total) {
-        this.emit('LOAD_PROGRESS', {stage, loaded, total});
+        this.emit(VirtualMachineEvents.LOAD_PROGRESS, {stage, loaded, total});
     }
 
     /**
@@ -971,7 +972,7 @@ class VirtualMachine extends EventEmitter {
                 if (reportedURLs.has(url)) return;
                 reportedURLs.add(url);
                 log.error(`Could not load extension ${extensionID} from ${url}`, error);
-                this.emit('EXTENSION_LOAD_ERROR', {extensionID, url, error});
+                this.emit(VirtualMachineEvents.EXTENSION_LOAD_ERROR, {extensionID, url, error});
             };
             let load = pendingLoads.get(url);
             if (!load) {
@@ -1898,7 +1899,7 @@ class VirtualMachine extends EventEmitter {
         if (locale !== formatMessage.setup().locale) {
             formatMessage.setup({locale: locale, translations: {[locale]: messages}});
         }
-        this.emit('LOCALE_CHANGED', locale);
+        this.emit(VirtualMachineEvents.LOCALE_CHANGED, locale);
         return this.extensionManager.refreshBlocks();
     }
 
@@ -2126,7 +2127,7 @@ class VirtualMachine extends EventEmitter {
             }
             return lazyTargetList;
         };
-        this.emit('targetsUpdate', {
+        this.emit(VirtualMachineEvents.TARGETS_UPDATE, {
             // [[target id, human readable target name], ...].
             get targetList () {
                 return getTargetListLazily();
@@ -2202,7 +2203,7 @@ class VirtualMachine extends EventEmitter {
                             ${frames.map(f => f.toXML()).join()}
                             ${workspaceComments.map(c => c.toXML()).join()}`;
 
-        this.emit('workspaceUpdate', {
+        this.emit(VirtualMachineEvents.WORKSPACE_UPDATE, {
             get xml () {
                 return `<xml xmlns="http://www.w3.org/1999/xhtml">
                             ${headerXml}
@@ -2236,7 +2237,7 @@ class VirtualMachine extends EventEmitter {
 
     replaceTargetScripts (targetId, change) {
         const result = replaceTargetScripts(this, targetId, change);
-        this.runtime.emit('TARGET_SCRIPTS_REPLACED', targetId);
+        this.runtime.emit(Runtime.TARGET_SCRIPTS_REPLACED, targetId);
         return result;
     }
 

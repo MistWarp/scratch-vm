@@ -1,6 +1,7 @@
 const dispatch = require('../dispatch/central-dispatch');
 const log = require('../util/log');
 const maybeFormatMessage = require('../util/maybe-format-message');
+const RuntimeEvents = require('../engine/runtime-events');
 
 const BlockType = require('./block-type');
 const SecurityManager = require('./tw-security-manager');
@@ -1195,7 +1196,7 @@ class ExtensionManager {
     reportConsole (workerId, level, text, line, column) {
         const ids = this._siblingIds(workerId);
         if (!ids.length) return;
-        this.runtime.emit('EXTENSION_CONSOLE', {
+        this.runtime.emit(RuntimeEvents.EXTENSION_CONSOLE, {
             extensionId: ids[0],
             level: CONSOLE_LEVELS.includes(level) ? level : 'log',
             message: String(text).slice(0, MAX_CONSOLE_TEXT),
@@ -1254,7 +1255,7 @@ class ExtensionManager {
         if (!entry || (!entry.timer && now - entry.time >= ERROR_THROTTLE_MS)) {
             if (this._errorThrottle.size >= 1000) this._errorThrottle.clear();
             this._errorThrottle.set(key, {time: now, count: 0, pending: null, timer: null});
-            this.runtime.emit('EXTENSION_ERROR', Object.assign(payload, {count: 1}));
+            this.runtime.emit(RuntimeEvents.EXTENSION_ERROR, Object.assign(payload, {count: 1}));
             return;
         }
         entry.count++;
@@ -1267,7 +1268,7 @@ class ExtensionManager {
                 entry.count = 0;
                 entry.pending = null;
                 entry.timer = null;
-                this.runtime.emit('EXTENSION_ERROR', Object.assign(pending, {count}));
+                this.runtime.emit(RuntimeEvents.EXTENSION_ERROR, Object.assign(pending, {count}));
             }, Math.max(0, ERROR_THROTTLE_MS - (now - entry.time)));
         }
     }
@@ -1667,7 +1668,7 @@ class ExtensionManager {
             result.removed.push(...entry.removed);
             result.added.push(...entry.added);
             result.changed.push(...entry.changed);
-            this.runtime.emit('EXTENSION_RELOADED', entry);
+            this.runtime.emit(RuntimeEvents.EXTENSION_RELOADED, entry);
         }
         return result;
     }
@@ -1763,7 +1764,7 @@ class ExtensionManager {
         this._discardStage(stage);
         this.runtime.resetAllCaches();
         for (const category of backup.categories.keys()) {
-            this.runtime.emit('BLOCKSINFO_UPDATE', category);
+            this.runtime.emit(RuntimeEvents.BLOCKSINFO_UPDATE, category);
         }
     }
 
@@ -1808,7 +1809,7 @@ class ExtensionManager {
             const added = Array.from(opcodeMetadata(this._extensionMetadata.get(newId)).keys())
                 .map(opcode => `${newId}_${opcode}`);
             result.added.push(...added);
-            this.runtime.emit('EXTENSION_RELOADED', {id: newId, removed: [], added, changed: []});
+            this.runtime.emit(RuntimeEvents.EXTENSION_RELOADED, {id: newId, removed: [], added, changed: []});
         }
         this.runtime.resetAllCaches();
         this.runtime.emitProjectChanged();

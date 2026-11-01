@@ -2,6 +2,7 @@ const Timer = require('../util/timer');
 const Thread = require('./thread');
 const execute = require('./execute.js');
 const compilerExecute = require('../compiler/jsexecute');
+const RuntimeEvents = require('./runtime-events');
 
 /**
  * Profiler frame name for stepping a single thread.
@@ -345,7 +346,7 @@ class Sequencer {
         }
         const status = thread.status;
         thread.breakpointBlock = blockId;
-        this.runtime.emit('BREAKPOINT_HIT', thread, blockId);
+        this.runtime.emit(RuntimeEvents.BREAKPOINT_HIT, thread, blockId);
         if (thread.status !== status) return true;
         thread.breakpointBlock = null;
         return false;
