@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-return function* genXYZ () {
+return function funXYZ () {
 var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 3", target);
 target.setXY(0, 0);

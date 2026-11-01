@@ -3,7 +3,7 @@
 
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
-const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function funXYZ () {
 b0.value = 1;
 runtime.ext_scratch3_looks._say("plan 0", target);
@@ -23,11 +23,11 @@ return "";
 // Sprite1 script
 (function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("event_whengreaterthan");
-const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"];
+const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 return function* genXYZ () {
-let t;
+var a0;
 {
-const resolvedValue = toBoolean((yield* executeInCompatibilityLayer({"VALUE":0,"WHENGREATERTHANMENU":"TIMER",}, b0, false, false, "i", null)));
+const resolvedValue = toBoolean(yield* executeInCompatibilityLayer({"VALUE":0,"WHENGREATERTHANMENU":"TIMER",}, b0, false, false, "i", null));
 const id = "i";
 const hasOldEdgeValue = target.hasEdgeActivatedValue(id);
 const oldEdgeValue = target.updateEdgeActivatedValue(id, resolvedValue);
@@ -37,7 +37,7 @@ retire(); return;
 }
 yield;
 }
-if ((((t = +b1.value) === t ? t : 0) === 1)) {
+if (((a0 = +b1.value) === a0 ? a0 : 0) === 1) {
 runtime.ext_scratch3_looks._say("end", target);
 }
 retire(); return;
