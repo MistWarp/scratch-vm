@@ -84,8 +84,4 @@ exports.getScripts = function (blocks, opcode) {
     return scripts;
 };
 
-/**
- * Exposed RuntimeScriptCache class.
- * @private
- */
 exports._RuntimeScriptCache = RuntimeScriptCache;

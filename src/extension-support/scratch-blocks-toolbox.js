@@ -1,12 +1,3 @@
-/**
- * @fileoverview
- * Converts extension metadata into the scratch-blocks JSON and XML used for
- * the toolbox. Each function backs the Runtime method of the same name, which
- * has a leading underscore except for getBlocksXML and getBlocksJSON. Functions
- * that take a runtime call back into it for every step so that Runtime methods
- * replaced by addons are still used.
- */
-
 const ArgumentType = require('./argument-type');
 const BlockType = require('./block-type');
 const TargetType = require('./target-type');

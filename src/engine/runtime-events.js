@@ -1,9 +1,3 @@
-/**
- * @fileoverview
- * Names of the events emitted on a Runtime. Runtime exposes each one as a
- * static getter with the same name, for example Runtime.PROJECT_START.
- */
-
 const RuntimeEvents = {
     /**
      * Event name for glowing a script.
@@ -304,112 +298,38 @@ const RuntimeEvents = {
      */
     PLATFORM_MISMATCH: 'PLATFORM_MISMATCH',
 
-    /**
-     * Event name when a thread throws an error that is reported instead of crashing the runtime.
-     * The event data is an object with the thread and the error.
-     * @const {string}
-     */
     THREAD_ERROR: 'THREAD_ERROR',
 
-    /**
-     * Event name when a non-monitor thread is pushed or restarted.
-     * Only emitted when something is listening.
-     * @const {string}
-     */
     THREAD_STARTED: 'THREAD_STARTED',
 
-    /**
-     * Event name when a thread pauses on a breakpoint.
-     * The event data is the thread and the block ID.
-     * @const {string}
-     */
     BREAKPOINT_HIT: 'BREAKPOINT_HIT',
 
-    /**
-     * Event name when the list of purchasable products changes.
-     * @const {string}
-     */
     PRODUCTS_CHANGED: 'PRODUCTS_CHANGED',
 
-    /**
-     * Event name when the list of items changes.
-     * @const {string}
-     */
     ITEMS_CHANGED: 'ITEMS_CHANGED',
 
-    /**
-     * Event name when the test entitlements change.
-     * @const {string}
-     */
     ENTITLEMENTS_CHANGED: 'ENTITLEMENTS_CHANGED',
 
-    /**
-     * Event name for a message an extension writes to its console.
-     * @const {string}
-     */
     EXTENSION_CONSOLE: 'EXTENSION_CONSOLE',
 
-    /**
-     * Event name for errors thrown by extension code, batched with a count.
-     * @const {string}
-     */
     EXTENSION_ERROR: 'EXTENSION_ERROR',
 
-    /**
-     * Event name when a loaded extension is reloaded or replaced.
-     * @const {string}
-     */
     EXTENSION_RELOADED: 'EXTENSION_RELOADED',
 
-    /**
-     * Event name when all scripts of a target are replaced.
-     * The event data is the target ID.
-     * @const {string}
-     */
     TARGET_SCRIPTS_REPLACED: 'TARGET_SCRIPTS_REPLACED',
 
-    /**
-     * Event name when a key is pressed. The event data is the Scratch key name.
-     * @const {string}
-     */
     KEY_PRESSED: 'KEY_PRESSED',
 
-    /**
-     * Event name for a text bubble being created or updated.
-     * Same value as Scratch3LooksBlocks.SAY_OR_THINK.
-     * @const {string}
-     */
     SAY: 'SAY',
 
-    /**
-     * Event name when an ask block shows or clears a question.
-     * @const {string}
-     */
     QUESTION: 'QUESTION',
 
-    /**
-     * Event name the GUI emits with the answer to the current question.
-     * @const {string}
-     */
     ANSWER: 'ANSWER',
 
-    /**
-     * Event name the GUI emits to preview a note from a note picker.
-     * @const {string}
-     */
     PLAY_NOTE: 'PLAY_NOTE',
 
-    /**
-     * Event name when a target is created.
-     * The event data is the new target and the target it was cloned from, if any.
-     * @const {string}
-     */
     TARGET_WAS_CREATED: 'targetWasCreated',
 
-    /**
-     * Event name when a target is removed. The event data is the target.
-     * @const {string}
-     */
     TARGET_WAS_REMOVED: 'targetWasRemoved'
 };
 

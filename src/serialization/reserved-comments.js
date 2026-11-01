@@ -1,10 +1,3 @@
-/**
- * @fileoverview
- * Markers and helpers for the floating Stage comments that hold project data
- * rather than user text: project options, workspace bookmarks, gamepad
- * settings and the fractch code-mode map.
- */
-
 const FRACTCH_MAP_COMMENT_MAGIC = '_fractch_map_';
 const RESERVED_COMMENT_MARKERS = Object.freeze({
     projectOptions: ' // _twconfig_',

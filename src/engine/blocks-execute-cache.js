@@ -1,10 +1,4 @@
 /**
- * @fileoverview
- * Builds the per-block execute information that execute.js reads and that is
- * stored in, and reset with, each Blocks container's cache.
- */
-
-/**
  * A private method shared with execute to build an object containing the block
  * information execute needs and that is reset when other cached Blocks info is
  * reset.
