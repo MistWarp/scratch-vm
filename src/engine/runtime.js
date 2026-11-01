@@ -2239,7 +2239,6 @@ class Runtime extends EventEmitter {
      * @param {string} options.procedureCode The ID of the block
      * @param {function} options.callback The callback, called with (args, BlockUtility). May return a promise.
      * @param {string[]} [options.arguments] Names of the arguments accepted. Optional if no arguments.
-     * @param {string[]} [options.argumentDefaults] Default values of the arguments.
      * @param {boolean} [options.hidden] True to not include this block in the block palette
      * @param {1|2} [options.return] 1 for round reporter, 2 for boolean reported, leave empty for statement.
      */
