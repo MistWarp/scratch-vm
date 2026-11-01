@@ -922,7 +922,7 @@ class VirtualMachine extends EventEmitter {
         for (const [key, handler] of this._projectMetadata) {
             if (!handler.serialize) continue;
             try {
-                const value = handler.serialize(meta[key]);
+                const value = handler.serialize(meta[key], meta);
                 if (typeof value !== 'undefined') meta[key] = value;
             } catch (error) {
                 log.error(`Could not save project metadata ${key}`, error);
@@ -931,11 +931,11 @@ class VirtualMachine extends EventEmitter {
     }
 
     _deserializeProjectMetadata (meta) {
-        const loaded = meta !== null && typeof meta === 'object' ? meta : {};
+        const loaded = meta !== null && typeof meta === 'object' ? JSON.parse(JSON.stringify(meta)) : {};
         for (const [key, handler] of this._projectMetadata) {
             if (!handler.deserialize) continue;
             try {
-                handler.deserialize(Object.prototype.hasOwnProperty.call(loaded, key) ? loaded[key] : void 0);
+                handler.deserialize(Object.prototype.hasOwnProperty.call(loaded, key) ? loaded[key] : void 0, loaded);
             } catch (error) {
                 log.error(`Could not load project metadata ${key}`, error);
             }

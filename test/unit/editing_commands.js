@@ -287,3 +287,52 @@ test('collab extension loads ask canLoadExtension except for builtins', async t 
     t.ok(guest.extensionManager.isExtensionLoaded('pen'));
     t.same(asked, [url, url]);
 });
+
+test('reorders return whether a move was sent, like the VM methods', async t => {
+    const {host} = await makePair();
+    const commands = [];
+    const execute = host.editingCommands.handler;
+    host.editingCommands.handler = command => {
+        commands.push(command);
+        return execute(command);
+    };
+    const id = sprite(host).id;
+    t.equal(host.reorderCostume(id, 0, 0), false);
+    t.equal(host.reorderSound(id, 0, 5), false);
+    t.equal(host.reorderCostume('missing', 0, 1), false);
+    t.equal(host.reorderTarget(1, 1), false);
+    t.same(commands, []);
+
+    t.equal(host.reorderCostume(id, 1, 0), true);
+    t.equal(host.reorderCostume(id, 1, 99), false);
+    t.equal(commands.length, 1);
+    t.same(commands[0].args, [id, 1, 0]);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    t.end();
+});
+
+test('a command for an item that no longer exists reports it without a rejected promise', async t => {
+    const {host} = await makePair();
+    host.setEditingTarget(sprite(host).id);
+    const errors = [];
+    host.on('EDIT_COMMAND_ERROR', error => errors.push(error.message));
+    const unhandled = [];
+    const onUnhandled = reason => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+
+    t.equal(host.deleteSound(99), null);
+    t.equal(host.deleteCostume(99), null);
+    t.equal(host.renameCostume(99, 'gone'), undefined);
+    t.equal(host.renameSound(99, 'gone'), undefined);
+    t.equal(await host.duplicateCostume(99), null);
+    t.equal(await host.duplicateSound(99), null);
+    t.equal(await host.shareCostumeToTarget(99, stage(host).id), null);
+    host.shareSoundToTarget(99, stage(host).id).then(value => t.equal(value, null));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    process.removeListener('unhandledRejection', onUnhandled);
+    t.same(unhandled, []);
+    t.equal(errors.length, 8);
+    t.equal(sprite(host).getSounds().length, 1);
+    t.end();
+});
