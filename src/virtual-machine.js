@@ -246,6 +246,8 @@ class VirtualMachine extends EventEmitter {
             this.emit(Runtime.TURBO_MODE_ON);
         });
 
+        this._loadProjectInterceptors = [];
+
         this.extensionManager = new ExtensionManager(this);
         this.securityManager = this.extensionManager.securityManager;
         this.runtime.extensionManager = this.extensionManager;
@@ -581,6 +583,34 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input, options = {}) {
+        if (this._loadProjectInterceptors.length === 0) return this._loadProjectDirectly(input, options);
+        const interceptors = this._loadProjectInterceptors.slice();
+        const run = (index, currentInput, currentOptions) => {
+            if (index < 0) return this._loadProjectDirectly(currentInput, currentOptions);
+            const next = (nextInput = currentInput, nextOptions = currentOptions) =>
+                run(index - 1, nextInput, nextOptions);
+            try {
+                return Promise.resolve(interceptors[index](currentInput, currentOptions, next));
+            } catch (error) {
+                return Promise.reject(error);
+            }
+        };
+        return run(interceptors.length - 1, input, options);
+    }
+
+    addLoadProjectInterceptor (interceptor) {
+        if (typeof interceptor !== 'function') throw new TypeError('A load project interceptor must be a function');
+        this._loadProjectInterceptors.push(interceptor);
+        let removed = false;
+        return () => {
+            if (removed) return;
+            removed = true;
+            const index = this._loadProjectInterceptors.indexOf(interceptor);
+            if (index !== -1) this._loadProjectInterceptors.splice(index, 1);
+        };
+    }
+
+    _loadProjectDirectly (input, options = {}) {
         const generation = (this._projectLoadGeneration || 0) + 1;
         this._projectLoadGeneration = generation;
         const active = () => this._projectLoadGeneration === generation &&
