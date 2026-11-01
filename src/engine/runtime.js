@@ -2132,10 +2132,13 @@ class Runtime extends EventEmitter {
                 const offsetX = deltaX / 2;
                 const offsetY = deltaY / 2;
                 for (const monitor of this._monitorState.valueSeq()) {
+                    const x = monitor.get('x');
+                    const y = monitor.get('y');
+                    if (typeof x !== 'number' || typeof y !== 'number') continue;
                     this.requestUpdateMonitor({
                         id: monitor.id,
-                        x: monitor.get('x') + offsetX,
-                        y: monitor.get('y') + offsetY
+                        x: x + offsetX,
+                        y: y + offsetY
                     });
                 }
                 this.emit(Runtime.MONITORS_UPDATE, this._monitorState.shallowClone());
