@@ -1530,9 +1530,13 @@ class Runtime extends EventEmitter {
         // Look up metadata for the relevant hat.
         const hatMeta = instance._hats[requestedHatOpcode];
 
-        for (const opts in optMatchFields) {
-            if (!Object.prototype.hasOwnProperty.call(optMatchFields, opts)) continue;
-            optMatchFields[opts] = optMatchFields[opts].toUpperCase();
+        let matchFields = null;
+        if (optMatchFields) {
+            matchFields = {};
+            for (const field in optMatchFields) {
+                if (!Object.prototype.hasOwnProperty.call(optMatchFields, field)) continue;
+                matchFields[field] = String(optMatchFields[field]).toUpperCase();
+            }
         }
 
         // Consider all scripts, looking for hats with opcode `requestedHatOpcode`.
@@ -1547,8 +1551,8 @@ class Runtime extends EventEmitter {
             // This needs to happen before the block is evaluated
             // (i.e., before the predicate can be run) because "broadcast and wait"
             // needs to have a precise collection of started threads.
-            for (const matchField in optMatchFields) {
-                if (hatFields[matchField].value !== optMatchFields[matchField]) {
+            for (const matchField in matchFields) {
+                if (hatFields[matchField].value !== matchFields[matchField]) {
                     // Field mismatch.
                     return;
                 }
