@@ -1,5 +1,4 @@
 const EventEmitter = require('events');
-const ExtendedJSON = require('@turbowarp/json');
 const uuid = require('uuid');
 
 const Blocks = require('./blocks');
@@ -30,7 +29,7 @@ const safeStringify = require('../util/tw-safe-stringify.js');
 const MonitorState = require('./tw-monitor-state.js');
 const RuntimeEvents = require('./runtime-events');
 const ScratchBlocksToolbox = require('../extension-support/scratch-blocks-toolbox');
-const {RESERVED_COMMENT_MARKERS} = require('../serialization/reserved-comments');
+const ProjectOptionsComment = require('../serialization/project-options-comment');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -61,9 +60,6 @@ const defaultBlockPackages = {
 const interpolate = require('./tw-interpolate');
 const FrameLoop = require('./tw-frame-loop');
 const MonitorRecord = require('./monitor-record.js');
-
-const COMMENT_CONFIG_MAGIC = RESERVED_COMMENT_MARKERS.projectOptions;
-
 
 /**
  * A pair of functions used to manage the cloud variable limit,
@@ -2309,7 +2305,7 @@ class Runtime extends EventEmitter {
         if (!target || !target.comments) return null;
         const comments = target.comments;
         for (const comment of Object.values(comments)) {
-            if (comment.text.includes(COMMENT_CONFIG_MAGIC)) {
+            if (ProjectOptionsComment.isProjectOptionsText(comment.text)) {
                 return comment;
             }
         }
@@ -2320,24 +2316,17 @@ class Runtime extends EventEmitter {
         this._storedProjectOptions = null;
         const comment = this.findProjectOptionsComment();
         if (!comment) return;
-        const lineWithMagic = comment.text.split('\n').find(i => i.endsWith(COMMENT_CONFIG_MAGIC));
-        if (!lineWithMagic) {
+        const result = ProjectOptionsComment.parseProjectOptionsText(comment.text);
+        if (result.error === ProjectOptionsComment.NO_OPTIONS_LINE) {
             log.warn('Config comment does not contain valid line');
             return;
         }
-
-        const jsonText = lineWithMagic.substr(0, lineWithMagic.length - COMMENT_CONFIG_MAGIC.length);
-        let parsed;
-        try {
-            parsed = ExtendedJSON.parse(jsonText);
-            if (!parsed || typeof parsed !== 'object') {
-                throw new Error('Invalid object');
-            }
-        } catch (e) {
-            log.warn('Config comment has invalid JSON', e);
+        if (result.error) {
+            log.warn('Config comment has invalid JSON', result.cause);
             return;
         }
 
+        const parsed = result.options;
         this._storedProjectOptions = parsed;
 
         if (Array.isArray(parsed.products)) {
@@ -2408,23 +2397,10 @@ class Runtime extends EventEmitter {
     }
 
     generateDifferingProjectOptions () {
-        const difference = (oldObject, newObject) => {
-            const result = {};
-            for (const key of Object.keys(newObject)) {
-                const newValue = newObject[key];
-                const oldValue = oldObject[key];
-                if (typeof newValue === 'object' && newValue) {
-                    const valueDiffering = difference(oldValue, newValue);
-                    if (Object.keys(valueDiffering).length > 0) {
-                        result[key] = valueDiffering;
-                    }
-                } else if (newValue !== oldValue) {
-                    result[key] = newValue;
-                }
-            }
-            return result;
-        };
-        return difference(this._defaultStoredSettings, this._generateAllProjectOptions());
+        return ProjectOptionsComment.differingProjectOptions(
+            this._defaultStoredSettings,
+            this._generateAllProjectOptions()
+        );
     }
 
     storeProjectOptions (extraOptions = null) {
@@ -2483,8 +2459,7 @@ class Runtime extends EventEmitter {
         if (!options.categoryOrder) {
             delete this._storedProjectOptions.categoryOrder;
         }
-        // TODO: translate
-        const text = `Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n${ExtendedJSON.stringify(options)}${COMMENT_CONFIG_MAGIC}`;
+        const text = ProjectOptionsComment.serializeProjectOptionsText(options);
         const existingComment = this.findProjectOptionsComment();
         if (existingComment) {
             this.getTargetForStage().updateComment(existingComment.id, {text});
