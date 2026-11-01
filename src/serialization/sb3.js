@@ -4,7 +4,7 @@
  * JSON and then generates all needed scratch-vm runtime structures.
  */
 
-const Runtime = require('../engine/runtime');
+const RuntimeEvents = require('../engine/runtime-events');
 const Blocks = require('../engine/blocks');
 const Sprite = require('../sprites/sprite');
 const Variable = require('../engine/variable');
@@ -1963,13 +1963,13 @@ const checkPlatformCompatibility = (json, runtime) => {
         return;
     }
 
-    let pending = runtime.listenerCount(Runtime.PLATFORM_MISMATCH);
+    let pending = runtime.listenerCount(RuntimeEvents.PLATFORM_MISMATCH);
     if (pending === 0) {
         return;
     }
 
     return new Promise(resolve => {
-        runtime.emit(Runtime.PLATFORM_MISMATCH, json.meta.platform, () => {
+        runtime.emit(RuntimeEvents.PLATFORM_MISMATCH, json.meta.platform, () => {
             pending--;
             if (pending === 0) {
                 resolve();

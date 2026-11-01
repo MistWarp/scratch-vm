@@ -32,6 +32,7 @@ const platform = require('./tw-platform.js');
 const safeStringify = require('../util/tw-safe-stringify.js');
 const MonitorState = require('./tw-monitor-state.js');
 const RuntimeEvents = require('./runtime-events');
+const {RESERVED_COMMENT_MARKERS} = require('../serialization/reserved-comments');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -65,7 +66,7 @@ const MonitorRecord = require('./monitor-record.js');
 
 const defaultExtensionColors = ['#0FBD8C', '#0DA57A', '#0B8E69'];
 
-const COMMENT_CONFIG_MAGIC = ' // _twconfig_';
+const COMMENT_CONFIG_MAGIC = RESERVED_COMMENT_MARKERS.projectOptions;
 
 /**
  * Information used for converting Scratch argument types into scratch-blocks data.
