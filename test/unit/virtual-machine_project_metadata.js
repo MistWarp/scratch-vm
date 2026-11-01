@@ -88,3 +88,37 @@ test('a failing handler does not break saving or loading', async t => {
     t.ok(vm.runtime.targets.length > 0);
     t.end();
 });
+
+test('handlers also get the whole meta being saved or loaded', async t => {
+    const vm = new VirtualMachine();
+    let savedMeta = null;
+    let loadedMeta = null;
+    vm.registerProjectMetadata('created', {
+        serialize: (value, meta) => {
+            savedMeta = Object.assign({}, meta);
+            return 'today';
+        },
+        deserialize: (value, meta) => {
+            loadedMeta = meta;
+            meta.semver = 'changed';
+        }
+    });
+    vm.registerProjectMetadata('edited', {
+        deserialize: (value, meta) => {
+            t.equal(meta.semver, 'changed');
+        }
+    });
+
+    const json = JSON.parse(vm.toJSON());
+    t.equal(savedMeta.semver, '3.0.0');
+    t.ok(savedMeta.platform);
+    t.notOk(Object.prototype.hasOwnProperty.call(savedMeta, 'created'));
+
+    await vm.loadProject(fs.readFileSync(projectPath));
+    json.meta.custom = {kept: true};
+    await vm.loadProject(JSON.stringify(json));
+    t.same(loadedMeta.custom, {kept: true});
+    t.equal(loadedMeta.created, 'today');
+    t.equal(JSON.parse(vm.toJSON()).meta.semver, '3.0.0');
+    t.end();
+});

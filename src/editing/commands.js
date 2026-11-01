@@ -5,6 +5,7 @@ const Comment = require('../engine/comment');
 const Frame = require('../engine/frame');
 const {loadCostume} = require('../import/load-costume');
 const {loadSound} = require('../import/load-sound');
+const MathUtil = require('../util/math-util');
 
 const METHODS = [
     'addSprite', 'duplicateSprite', 'deleteSprite', 'renameSprite', 'reorderTarget',
@@ -31,6 +32,9 @@ const INDEXED = {
     shareSoundToTarget: ['sounds', 0],
     reorderSound: ['sounds', 1]
 };
+const REORDERS = ['reorderTarget', 'reorderCostume', 'reorderSound'];
+const DELETES = ['deleteCostume', 'deleteSound'];
+const clampIndex = (index, list) => MathUtil.clamp(index, 0, list.length - 1);
 const SPRITE_INFO = ['x', 'y', 'direction', 'size', 'visible', 'rotationStyle', 'draggable'];
 const CODE_METHODS = ['blockEvent', 'shareBlocksToTarget', 'addSprite', 'duplicateSprite', 'deleteSprite',
     'renameSprite', 'renameCostume', 'renameSound', 'setVariableValue', ...EXTENSIONS];
@@ -108,8 +112,18 @@ class EditingCommands {
         const vm = this.vm;
         let target = targetId ? vm.runtime.getTargetById(targetId) : vm.editingTarget;
         if (method === 'postSpriteInfo' && vm._dragTarget) target = vm._dragTarget;
-        if (method === 'reorderTarget') target = vm.runtime.targets[args[0]];
-        if (['reorderCostume', 'reorderSound'].includes(method)) target = vm.runtime.getTargetById(args[0]);
+        if (method === 'reorderTarget') {
+            args = [clampIndex(args[0], vm.runtime.targets), clampIndex(args[1], vm.runtime.targets)];
+            if (args[0] === args[1]) return false;
+            target = vm.runtime.targets[args[0]];
+        }
+        if (['reorderCostume', 'reorderSound'].includes(method)) {
+            target = vm.runtime.getTargetById(args[0]);
+            if (!target) return false;
+            const list = target.sprite[method === 'reorderCostume' ? 'costumes' : 'sounds'];
+            args = [args[0], clampIndex(args[1], list), clampIndex(args[2], list)];
+            if (args[1] === args[2]) return false;
+        }
         if (method === 'addBackdrop') target = vm.runtime.getTargetForStage();
         if (method === 'setVariableValue') {
             const owner = vm.runtime.getTargetById(args[0]);
@@ -139,7 +153,7 @@ class EditingCommands {
         if (INDEXED[method]) {
             const [list, index] = INDEXED[method];
             const item = target && target.sprite[list][args[index]];
-            if (!item) return Promise.reject(new Error('The selected item no longer exists.'));
+            if (!item) return this.refuse(method, new Error('The selected item no longer exists.'));
             command.itemId = item.mwEditId;
             if (method.startsWith('reorder')) {
                 const without = target.sprite[list].filter(entry => entry !== item);
@@ -154,7 +168,17 @@ class EditingCommands {
             result = Promise.reject(error);
         }
         result.catch(error => vm.emit(VirtualMachineEvents.EDIT_COMMAND_ERROR, error));
+        if (REORDERS.includes(method)) return true;
         return restore || result;
+    }
+
+    refuse (method, error) {
+        this.vm.emit(VirtualMachineEvents.EDIT_COMMAND_ERROR, error);
+        if (REORDERS.includes(method)) return false;
+        if (DELETES.includes(method)) return null;
+        const refused = Promise.reject(error);
+        refused.catch(() => {});
+        return refused;
     }
 
     targetState (target, includeCode = true) {
