@@ -324,3 +324,17 @@ test('setStageSize keeps auto-positioned monitors auto-positioned', t => {
     t.equal(rt._monitorState.get('placed').get('y'), 50);
     t.end();
 });
+
+test('getBlocksJSON leaves out entries without JSON', t => {
+    const rt = new Runtime();
+    rt._blockInfo = [{
+        blocks: [
+            {json: {type: 'test_a'}},
+            {xml: '<sep gap="36"/>'},
+            {json: null, xml: '<label text="x"></label>'},
+            {json: {type: 'test_b'}}
+        ]
+    }];
+    t.same(rt.getBlocksJSON(), [{type: 'test_a'}, {type: 'test_b'}]);
+    t.end();
+});
