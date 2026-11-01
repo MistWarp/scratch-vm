@@ -1136,3 +1136,27 @@ test('postSpriteInfo does nothing without an editing or drag target', t => {
     t.equal(changed, 0);
     t.end();
 });
+
+test('Forwarded runtime events keep all of their arguments', t => {
+    const vm = new VirtualMachine();
+
+    const progress = [];
+    vm.on('ASSET_PROGRESS', (...args) => progress.push(args));
+    vm.runtime.emit('ASSET_PROGRESS', 1, 2, {name: 'a'});
+    t.same(progress, [[1, 2, {name: 'a'}]]);
+
+    const fields = [];
+    vm.on('EXTENSION_FIELD_ADDED', (...args) => fields.push(args));
+    const field = {name: 'field_test_thing', implementation: {}};
+    vm.runtime.emit('EXTENSION_FIELD_ADDED', field);
+    t.equal(fields.length, 1);
+    t.equal(fields[0].length, 1);
+    t.equal(fields[0][0], field);
+
+    const errors = [];
+    vm.on('PERIPHERAL_REQUEST_ERROR', (...args) => errors.push(args));
+    vm.runtime.emit('PERIPHERAL_REQUEST_ERROR', {message: 'x', extensionId: 'ev3'});
+    t.same(errors, [[{message: 'x', extensionId: 'ev3'}]]);
+
+    t.end();
+});
