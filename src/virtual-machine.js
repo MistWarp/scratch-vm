@@ -38,6 +38,8 @@ const {replaceTargetScripts} = require('./engine/replace-target-scripts');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
 
+const RESERVED_METADATA_KEYS = ['semver', 'vm', 'origin', 'platform'];
+
 if (typeof document === 'undefined') {
     global.document = {
         createElement: tagName => {
@@ -210,6 +212,12 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.RUNTIME_STOPPED, () => {
             this.emit(Runtime.RUNTIME_STOPPED);
         });
+        this.runtime.on(Runtime.RUNTIME_PAUSED, () => {
+            this.emit(Runtime.RUNTIME_PAUSED);
+        });
+        this.runtime.on(Runtime.RUNTIME_UNPAUSED, () => {
+            this.emit(Runtime.RUNTIME_UNPAUSED);
+        });
         this.runtime.on(Runtime.HAS_CLOUD_DATA_UPDATE, hasCloudData => {
             this.emit(Runtime.HAS_CLOUD_DATA_UPDATE, hasCloudData);
         });
@@ -240,6 +248,9 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.TURBO_MODE_ON, () => {
             this.emit(Runtime.TURBO_MODE_ON);
         });
+
+        this._loadProjectInterceptors = [];
+        this._projectMetadata = new Map();
 
         this.extensionManager = new ExtensionManager(this);
         this.securityManager = this.extensionManager.securityManager;
@@ -387,6 +398,14 @@ class VirtualMachine extends EventEmitter {
 
     setStageSize (width, height) {
         this.runtime.setStageSize(width, height);
+    }
+
+    setPaused (paused) {
+        this.runtime.setPaused(paused);
+    }
+
+    isPaused () {
+        return this.runtime.isPaused();
     }
 
     setProjectName (name) {
@@ -569,6 +588,34 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input, options = {}) {
+        if (this._loadProjectInterceptors.length === 0) return this._loadProjectDirectly(input, options);
+        const interceptors = this._loadProjectInterceptors.slice();
+        const run = (index, currentInput, currentOptions) => {
+            if (index < 0) return this._loadProjectDirectly(currentInput, currentOptions);
+            const next = (nextInput = currentInput, nextOptions = currentOptions) =>
+                run(index - 1, nextInput, nextOptions);
+            try {
+                return Promise.resolve(interceptors[index](currentInput, currentOptions, next));
+            } catch (error) {
+                return Promise.reject(error);
+            }
+        };
+        return run(interceptors.length - 1, input, options);
+    }
+
+    addLoadProjectInterceptor (interceptor) {
+        if (typeof interceptor !== 'function') throw new TypeError('A load project interceptor must be a function');
+        this._loadProjectInterceptors.push(interceptor);
+        let removed = false;
+        return () => {
+            if (removed) return;
+            removed = true;
+            const index = this._loadProjectInterceptors.indexOf(interceptor);
+            if (index !== -1) this._loadProjectInterceptors.splice(index, 1);
+        };
+    }
+
+    _loadProjectDirectly (input, options = {}) {
         const generation = (this._projectLoadGeneration || 0) + 1;
         this._projectLoadGeneration = generation;
         const active = () => this._projectLoadGeneration === generation &&
@@ -851,7 +898,48 @@ class VirtualMachine extends EventEmitter {
      */
     toJSON (optTargetId, serializationOptions) {
         const sb3 = require('./serialization/sb3');
-        return StringUtil.stringify(sb3.serialize(this.runtime, optTargetId, serializationOptions));
+        const json = sb3.serialize(this.runtime, optTargetId, serializationOptions);
+        if (!optTargetId && this._projectMetadata.size !== 0) this._serializeProjectMetadata(json.meta);
+        return StringUtil.stringify(json);
+    }
+
+    registerProjectMetadata (key, {serialize, deserialize}) {
+        if (typeof key !== 'string' || key === '' || RESERVED_METADATA_KEYS.includes(key)) {
+            throw new TypeError(`Project metadata cannot use the key ${key}`);
+        }
+        if (this._projectMetadata.has(key)) throw new Error(`Project metadata ${key} is already registered`);
+        const handler = {
+            serialize: typeof serialize === 'function' ? serialize : null,
+            deserialize: typeof deserialize === 'function' ? deserialize : null
+        };
+        this._projectMetadata.set(key, handler);
+        return () => {
+            if (this._projectMetadata.get(key) === handler) this._projectMetadata.delete(key);
+        };
+    }
+
+    _serializeProjectMetadata (meta) {
+        for (const [key, handler] of this._projectMetadata) {
+            if (!handler.serialize) continue;
+            try {
+                const value = handler.serialize(meta[key]);
+                if (typeof value !== 'undefined') meta[key] = value;
+            } catch (error) {
+                log.error(`Could not save project metadata ${key}`, error);
+            }
+        }
+    }
+
+    _deserializeProjectMetadata (meta) {
+        const loaded = meta !== null && typeof meta === 'object' ? meta : {};
+        for (const [key, handler] of this._projectMetadata) {
+            if (!handler.deserialize) continue;
+            try {
+                handler.deserialize(Object.prototype.hasOwnProperty.call(loaded, key) ? loaded[key] : void 0);
+            } catch (error) {
+                log.error(`Could not load project metadata ${key}`, error);
+            }
+        }
     }
 
     // TODO do we still need this function? Keeping it here so as not to introduce
@@ -883,6 +971,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {Promise} Promise that resolves after the project has loaded
      */
     deserializeProject (projectJSON, zip, active = () => true) {
+        if (this._projectMetadata.size !== 0) this._deserializeProjectMetadata(projectJSON && projectJSON.meta);
         // Clear the current runtime
         this.clear();
 
