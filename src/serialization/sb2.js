@@ -19,25 +19,11 @@ const Variable = require('../engine/variable');
 const MonitorRecord = require('../engine/monitor-record');
 const StageLayering = require('../engine/stage-layering');
 const ScratchXUtilities = require('../extension-support/tw-scratchx-utilities');
+const {CORE_OPCODE_PREFIXES} = require('../extension-support/core-extensions');
 
 const {loadCostume} = require('../import/load-costume.js');
 const {loadSound} = require('../import/load-sound.js');
 const {deserializeCostume, deserializeSound} = require('./deserialize-assets.js');
-
-// Constants used during deserialization of an SB2 file
-const CORE_EXTENSIONS = [
-    'argument',
-    'control',
-    'data',
-    'event',
-    'looks',
-    'math',
-    'motion',
-    'operator',
-    'procedures',
-    'sensing',
-    'sound'
-];
 
 // Adjust script coordinates to account for
 // larger block size in scratch-blocks.
@@ -324,7 +310,7 @@ const parseMonitorObject = (object, runtime, targets, extensions) => {
 
     if (extID === 'videoSensing') {
         return;
-    } else if (CORE_EXTENSIONS.indexOf(extID) === -1 && extID !== '' &&
+    } else if (CORE_OPCODE_PREFIXES.indexOf(extID) === -1 && extID !== '' &&
         !extensions.extensionIDs.has(extID) && !object.visible) {
         // Don't import this monitor if it refers to a non-core extension that
         // doesn't exist anywhere else in the project and it isn't visible.
@@ -1016,7 +1002,7 @@ const parseBlock = function (sb2block, addBroadcastMsg, getVariableId, extension
     // If the block is from an extension, record it.
     const index = blockMetadata.opcode.indexOf('_');
     const prefix = blockMetadata.opcode.substring(0, index);
-    if (CORE_EXTENSIONS.indexOf(prefix) === -1) {
+    if (CORE_OPCODE_PREFIXES.indexOf(prefix) === -1) {
         if (prefix !== '') extensions.extensionIDs.add(prefix);
     }
 

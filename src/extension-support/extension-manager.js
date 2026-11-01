@@ -4,6 +4,7 @@ const maybeFormatMessage = require('../util/maybe-format-message');
 const RuntimeEvents = require('../engine/runtime-events');
 
 const BlockType = require('./block-type');
+const {CORE_EXTENSION_IDS: coreExtensions} = require('./core-extensions');
 const SecurityManager = require('./tw-security-manager');
 const {CONSOLE_LEVELS, MAX_CONSOLE_TEXT, formatConsoleArgs, locateInStack} = require('./tw-console-capture');
 
@@ -44,19 +45,6 @@ const defaultBuiltinExtensions = {
     // tw: core extension
     tw: () => require('../extensions/tw')
 };
-
-const coreExtensions = [
-    'motion',
-    'looks',
-    'sound',
-    'events',
-    'control',
-    'sensing',
-    'operators',
-    'data',
-    'procedures',
-    'assets'
-];
 
 /**
  * @typedef {object} ArgumentInfo - Information about an extension block argument

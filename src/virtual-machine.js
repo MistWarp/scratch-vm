@@ -50,18 +50,6 @@ if (typeof document === 'undefined') {
     };
 }
 
-const CORE_EXTENSIONS = [
-    // 'motion',
-    // 'looks',
-    // 'sound',
-    // 'events',
-    // 'control',
-    // 'sensing',
-    // 'operators',
-    // 'variables',
-    // 'myBlocks'
-];
-
 // Disable missing translation warnings in console
 formatMessage.setup({
     missingTranslation: 'ignore'
@@ -255,11 +243,6 @@ class VirtualMachine extends EventEmitter {
         this.extensionManager = new ExtensionManager(this);
         this.securityManager = this.extensionManager.securityManager;
         this.runtime.extensionManager = this.extensionManager;
-
-        // Load core extensions
-        for (const id of CORE_EXTENSIONS) {
-            this.extensionManager.loadExtensionIdSync(id);
-        }
 
         this.editingCommands = new EditingCommands(this);
         this.blockListener = this.blockListener.bind(this);
