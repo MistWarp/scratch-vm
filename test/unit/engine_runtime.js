@@ -312,3 +312,15 @@ test('startHats accepts match values that are not strings', t => {
     t.equal(rt.startHats('test_whenNamed', {NAME: 13}).length, 0);
     t.end();
 });
+
+test('setStageSize keeps auto-positioned monitors auto-positioned', t => {
+    const rt = new Runtime();
+    rt.requestAddMonitor(new MonitorRecord({id: 'auto'}));
+    rt.requestAddMonitor(new MonitorRecord({id: 'placed', x: 10, y: 20}));
+    rt.setStageSize(560, 420);
+    t.equal(rt._monitorState.get('auto').get('x'), null);
+    t.equal(rt._monitorState.get('auto').get('y'), null);
+    t.equal(rt._monitorState.get('placed').get('x'), 50);
+    t.equal(rt._monitorState.get('placed').get('y'), 50);
+    t.end();
+});
