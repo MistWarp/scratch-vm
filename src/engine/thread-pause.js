@@ -30,7 +30,7 @@ const releaseThreads = (pausedThreads, threads, now) => {
         if (thread.compatibilityStackFrame) shiftTimer(thread.compatibilityStackFrame.timer, elapsed);
         const stackFrame = thread.peekStackFrame();
         if (stackFrame && stackFrame.executionContext) shiftTimer(stackFrame.executionContext.timer, elapsed);
-        thread.status = state.status;
+        if (thread.status === Thread.STATUS_PROMISE_WAIT) thread.status = state.status;
     }
 };
 

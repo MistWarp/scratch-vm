@@ -60,6 +60,16 @@ test('a held thread whose promise settles stays held until unpaused', t => {
     t.end();
 });
 
+test('a held thread whose promise settles just before unpausing keeps running', t => {
+    const rt = new Runtime();
+    const waiting = addThread(rt, Thread.STATUS_PROMISE_WAIT);
+    rt.setPaused(true);
+    waiting.status = Thread.STATUS_RUNNING;
+    rt.setPaused(false);
+    t.equal(waiting.status, Thread.STATUS_RUNNING);
+    t.end();
+});
+
 test('unpausing moves thread timers forward by the paused time', t => {
     const rt = new Runtime();
     const thread = addThread(rt, Thread.STATUS_RUNNING);
