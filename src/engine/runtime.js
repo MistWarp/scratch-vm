@@ -58,6 +58,21 @@ const defaultBlockPackages = {
     scratch3_assets: require('../blocks/scratch3_assets')
 };
 
+const withListener = (listeners, listener) => (listeners === null ? [listener] : listeners.concat(listener));
+
+const withoutListener = (listeners, listener) => {
+    const index = listeners === null ? -1 : listeners.indexOf(listener);
+    if (index === -1) return listeners;
+    if (listeners.length === 1) return null;
+    return listeners.slice(0, index).concat(listeners.slice(index + 1));
+};
+
+const callListeners = listeners => {
+    for (let i = 0; i < listeners.length; i++) {
+        listeners[i]();
+    }
+};
+
 const interpolate = require('./tw-interpolate');
 const FrameLoop = require('./tw-frame-loop');
 const MonitorRecord = require('./monitor-record.js');
@@ -171,6 +186,9 @@ class Runtime extends EventEmitter {
         this.threadMap = new Map();
 
         this._threadsKilled = false;
+
+        this._beforeStepListeners = null;
+        this._afterStepListeners = null;
 
         /**
          * Live monitor threads by the block that started them. Saves a scan of every
@@ -1912,6 +1930,7 @@ class Runtime extends EventEmitter {
      */
     _step () {
         if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.RUNTIME;
+        if (this._beforeStepListeners !== null) callListeners(this._beforeStepListeners);
 
         if (this.interpolationEnabled) {
             interpolate.setupInitialState(this);
@@ -1998,7 +2017,23 @@ class Runtime extends EventEmitter {
             this.profiler.reportFrames();
         }
 
+        if (this._afterStepListeners !== null) callListeners(this._afterStepListeners);
         if (this.sampler.enableBasic) this.sampler.pc[0] = Sampler.IDLE;
+    }
+
+    addStepListener ({before, after}) {
+        if (typeof before !== 'function' && typeof after !== 'function') {
+            throw new TypeError('A step listener needs a before or after function');
+        }
+        if (typeof before === 'function') this._beforeStepListeners = withListener(this._beforeStepListeners, before);
+        if (typeof after === 'function') this._afterStepListeners = withListener(this._afterStepListeners, after);
+        let removed = false;
+        return () => {
+            if (removed) return;
+            removed = true;
+            this._beforeStepListeners = withoutListener(this._beforeStepListeners, before);
+            this._afterStepListeners = withoutListener(this._afterStepListeners, after);
+        };
     }
 
     /**
