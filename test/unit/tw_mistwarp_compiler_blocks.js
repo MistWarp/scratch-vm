@@ -660,7 +660,7 @@ test('cached compiled scripts recreate deleted variables with the correct type',
         vm.greenFlag();
         vm.runtime._step();
         assert.strictEqual(stage.variables.score.value, 7);
-        assert.deepEqual(stage.variables.items.value, ['9']);
+        assert.deepStrictEqual(stage.variables.items.value, [9]);
         assert.strictEqual(stage.variables.items.type, 'list');
     } finally {
         vm.quit();

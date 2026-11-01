@@ -11,8 +11,7 @@ const VirtualMachine = require('../../src/index');
  * @fileoverview Transform each sb2 in fixtures/execute into a test.
  *
  * Test execution of a group of scratch blocks by SAYing if a test did "pass",
- * or did "fail". Four keywords can be set at the beginning of a SAY messaage
- * to indicate a test primitive.
+ * or did "fail".
  *
  * A good strategy to follow is to SAY "plan NUMBER_OF_TESTS" first. Then
  * "pass" and "fail" depending on expected scratch results in conditions, event

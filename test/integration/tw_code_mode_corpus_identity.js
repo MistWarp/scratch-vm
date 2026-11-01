@@ -124,7 +124,6 @@ test('code mode corpus identity', {skip: !fs.existsSync(fractchDir) || files.len
                 const legacy = membership.readMembership(vm.getFractchContext(target.id).targets[0]);
                 const result = roundTrip(fractch, vm, target.id);
                 assert.deepStrictEqual(result.errors, [], `${where}: no build errors`);
-                if (result.errors.length) continue;
                 const {built, emitted} = result;
                 assert.deepStrictEqual(built.changed, [], `${where}: no scripts changed`);
                 assert.deepStrictEqual(built.created.scripts, [], `${where}: no scripts created`);
@@ -165,7 +164,6 @@ test('code mode corpus identity', {skip: !fs.existsSync(fractchDir) || files.len
                 const editedIds = scriptIds(after.blocks, editable);
                 const edit = roundTrip(fractch, vm, target.id, e => insertStatement(editable, e));
                 assert.deepStrictEqual(edit.errors, [], `${where}: edit builds`);
-                if (edit.errors.length) continue;
                 assert.strictEqual(edit.built.changed.length, 1, `${where}: one script changed`);
                 const changedTop = edit.built.changed.length ? edit.built.changed[0].newTopId : editable;
                 const live = target.blocks._blocks;
