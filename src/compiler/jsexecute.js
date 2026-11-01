@@ -301,6 +301,12 @@ baseRuntime += `const listFind = (list, item) => {
     }
     for (let i = 0; i < list.length; i++) {
         const value = list[i];
+        if (typeof value === 'number') {
+            if (value === itemNumber) {
+                return i;
+            }
+            continue;
+        }
         const n = +value;
         if (n !== n || (n === 0 && isNotActuallyZero(value))) {
             if (('' + value).toLowerCase() === itemString) {
