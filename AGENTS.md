@@ -21,7 +21,7 @@ scratch-vm runs MistWarp projects: the runtime, the interpreter, the compiler, s
 - **Generated code reads field names.** Compiled scripts refer to `thread.status`, `runtime.ioDevices`, `target.interpolationData` and similar inside JS strings, so renaming those fields breaks compiled projects. Snapshot tests pin the output.
 - **Hot paths.** Don't add getters, setters or private fields to `Thread`, `Target` or stack frames, and don't add allocations in `sequencer`, `execute` or `util/cast.js`.
 - **Events** use the constants in `runtime-events.js` or `virtual-machine-events.js`, never a bare string.
-- **The GUI imports some internal files directly** (`serialization/fractch-context`, `extension-support/argument-type`, `block-type`, `engine/opcodes.generated.json`). Keep their exports stable.
+- **The GUI imports some internal files directly** (`serialization/fractch-context`, `extension-support/argument-type`, `block-type`, `extensions/rotur/core`, `engine/opcodes.generated.json`). Keep their exports stable.
 
 ## Checks
 
@@ -29,12 +29,12 @@ scratch-vm runs MistWarp projects: the runtime, the interpreter, the compiler, s
 - `npm run tap` runs unit and integration tests. `npx tap --no-coverage test/unit/*.js` is faster while you iterate.
 - `node test/snapshot` checks the compiler output. Run `node test/snapshot --update` only for an intended change, and review the diff. `node test/integration/execute.js` runs every fixture both interpreted and compiled.
 - `npm run check:conventions` rejects code comments and em dashes in the lines you add. Tool directives such as `eslint-disable` are allowed.
-- Engine changes must keep the Scratch parity project's results identical and performance at least the same. Both are measured with the scratch-parity project (git.rotur.dev/Mist/scratch-parity) and scratch-bench, in Chromium with the real renderer.
+- Engine changes must keep the results of the parity project (https://git.rotur.dev/Mist/scratch-parity, built to an sb3 with fractch) identical, and performance at least the same. Measure both with [scratch-bench](https://github.com/gradylink/scratch-bench), and compare against the same run on `develop`. `BENCH_VM_DIR=<this repo> node runtimes/node-vm.mjs mistwarp <project.sb3>` runs headless in Node (tests that need a renderer fail there on both sides). `runtimes/chromium-vm.mjs` runs with the real renderer, given `BENCH_BUNDLE_DIR` pointing at a browser bundle whose `vm/` is this repo's `npm run build` output.
 
 ## Working here
 
 - The default branch is `develop`. This repo is a fork, so open PRs with `gh pr create -R MistWarp/scratch-vm --base develop`.
-- The public API that scratch-gui type-checks against is declared in MistWarp/types. Update it when you change what the GUI uses.
+- scratch-gui depends on much of the VM's surface. Before renaming or removing a member, search scratch-gui (including `src/addons`) for its uses.
 - A refactor keeps behaviour, so existing tests pass unchanged. New modules come with unit tests in `test/unit/`.
 - Never add `Co-Authored-By` or any AI or tool attribution to commits or PRs.
 - READMEs are overviews. Documentation goes in MistWarp/docs (https://mistwarp.org/docs/).
