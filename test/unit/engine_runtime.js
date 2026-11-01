@@ -274,3 +274,15 @@ test('Clock is reset on runtime dispose', t => {
     t.ok(c.projectTimer() === 0);
     t.end();
 });
+
+test('handleExtensionButtonPress ignores unknown buttons', t => {
+    const rt = new Runtime();
+    t.doesNotThrow(() => rt.handleExtensionButtonPress('test_missing'));
+    let pressed = 0;
+    rt.extensionButtons.set('test_button', () => {
+        pressed++;
+    });
+    rt.handleExtensionButtonPress('test_button');
+    t.equal(pressed, 1);
+    t.end();
+});

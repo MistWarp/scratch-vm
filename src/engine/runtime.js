@@ -1049,7 +1049,7 @@ class Runtime extends EventEmitter {
 
     handleExtensionButtonPress (buttonData) {
         const callback = this.extensionButtons.get(buttonData);
-        callback();
+        if (callback) callback();
     }
 
     /**
