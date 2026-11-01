@@ -72,6 +72,7 @@ const callListeners = listeners => {
     }
 };
 
+const ThreadPause = require('./thread-pause');
 const interpolate = require('./tw-interpolate');
 const FrameLoop = require('./tw-frame-loop');
 const MonitorRecord = require('./monitor-record.js');
@@ -188,6 +189,9 @@ class Runtime extends EventEmitter {
 
         this._beforeStepListeners = null;
         this._afterStepListeners = null;
+
+        this._paused = false;
+        this._pausedThreads = null;
 
         /**
          * Live monitor threads by the block that started them. Saves a scan of every
@@ -1546,6 +1550,10 @@ class Runtime extends EventEmitter {
         const newThreads = [];
         // Look up metadata for the relevant hat.
         const hatMeta = instance._hats[requestedHatOpcode];
+        if (this._paused && !hatMeta.edgeActivated && requestedHatOpcode !== 'event_whenbroadcastreceived' &&
+            requestedHatOpcode !== 'control_start_as_clone') {
+            return newThreads;
+        }
 
         let matchFields = null;
         if (optMatchFields) {
@@ -1876,6 +1884,40 @@ class Runtime extends EventEmitter {
         this._monitorThreads.clear();
 
         this.resetRunId();
+        this.setPaused(false);
+    }
+
+    isPaused () {
+        return this._paused;
+    }
+
+    setPaused (paused) {
+        paused = !!paused;
+        if (paused === this._paused) return;
+        this._paused = paused;
+        const clock = this.ioDevices.clock;
+        if (paused) {
+            if (!clock._paused) clock.pause();
+            this._pausedThreads = new Map();
+            for (let i = 0; i < this.threads.length; i++) {
+                this.pauseThread(this.threads[i]);
+            }
+            this.emit(Runtime.RUNTIME_PAUSED);
+        } else {
+            if (clock._paused) clock.resume();
+            const pausedThreads = this._pausedThreads;
+            this._pausedThreads = null;
+            ThreadPause.releaseThreads(pausedThreads, this.threads, this.currentMSecs);
+            this.emit(Runtime.RUNTIME_UNPAUSED);
+        }
+    }
+
+    pauseThread (thread) {
+        if (this._pausedThreads !== null) ThreadPause.holdThread(this._pausedThreads, thread, this.currentMSecs);
+    }
+
+    getPausedThreadState (thread) {
+        return this._pausedThreads === null ? null : this._pausedThreads.get(thread) || null;
     }
 
     _renderInterpolatedPositions () {
@@ -1959,11 +2001,13 @@ class Runtime extends EventEmitter {
         }
 
         // Find all edge-activated hats, and add them to threads to be evaluated.
-        for (const hatType in this._hats) {
-            if (!Object.prototype.hasOwnProperty.call(this._hats, hatType)) continue;
-            const hat = this._hats[hatType];
-            if (hat.edgeActivated) {
-                this.startHats(hatType);
+        if (!this._paused) {
+            for (const hatType in this._hats) {
+                if (!Object.prototype.hasOwnProperty.call(this._hats, hatType)) continue;
+                const hat = this._hats[hatType];
+                if (hat.edgeActivated) {
+                    this.startHats(hatType);
+                }
             }
         }
         this.redrawRequested = false;
@@ -1974,6 +2018,7 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(stepThreadsProfilerId);
         }
+        if (this._pausedThreads !== null) ThreadPause.keepThreadsHeld(this._pausedThreads, this.threads);
         this.emit(Runtime.BEFORE_EXECUTE);
         const doneThreads = this.sequencer.stepThreads();
         if (this.profiler !== null) {
@@ -2039,6 +2084,7 @@ class Runtime extends EventEmitter {
         for (let i = 0; i < threads.length; i++) {
             if (threads[i].updateMonitor) count++;
         }
+        if (this._pausedThreads !== null) count += ThreadPause.countHeldThreads(this._pausedThreads, threads);
         return count;
     }
 

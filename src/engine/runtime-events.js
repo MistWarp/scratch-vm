@@ -83,6 +83,10 @@ const RuntimeEvents = {
      */
     BEFORE_EXECUTE: 'BEFORE_EXECUTE',
 
+    RUNTIME_PAUSED: 'RUNTIME_PAUSED',
+
+    RUNTIME_UNPAUSED: 'RUNTIME_UNPAUSED',
+
     /**
      * Event called after every block in the project has been executed.
      */

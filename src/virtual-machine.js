@@ -209,6 +209,12 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.RUNTIME_STOPPED, () => {
             this.emit(Runtime.RUNTIME_STOPPED);
         });
+        this.runtime.on(Runtime.RUNTIME_PAUSED, () => {
+            this.emit(Runtime.RUNTIME_PAUSED);
+        });
+        this.runtime.on(Runtime.RUNTIME_UNPAUSED, () => {
+            this.emit(Runtime.RUNTIME_UNPAUSED);
+        });
         this.runtime.on(Runtime.HAS_CLOUD_DATA_UPDATE, hasCloudData => {
             this.emit(Runtime.HAS_CLOUD_DATA_UPDATE, hasCloudData);
         });
@@ -385,6 +391,14 @@ class VirtualMachine extends EventEmitter {
 
     setStageSize (width, height) {
         this.runtime.setStageSize(width, height);
+    }
+
+    setPaused (paused) {
+        this.runtime.setPaused(paused);
+    }
+
+    isPaused () {
+        return this.runtime.isPaused();
     }
 
     setProjectName (name) {
