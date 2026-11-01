@@ -2,6 +2,7 @@ const ScratchCommon = require('./tw-extension-api-common');
 const AsyncLimiter = require('../util/async-limiter');
 const createTranslate = require('./tw-l10n');
 const staticFetch = require('../util/tw-static-fetch');
+const VirtualMachineEvents = require('../virtual-machine-events');
 
 /* eslint-disable require-await */
 
@@ -165,7 +166,7 @@ const setupUnsandboxedExtensionAPI = (vm, onRegister) => new Promise(resolve => 
     // Allow VM users to extend the API surface for unsandboxed extensions.
     // This is used by tests and by embedding environments.
     if (vm && typeof vm.emit === 'function') {
-        vm.emit('CREATE_UNSANDBOXED_EXTENSION_API', Scratch);
+        vm.emit(VirtualMachineEvents.CREATE_UNSANDBOXED_EXTENSION_API, Scratch);
     }
 
     // ScratchX compatibility layer: many old unsandboxed extensions expect a

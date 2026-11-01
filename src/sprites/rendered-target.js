@@ -4,7 +4,7 @@ const Cast = require('../util/cast');
 const Clone = require('../util/clone');
 const Target = require('../engine/target');
 const StageLayering = require('../engine/stage-layering');
-const {isMapComment, remapMapCommentText} = require('../serialization/fractch-context');
+const {isMapComment, remapMapCommentText} = require('../serialization/reserved-comments');
 
 /**
  * Rendered target: instance of a sprite (clone), or the stage.

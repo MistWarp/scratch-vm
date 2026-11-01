@@ -1,4 +1,5 @@
 const Cast = require('../util/cast');
+const RuntimeEvents = require('../engine/runtime-events');
 
 /**
  * Names used internally for keys used in scratch, also known as "scratch keys".
@@ -167,7 +168,7 @@ class Keyboard {
         if (data.isDown) {
             // tw: track last pressed key
             this.lastKeyPressed = scratchKeyCased;
-            this.runtime.emit('KEY_PRESSED', scratchKey);
+            this.runtime.emit(RuntimeEvents.KEY_PRESSED, scratchKey);
             // If not already present, add to the list.
             if (index < 0) {
                 this._keysPressed.push(scratchKey);

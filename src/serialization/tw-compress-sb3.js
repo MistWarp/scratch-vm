@@ -1,4 +1,4 @@
-const {FRACTCH_MAP_COMMENT_MAGIC, isMapComment, remapMapCommentText} = require('./fractch-context');
+const {FRACTCH_MAP_COMMENT_MAGIC, isMapComment, remapMapCommentText} = require('./reserved-comments');
 
 // We don't generate new IDs using numbers at this time because their enumeration
 // order can affect script execution order as they always come first.
