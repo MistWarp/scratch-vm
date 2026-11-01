@@ -286,3 +286,29 @@ test('handleExtensionButtonPress ignores unknown buttons', t => {
     t.equal(pressed, 1);
     t.end();
 });
+
+const makeHatRuntime = fieldValue => {
+    const rt = new Runtime();
+    rt._hats.test_whenNamed = {restartExistingThreads: false};
+    const target = {id: 'target'};
+    rt.allScriptsByOpcodeDo = (opcode, f) => {
+        f({blockId: 'hat', fieldsOfInputs: {NAME: {value: fieldValue}}}, target);
+    };
+    rt._pushThread = () => ({isCompiled: true, executableHat: false});
+    return rt;
+};
+
+test('startHats matches without changing the caller match fields', t => {
+    const rt = makeHatRuntime('HELLO');
+    const fields = {NAME: 'hello'};
+    t.equal(rt.startHats('test_whenNamed', fields).length, 1);
+    t.same(fields, {NAME: 'hello'});
+    t.end();
+});
+
+test('startHats accepts match values that are not strings', t => {
+    const rt = makeHatRuntime('12');
+    t.equal(rt.startHats('test_whenNamed', {NAME: 12}).length, 1);
+    t.equal(rt.startHats('test_whenNamed', {NAME: 13}).length, 0);
+    t.end();
+});
