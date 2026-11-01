@@ -1,13 +1,12 @@
 const log = require('../util/log');
+const ThreadStatus = require('./thread-status');
+const compile = require('../compiler/compile');
 
 /**
  * Recycle bin for empty stackFrame objects
  * @type Array<_StackFrame>
  */
 const _stackFrameFreeList = [];
-
-/** The compiler, loaded on first use. */
-let compile = null;
 
 /** Shared by every compiled thread whose script calls no custom blocks. */
 const NO_PROCEDURES = Object.freeze({});
@@ -239,7 +238,7 @@ class Thread {
      * @const
      */
     static get STATUS_RUNNING () {
-        return 0; // used by compiler
+        return ThreadStatus.STATUS_RUNNING;
     }
 
     /**
@@ -248,7 +247,7 @@ class Thread {
      * @const
      */
     static get STATUS_PROMISE_WAIT () {
-        return 1; // used by compiler
+        return ThreadStatus.STATUS_PROMISE_WAIT;
     }
 
     /**
@@ -256,7 +255,7 @@ class Thread {
      * @const
      */
     static get STATUS_YIELD () {
-        return 2; // used by compiler
+        return ThreadStatus.STATUS_YIELD;
     }
 
     /**
@@ -265,7 +264,7 @@ class Thread {
      * @const
      */
     static get STATUS_YIELD_TICK () {
-        return 3; // used by compiler
+        return ThreadStatus.STATUS_YIELD_TICK;
     }
 
     /**
@@ -274,7 +273,7 @@ class Thread {
      * @const
      */
     static get STATUS_DONE () {
-        return 4; // used by compiler
+        return ThreadStatus.STATUS_DONE;
     }
 
     /**
@@ -492,10 +491,6 @@ class Thread {
         if (!this.blockContainer) {
             return;
         }
-
-        // importing the compiler here avoids circular dependency issues; resolving it once keeps require() off the
-        // path of every thread start
-        if (!compile) compile = require('../compiler/compile');
 
         this.triedToCompile = true;
 

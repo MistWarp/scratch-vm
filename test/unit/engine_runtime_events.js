@@ -143,3 +143,19 @@ tap.test('non-event static constants are unchanged', t => {
     t.equal(Runtime.THREAD_STEP_INTERVAL_COMPATIBILITY, 1000 / 30);
     t.end();
 });
+
+tap.test('Thread status getters come from thread-status', t => {
+    const Thread = require('../../src/engine/thread');
+    const ThreadStatus = require('../../src/engine/thread-status');
+    t.same(ThreadStatus, {
+        STATUS_RUNNING: 0,
+        STATUS_PROMISE_WAIT: 1,
+        STATUS_YIELD: 2,
+        STATUS_YIELD_TICK: 3,
+        STATUS_DONE: 4
+    });
+    for (const name of Object.keys(ThreadStatus)) {
+        t.equal(Thread[name], ThreadStatus[name], name);
+    }
+    t.end();
+});
