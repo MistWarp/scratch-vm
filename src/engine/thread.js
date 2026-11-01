@@ -6,6 +6,12 @@ const log = require('../util/log');
  */
 const _stackFrameFreeList = [];
 
+/** The compiler, loaded on first use. */
+let compile = null;
+
+/** Shared by every compiled thread whose script calls no custom blocks. */
+const NO_PROCEDURES = Object.freeze({});
+
 /**
  * A frame used for each level of the stack. A general purpose
  * place to store a bunch of execution context and parameters
@@ -300,6 +306,15 @@ class Thread {
     }
 
     /**
+     * Push the first block of a new thread: pushStack() on an empty stack, without growing two empty arrays.
+     * @param {string} blockId Block ID to push to stack.
+     */
+    startStack (blockId) {
+        this.stack = [blockId];
+        this.stackFrames = [_StackFrame.create(false)];
+    }
+
+    /**
      * Reset the stack frame for use by the next block.
      * (avoids popping and re-pushing a new stack frame - keeps the warpmode the same
      * @param {string} blockId Block ID to push to stack.
@@ -478,8 +493,9 @@ class Thread {
             return;
         }
 
-        // importing the compiler here avoids circular dependency issues
-        const compile = require('../compiler/compile');
+        // importing the compiler here avoids circular dependency issues; resolving it once keeps require() off the
+        // path of every thread start
+        if (!compile) compile = require('../compiler/compile');
 
         this.triedToCompile = true;
 
@@ -520,9 +536,14 @@ class Thread {
             }
         }
 
-        this.procedures = {};
-        for (const procedureCode of Object.keys(result.procedures)) {
-            this.procedures[procedureCode] = result.procedures[procedureCode](this);
+        const procedureCodes = result.procedureCodes;
+        if (procedureCodes.length === 0) {
+            this.procedures = NO_PROCEDURES;
+        } else {
+            this.procedures = {};
+            for (let i = 0; i < procedureCodes.length; i++) {
+                this.procedures[procedureCodes[i]] = result.procedures[procedureCodes[i]](this);
+            }
         }
 
         this.generator = result.startingFunction(this)();

@@ -2330,7 +2330,7 @@ class Runtime extends EventEmitter {
             this.monitorBlocks :
             target.blocks;
 
-        thread.pushStack(id);
+        thread.startStack(id);
         this.threads.push(thread);
         thread.inThreadList = true;
         if (!thread.stackClick && !thread.updateMonitor) {
@@ -2371,7 +2371,7 @@ class Runtime extends EventEmitter {
         newThread.stackClick = thread.stackClick;
         newThread.updateMonitor = thread.updateMonitor;
         newThread.blockContainer = thread.blockContainer;
-        newThread.pushStack(thread.topBlock);
+        newThread.startStack(thread.topBlock);
         // tw: when a thread is restarted, we have to check whether the previous script was attempted to be compiled.
         if (thread.triedToCompile && this.compilerOptions.enabled) {
             newThread.tryCompile();
@@ -2580,7 +2580,8 @@ class Runtime extends EventEmitter {
         }, optTarget);
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
-        newThreads.forEach(thread => {
+        for (let i = 0; i < newThreads.length; i++) {
+            const thread = newThreads[i];
             try {
                 if (thread.isCompiled) {
                     if (thread.executableHat) {
@@ -2601,7 +2602,7 @@ class Runtime extends EventEmitter {
                 this.reportScriptError(thread, error);
                 this.sequencer.retireThread(thread);
             }
-        });
+        }
         return newThreads;
     }
 

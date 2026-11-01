@@ -36,6 +36,7 @@ const compile = (/** @type {import("../engine/thread")} */ thread) => {
     return {
         startingFunction: entry,
         procedures,
+        procedureCodes: Object.keys(procedures),
         executableHat: ir.entry.executableHat
     };
 };
