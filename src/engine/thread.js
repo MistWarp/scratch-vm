@@ -1,5 +1,4 @@
 const log = require('../util/log');
-const ThreadStatus = require('./thread-status');
 const compile = require('../compiler/compile');
 
 /**
@@ -238,7 +237,7 @@ class Thread {
      * @const
      */
     static get STATUS_RUNNING () {
-        return ThreadStatus.STATUS_RUNNING;
+        return 0; // used by compiler
     }
 
     /**
@@ -247,7 +246,7 @@ class Thread {
      * @const
      */
     static get STATUS_PROMISE_WAIT () {
-        return ThreadStatus.STATUS_PROMISE_WAIT;
+        return 1; // used by compiler
     }
 
     /**
@@ -255,7 +254,7 @@ class Thread {
      * @const
      */
     static get STATUS_YIELD () {
-        return ThreadStatus.STATUS_YIELD;
+        return 2; // used by compiler
     }
 
     /**
@@ -264,7 +263,7 @@ class Thread {
      * @const
      */
     static get STATUS_YIELD_TICK () {
-        return ThreadStatus.STATUS_YIELD_TICK;
+        return 3; // used by compiler
     }
 
     /**
@@ -273,7 +272,7 @@ class Thread {
      * @const
      */
     static get STATUS_DONE () {
-        return ThreadStatus.STATUS_DONE;
+        return 4; // used by compiler
     }
 
     /**

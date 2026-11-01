@@ -1,8 +1,8 @@
 /**
  * @fileoverview
- * Thread status values. Thread exposes each one as a static getter with the
- * same name, for example Thread.STATUS_YIELD. The compiler emits these values
- * as numbers, so they must not change.
+ * Thread status values, for modules that cannot import Thread without a
+ * require cycle. Thread's static getters and the compiler return the same
+ * numbers as literals, so they must not change.
  */
 
 const ThreadStatus = {
