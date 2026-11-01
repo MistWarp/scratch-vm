@@ -207,6 +207,8 @@ class Frame {
     }
 }
 
+const rethrowRetire = error => `if (${error} === ${jsexecute.RETIRE_MAGIC}) throw ${error};`;
+
 class JSGenerator {
     /**
      * @param {IntermediateScript} script
@@ -1002,7 +1004,7 @@ class JSGenerator {
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: true }, runtime);\n`;
             break;
         case StackOpcode.LIST_SET_ARRAY:
-            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInputAt(node.array, Precedence.LOWEST)}); } catch {}\n`;
+            this.source += `try { ${this.referenceVariable(node.list)}.value = JSON.parse(${this.descendInputAt(node.array, Precedence.LOWEST)}); } catch (e) { ${rethrowRetire('e')} }\n`;
             break;
 
         case StackOpcode.LOOKS_LAYER_BACKWARD:
@@ -1382,10 +1384,8 @@ class JSGenerator {
 
     retire () {
         // After running retire() (sets thread status and cleans up some unused data), we need to return to the event loop.
-        // When in a procedure, return will only send us back to the previous procedure, so instead we yield back to the sequencer.
-        // Outside of a procedure, return will correctly bring us back to the sequencer.
         if (this.isProcedure) {
-            this.source += 'retire(); yield;\n';
+            this.source += `retire(); throw ${jsexecute.RETIRE_MAGIC};\n`;
         } else {
             this.source += 'retire(); return;\n';
         }
@@ -1513,6 +1513,7 @@ class JSGenerator {
                 input,
                 field,
                 cast,
+                rethrowRetire,
                 mutation: node.mutation,
                 runtime: 'runtime',
                 target: 'target',
@@ -1527,6 +1528,7 @@ class JSGenerator {
         const source = compiler.compile({
             input,
             field,
+            rethrowRetire,
             mutation: node.mutation,
             runtime: 'runtime',
             target: 'target',
@@ -1586,6 +1588,7 @@ class JSGenerator {
             stage: 'stage',
             branch,
             yieldLoop,
+            rethrowRetire,
             blockType: node.blockType,
             branchCount: node.branchCount
         };
