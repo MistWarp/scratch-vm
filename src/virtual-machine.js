@@ -2066,12 +2066,11 @@ class VirtualMachine extends EventEmitter {
         const originalSound = this.editingTarget.getSounds()[soundIndex];
         const clone = Object.assign({}, originalSound);
         const target = this.runtime.getTargetById(targetId);
+        if (!target) return Promise.resolve();
         return loadSound(clone, this.runtime, target.sprite.soundBank).then(() => {
             if (this._editCommandActive && !this._editCommandActive()) throw new Error('Editing session ended');
-            if (target) {
-                target.addSound(clone);
-                this.emitTargetsUpdate();
-            }
+            target.addSound(clone);
+            this.emitTargetsUpdate();
         });
     }
 
@@ -2485,6 +2484,7 @@ class VirtualMachine extends EventEmitter {
      */
     postSpriteInfo (data) {
         const target = this._dragTarget || this.editingTarget;
+        if (!target) return;
         target.postSpriteInfo(data);
         // Post sprite info means the gui has changed something about a sprite,
         // either through the sprite info pane fields (e.g. direction, size) or
@@ -2500,7 +2500,7 @@ class VirtualMachine extends EventEmitter {
         }
         
         // Emit immediate event for collaboration sync if properties changed
-        if (Object.keys(changedProps).length > 0 && target) {
+        if (Object.keys(changedProps).length > 0) {
             this.runtime.emit(Runtime.SPRITE_INFO_CHANGED, target, changedProps);
         }
         

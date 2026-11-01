@@ -1112,3 +1112,27 @@ test('clearFlyoutBlocks removes all of the flyout blocks', t => {
 
     t.end();
 });
+
+test('shareSoundToTarget resolves without a target', async t => {
+    const vm = new VirtualMachine();
+    const spr = new Sprite(null, vm.runtime);
+    const target = spr.createClone();
+    target.addSound({name: 'sound1'});
+    vm.runtime.targets = [target];
+    vm.editingTarget = target;
+
+    await vm.shareSoundToTarget(0, 'missing');
+    t.equal(target.getSounds().length, 1);
+    t.end();
+});
+
+test('postSpriteInfo does nothing without an editing or drag target', t => {
+    const vm = new VirtualMachine();
+    let changed = 0;
+    vm.runtime.emitProjectChanged = () => {
+        changed++;
+    };
+    t.doesNotThrow(() => vm.postSpriteInfo({x: 10}));
+    t.equal(changed, 0);
+    t.end();
+});
