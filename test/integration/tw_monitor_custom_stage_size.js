@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const makeTestStorage = require('../fixtures/make-test-storage');
 const VirtualMachine = require('../../src/virtual-machine');
 
@@ -78,12 +79,12 @@ const wideMonitors = [
     ['offStage', 700, 600]
 ];
 
-test('monitors keep their positions on a custom stage size', async t => {
+test('monitors keep their positions on a custom stage size', async () => {
     const vm = makeVM();
     await vm.loadProject(makeProject({width: 800, height: 450}, wideMonitors));
-    t.equal(vm.runtime.stageWidth, 800);
-    t.equal(vm.runtime.stageHeight, 450);
-    t.same(positions(vm), {
+    assert.strictEqual(vm.runtime.stageWidth, 800);
+    assert.strictEqual(vm.runtime.stageHeight, 450);
+    assert.deepStrictEqual(positions(vm), {
         topLeft: [10, 10],
         belowTopLeft: [10, 60],
         farRight: [650, 220],
@@ -91,14 +92,13 @@ test('monitors keep their positions on a custom stage size', async t => {
         bottomLeft: [20, 400],
         offStage: [800, 450]
     });
-    t.end();
 });
 
-test('monitor positions survive saving and loading a custom stage size', async t => {
+test('monitor positions survive saving and loading a custom stage size', async () => {
     const vm = makeVM();
     await vm.loadProject(makeProject({width: 800, height: 450}, wideMonitors));
     const saved = JSON.parse(vm.toJSON());
-    t.same(saved.monitors.map(monitor => [monitor.id, monitor.x, monitor.y]), [
+    assert.deepStrictEqual(saved.monitors.map(monitor => [monitor.id, monitor.x, monitor.y]), [
         ['topLeft', -150, -35],
         ['belowTopLeft', -150, 15],
         ['farRight', 490, 175],
@@ -109,29 +109,26 @@ test('monitor positions survive saving and loading a custom stage size', async t
 
     const reloaded = makeVM();
     await reloaded.loadProject(JSON.stringify(saved));
-    t.same(positions(reloaded), positions(vm));
-    t.end();
+    assert.deepStrictEqual(positions(reloaded), positions(vm));
 });
 
-test('monitor positions do not depend on the previous stage size', async t => {
+test('monitor positions do not depend on the previous stage size', async () => {
     const vm = makeVM();
     vm.setStageSize(320, 240);
     await vm.loadProject(makeProject({width: 800, height: 450}, wideMonitors));
-    t.same(positions(vm).farRight, [650, 220]);
-    t.same(positions(vm).topLeft, [10, 10]);
+    assert.deepStrictEqual(positions(vm).farRight, [650, 220]);
+    assert.deepStrictEqual(positions(vm).topLeft, [10, 10]);
 
     await vm.loadProject(makeProject({width: 320, height: 240}, [['small', 300, 300]]));
-    t.same(positions(vm).small, [220, 240]);
-    t.end();
+    assert.deepStrictEqual(positions(vm).small, [220, 240]);
 });
 
-test('monitors outside the default stage are still clamped', async t => {
+test('monitors outside the default stage are still clamped', async () => {
     const vm = makeVM();
     await vm.loadProject(makeProject(null, [['inside', 100, 50], ['outside', 600, -20]]));
-    t.equal(vm.runtime.stageWidth, 480);
-    t.same(positions(vm), {
+    assert.strictEqual(vm.runtime.stageWidth, 480);
+    assert.deepStrictEqual(positions(vm), {
         inside: [100, 50],
         outside: [480, 0]
     });
-    t.end();
 });

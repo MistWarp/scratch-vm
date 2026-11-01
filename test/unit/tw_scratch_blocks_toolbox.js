@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 const ArgumentType = require('../../src/extension-support/argument-type');
 const BlockType = require('../../src/extension-support/block-type');
@@ -184,17 +185,16 @@ const capture = () => {
     }));
 };
 
-tap.test('extension metadata converts to the same scratch-blocks XML and JSON', t => {
+test('extension metadata converts to the same scratch-blocks XML and JSON', () => {
     const actual = capture();
     if (process.env.UPDATE_TOOLBOX_SNAPSHOT) {
         fs.writeFileSync(SNAPSHOT_PATH, `${JSON.stringify(actual, null, 2)}\n`);
     }
     const expected = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'));
-    t.same(actual, expected);
-    t.end();
+    assert.deepStrictEqual(actual, expected);
 });
 
-tap.test('conversion goes through Runtime methods that can be replaced', t => {
+test('conversion goes through Runtime methods that can be replaced', () => {
     const runtime = new Runtime();
     const calls = [];
     const originalBlock = runtime._convertBlockForScratchBlocks;
@@ -214,14 +214,13 @@ tap.test('conversion goes through Runtime methods that can be replaced', t => {
         category = data;
     });
     runtime._registerExtensionPrimitives(makeInfos()[0]);
-    t.ok(calls.includes('block:command'));
-    t.ok(calls.includes('arg:STEPS'));
-    t.ok(runtime.getBlocksXML()[0].xml.includes('<shadow type="toolboxtest__reporterMenu">'));
-    t.ok(category.menus.some(menu => menu.json.type === 'toolboxtest__staticMenu'));
-    t.end();
+    assert.ok(calls.includes('block:command'));
+    assert.ok(calls.includes('arg:STEPS'));
+    assert.ok(runtime.getBlocksXML()[0].xml.includes('<shadow type="toolboxtest__reporterMenu">'));
+    assert.ok(category.menus.some(menu => menu.json.type === 'toolboxtest__staticMenu'));
 });
 
-tap.test('toolbox methods stay writable prototype methods', t => {
+test('toolbox methods stay writable prototype methods', () => {
     for (const name of [
         '_makeExtensionMenuId', '_fillExtensionCategoryHeader', '_fillExtensionCategory', '_convertMenuItems',
         '_buildMenuForScratchBlocks', '_buildCustomFieldInfo', '_buildCustomFieldTypeForScratchBlocks',
@@ -230,8 +229,7 @@ tap.test('toolbox methods stay writable prototype methods', t => {
         '_constructInlineImageJson', '_convertPlaceholders', 'getBlocksXML', 'getBlocksJSON'
     ]) {
         const descriptor = Object.getOwnPropertyDescriptor(Runtime.prototype, name);
-        t.type(descriptor.value, 'function', name);
-        t.ok(descriptor.writable, `${name} is writable`);
+        assert.strictEqual(typeof descriptor.value, 'function', name);
+        assert.ok(descriptor.writable, `${name} is writable`);
     }
-    t.end();
 });

@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 const BlockType = require('../../src/extension-support/block-type');
@@ -216,16 +217,16 @@ const expandCases = () => {
     return cases;
 };
 
-test('folded literals match the same operators run on variables and in the interpreter', async t => {
+test('folded literals match the same operators run on variables and in the interpreter', async () => {
     const cases = expandCases();
     const project = buildProject(cases);
 
     const compiled = await run(project, true);
     const interpreted = await run(project, false);
 
-    t.equal(compiled.results.literal.length, cases.length, 'every literal case reported');
-    t.equal(compiled.results.variable.length, cases.length, 'every variable case reported');
-    t.equal(interpreted.results.variable.length, cases.length, 'every interpreted case reported');
+    assert.strictEqual(compiled.results.literal.length, cases.length, 'every literal case reported');
+    assert.strictEqual(compiled.results.variable.length, cases.length, 'every variable case reported');
+    assert.strictEqual(interpreted.results.variable.length, cases.length, 'every interpreted case reported');
 
     let failures = 0;
     cases.forEach((testCase, i) => {
@@ -234,18 +235,18 @@ test('folded literals match the same operators run on variables and in the inter
         const reference = interpreted.results.variable[i];
         if (!Object.is(folded, runtime)) {
             failures++;
-            t.fail(`${describe(testCase, i)}: folded ${show(folded)} but the compiled runtime gave ${show(runtime)}`);
+            assert.fail(
+                `${describe(testCase, i)}: folded ${show(folded)} but the compiled runtime gave ${show(runtime)}`
+            );
         }
         if (!Object.is(folded, reference)) {
             failures++;
-            t.fail(`${describe(testCase, i)}: folded ${show(folded)} but the interpreter gave ${show(reference)}`);
+            assert.fail(`${describe(testCase, i)}: folded ${show(folded)} but the interpreter gave ${show(reference)}`);
         }
     });
-    t.equal(failures, 0, `${cases.length} cases fold to the value the runtime computes`);
+    assert.strictEqual(failures, 0, `${cases.length} cases fold to the value the runtime computes`);
 
-    // tap's own matchers are far too slow on a source this large.
-    t.notOk(/compareEqual\("/.test(compiled.source), 'no comparison of two literals is left for runtime');
-    t.end();
+    assert.ok(!/compareEqual\("/.test(compiled.source), 'no comparison of two literals is left for runtime');
 });
 
 /**
@@ -303,7 +304,7 @@ const chain = list => {
 const flag = () => block('event_whenflagclicked', {}, {}, {id: 'flag', topLevel: true, x: 0, y: 0});
 const variable = name => block('data_variable', {}, {VARIABLE: [name, name]});
 
-test('constant conditions choose their branch at compile time', async t => {
+test('constant conditions choose their branch at compile time', async () => {
     const source = await compileScript(Object.assign(chain([
         flag(),
         block('control_if_else', {CONDITION: [2, 'cond'], SUBSTACK: [2, 'yes'], SUBSTACK2: [2, 'no']}, {}, {id: 'if'}),
@@ -323,15 +324,14 @@ test('constant conditions choose their branch at compile time', async t => {
         loopBody: say('loopBody', literal('looping'))
     }));
 
-    t.match(source, /_say\("taken", target\)/, 'the true branch is kept');
-    t.notMatch(source, /skipped|never/, 'the false branch and an empty repeat are gone');
-    t.notMatch(source, /if \(/, 'no runtime condition remains');
-    t.notMatch(source, /while \(!true\)|!!/, 'wait until true is gone and not-not is cancelled');
-    t.match(source, /while \(!compareLessThan\(b0\.value, 10\)\) \{/, 'repeat until keeps the loop condition');
-    t.end();
+    assert.match(source, /_say\("taken", target\)/, 'the true branch is kept');
+    assert.doesNotMatch(source, /skipped|never/, 'the false branch and an empty repeat are gone');
+    assert.doesNotMatch(source, /if \(/, 'no runtime condition remains');
+    assert.doesNotMatch(source, /while \(!true\)|!!/, 'wait until true is gone and not-not is cancelled');
+    assert.match(source, /while \(!compareLessThan\(b0\.value, 10\)\) \{/, 'repeat until keeps the loop condition');
 });
 
-test('folding never drops an input whose evaluation could be observed', async t => {
+test('folding never drops an input whose evaluation could be observed', async () => {
     const source = await compileScript(Object.assign(chain([
         flag(),
         say('pureAnd', [2, 'pureAndFalse']),
@@ -353,12 +353,13 @@ test('folding never drops an input whose evaluation could be observed', async t 
         prototype: block('procedures_prototype', {}, {}, {shadow: true, mutation: {tagName: 'mutation', children: [], proccode: 'side effect', argumentids: '[]', argumentnames: '[]', argumentdefaults: '[]', warp: 'false'}})
     }));
 
-    t.match(source, /_say\(false, target\);\n\w+\.ext_scratch3_looks\._say\(false, target\)/, 'a pure operand and a short-circuited call fold to false');
-    t.match(source, /_say\(toBoolean\(thread\.procedures\["Zside effect"\]\(\)\) && false, target\)/, 'a call on the evaluated side stays');
-    t.end();
+    assert.match(source, /_say\(false, target\);\n\w+\.ext_scratch3_looks\._say\(false, target\)/,
+        'a pure operand and a short-circuited call fold to false');
+    assert.match(source, /_say\(toBoolean\(thread\.procedures\["Zside effect"\]\(\)\) && false, target\)/,
+        'a call on the evaluated side stays');
 });
 
-test('folded values keep their runtime type and Scratch semantics', async t => {
+test('folded values keep their runtime type and Scratch semantics', async () => {
     const source = await compileScript(Object.assign(chain([
         flag(),
         say('join', [2, 'joinNumbers']),
@@ -380,16 +381,16 @@ test('folded values keep their runtime type and Scratch semantics', async t => {
         v2: variable('v2')
     }));
 
-    t.match(source, /_say\("12", target\)/, 'join of two numbers stays a string');
-    t.match(source, /_say\(NaN, target\)/, 'a folded NaN is emitted as NaN');
-    t.match(source, /_say\(1, target\)/, 'a NaN cast to a number is 0 before adding');
-    t.match(source, /_say\(-0, target\)/, '-4 mod 4 is -0 like the interpreter');
-    t.match(source, /_say\("" \+ b0\.value \+ "ab", target\)/, 'neighbouring join literals merge');
-    t.match(source, /\("" \+ b1\.value\)\.toLowerCase\(\) === "babab"/, 'the literal side of a comparison is lowercased now');
-    t.end();
+    assert.match(source, /_say\("12", target\)/, 'join of two numbers stays a string');
+    assert.match(source, /_say\(NaN, target\)/, 'a folded NaN is emitted as NaN');
+    assert.match(source, /_say\(1, target\)/, 'a NaN cast to a number is 0 before adding');
+    assert.match(source, /_say\(-0, target\)/, '-4 mod 4 is -0 like the interpreter');
+    assert.match(source, /_say\("" \+ b0\.value \+ "ab", target\)/, 'neighbouring join literals merge');
+    assert.match(source, /\("" \+ b1\.value\)\.toLowerCase\(\) === "babab"/,
+        'the literal side of a comparison is lowercased now');
 });
 
-test('generated expressions only use the parentheses they need', async t => {
+test('generated expressions only use the parentheses they need', async () => {
     const source = await compileScript(Object.assign(chain([
         flag(),
         block('data_setvariableto', {VALUE: [2, 'sum']}, {VARIABLE: ['v1', 'v1']}, {id: 'set'}),
@@ -411,14 +412,14 @@ test('generated expressions only use the parentheses they need', async t => {
     }));
 
     // toNotNaN is inlined as ((aN = x) === aN ? aN : 0), so the temporaries are numbered.
-    t.match(source, /b0\.value = \(\(\w+ = \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\) \* \(\(\(\w+ = \+b1\.value\) === \w+ \? \w+ : 0\) - 3\)\) === \w+ \? \w+ : 0\) \+ \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\);/, 'nested arithmetic');
-    t.match(source, /b0\.value = \(\(\w+ = b0\.value\) === \w+ \? \w+ : 0\) - 1;/, 'adding a negative literal subtracts');
-    t.match(source, /if \(b0\.value \+ 1 < 10\) \{/, 'conditions are not double wrapped');
-    t.match(source, /_say\("x=" \+ b0\.value, target\)/, 'joining onto a string needs no cast');
-    t.end();
+    assert.match(source, /b0\.value = \(\(\w+ = \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\) \* \(\(\(\w+ = \+b1\.value\) === \w+ \? \w+ : 0\) - 3\)\) === \w+ \? \w+ : 0\) \+ \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\);/, 'nested arithmetic');
+    assert.match(source, /b0\.value = \(\(\w+ = b0\.value\) === \w+ \? \w+ : 0\) - 1;/,
+        'adding a negative literal subtracts');
+    assert.match(source, /if \(b0\.value \+ 1 < 10\) \{/, 'conditions are not double wrapped');
+    assert.match(source, /_say\("x=" \+ b0\.value, target\)/, 'joining onto a string needs no cast');
 });
 
-test('raw source inputs keep the expression the author wrote', async t => {
+test('raw source inputs keep the expression the author wrote', async () => {
     const source = await compileScript(Object.assign(chain([
         flag(),
         block('patching_jscommand', {
@@ -430,6 +431,5 @@ test('raw source inputs keep the expression the author wrote', async t => {
         joined: block('operator_join', {STRING1: literal('a'), STRING2: literal('b')})
     }), {});
 
-    t.match(source, /globalThis\.__x = \("a" \+ "b"\);/, 'a literal is not spliced as bare source');
-    t.end();
+    assert.match(source, /globalThis\.__x = \("a" \+ "b"\);/, 'a literal is not spliced as bare source');
 });

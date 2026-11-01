@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VM = require('../../src/virtual-machine');
 
 const stage = (blocks, variables = {}) => ({
@@ -68,25 +69,25 @@ const loadCounterProject = async (vm, extraBlocks = {}) => {
 const counter = vm => vm.runtime.getTargetForStage().variables.counterId.value;
 
 for (const compiled of [true, false]) {
-    test(`a throwing block does not stop other scripts (${compiled ? 'compiled' : 'interpreted'})`, async t => {
+    test(`a throwing block does not stop other scripts (${compiled ? 'compiled' : 'interpreted'})`, async () => {
         const vm = new VM();
         vm.setCompilerOptions({enabled: compiled});
         await loadCounterProject(vm);
         vm.greenFlag();
         for (let i = 0; i < 3; i++) vm.runtime._step();
 
-        t.ok(counter(vm) > 0, 'the counting script kept running');
+        assert.ok(counter(vm) > 0, 'the counting script kept running');
         const throwing = vm.runtime.threads.find(thread => thread.topBlock === 'hatA');
         if (compiled) {
-            t.notOk(throwing, 'the compiled thread whose generator threw was retired');
+            assert.ok(!throwing, 'the compiled thread whose generator threw was retired');
         } else {
-            t.ok(throwing, 'the interpreted thread stays and retries the block next frame');
+            assert.ok(throwing, 'the interpreted thread stays and retries the block next frame');
         }
         vm.quit();
     });
 }
 
-test('a throwing edge-activated hat predicate does not stop other scripts', async t => {
+test('a throwing edge-activated hat predicate does not stop other scripts', async () => {
     const vm = new VM();
     await loadCounterProject(vm, {
         hatC: {opcode: 'boom_whenBroken', next: null, parent: null, inputs: {}, fields: {},
@@ -94,11 +95,11 @@ test('a throwing edge-activated hat predicate does not stop other scripts', asyn
     });
     vm.greenFlag();
     for (let i = 0; i < 3; i++) vm.runtime._step();
-    t.ok(counter(vm) > 0, 'the counting script kept running');
+    assert.ok(counter(vm) > 0, 'the counting script kept running');
     vm.quit();
 });
 
-test('a getInfo that throws rejects the load without hanging project load', async t => {
+test('a getInfo that throws rejects the load without hanging project load', async () => {
     const vm = new VM();
     vm.extensionManager.securityManager.getSandboxMode = () => 'unsandboxed';
     global.document = {
@@ -119,24 +120,23 @@ test('a getInfo that throws rejects the load without hanging project load', asyn
     };
 
     const url = 'https://example.com/broken.js';
-    await t.rejects(vm.extensionManager.loadExtensionURL(url), /getInfo threw/);
-    t.equal(vm.extensionManager.loadingAsyncExtensions, 0);
+    await assert.rejects(vm.extensionManager.loadExtensionURL(url), /getInfo threw/);
+    assert.strictEqual(vm.extensionManager.loadingAsyncExtensions, 0);
     await vm.extensionManager.allAsyncExtensionsLoaded();
-    t.equal(vm.extensionManager.isExtensionURLLoaded(url), false, 'the URL can be loaded again');
+    assert.strictEqual(vm.extensionManager.isExtensionURLLoaded(url), false, 'the URL can be loaded again');
     delete global.document;
     vm.quit();
 });
 
-test('removeExtension reports whether it removed anything', t => {
+test('removeExtension reports whether it removed anything', () => {
     const vm = new VM();
     vm.extensionManager.loadExtensionIdSync('pen');
-    t.equal(vm.extensionManager.removeExtension('pen'), true);
-    t.equal(vm.extensionManager.removeExtension('pen'), false);
+    assert.strictEqual(vm.extensionManager.removeExtension('pen'), true);
+    assert.strictEqual(vm.extensionManager.removeExtension('pen'), false);
     vm.quit();
-    t.end();
 });
 
-test('removeExtension drops the compFunc compilers it registered', async t => {
+test('removeExtension drops the compFunc compilers it registered', async () => {
     const vm = new VM();
     vm.extensionManager.addBuiltinExtension('compiledThing', class {
         getInfo () {
@@ -153,26 +153,26 @@ test('removeExtension drops the compFunc compilers it registered', async t => {
         }
     });
     vm.extensionManager.loadExtensionIdSync('compiledThing');
-    t.ok(vm.runtime.compilerExtensions.has('compiledThing_one'));
+    assert.ok(vm.runtime.compilerExtensions.has('compiledThing_one'));
     vm.extensionManager.removeExtension('compiledThing');
-    t.notOk(vm.runtime.compilerExtensions.has('compiledThing_one'));
-    t.ok(vm.runtime.compilerExtensions.has('mistsutils_notequals'), 'built-in compilers are kept');
+    assert.ok(!vm.runtime.compilerExtensions.has('compiledThing_one'));
+    assert.ok(vm.runtime.compilerExtensions.has('mistsutils_notequals'), 'built-in compilers are kept');
     vm.quit();
 });
 
-test('denied and failed project extensions keep their URL for saving', async t => {
+test('denied and failed project extensions keep their URL for saving', async () => {
     const vm = new VM();
     const denied = 'https://example.com/denied.js';
     vm.securityManager.canLoadExtensionFromProject = () => false;
     await vm._loadExtensions(['deniedExtension'], new Map([['deniedExtension', denied]]));
-    t.equal(vm.extensionManager.getExtensionURLs().deniedExtension, denied);
+    assert.strictEqual(vm.extensionManager.getExtensionURLs().deniedExtension, denied);
 
     vm.extensionManager.clearUnloadedExtensions();
-    t.notOk(vm.extensionManager.getExtensionURLs().deniedExtension, 'forgotten when another project loads');
+    assert.ok(!vm.extensionManager.getExtensionURLs().deniedExtension, 'forgotten when another project loads');
     vm.quit();
 });
 
-test('compiled extension commands that write variables do not leave stale types', async t => {
+test('compiled extension commands that write variables do not leave stale types', async () => {
     const vm = new VM();
     vm.exports.compiler.register('writer', {
         setText: {
@@ -204,11 +204,11 @@ test('compiled extension commands that write variables do not leave stale types'
     await vm.loadProject(project);
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(vm.runtime.getTargetForStage().variables.resultId.value, 1, '"abc" + 1 is 1 in Scratch');
+    assert.strictEqual(vm.runtime.getTargetForStage().variables.resultId.value, 1, '"abc" + 1 is 1 in Scratch');
     vm.quit();
 });
 
-test('a compiled command that declares a variable can be used twice in one script', async t => {
+test('a compiled command that declares a variable can be used twice in one script', async () => {
     const vm = new VM();
     vm.exports.compiler.register('declarer', {
         bump: {
@@ -234,8 +234,8 @@ test('a compiled command that declares a variable can be used twice in one scrip
     await vm.loadProject(project);
     vm.greenFlag();
     vm.runtime._step();
-    t.same(errors, [], 'the script compiled');
-    t.equal(vm.runtime.getTargetForStage().variables.countId.value, 2);
+    assert.deepStrictEqual(errors, [], 'the script compiled');
+    assert.strictEqual(vm.runtime.getTargetForStage().variables.countId.value, 2);
     vm.quit();
 });
 
@@ -258,19 +258,19 @@ const mockScriptLoads = registrations => {
     };
 };
 
-test('removing one extension of a multi-extension script keeps the URL its siblings use', async t => {
+test('removing one extension of a multi-extension script keeps the URL its siblings use', async () => {
     const vm = new VM();
     vm.extensionManager.securityManager.getSandboxMode = () => 'unsandboxed';
     mockScriptLoads([[['sibA', 'v1'], ['sibB', 'v1']]]);
     const url = 'https://example.com/pair.js';
     await vm.extensionManager.loadExtensionURL(url);
     vm.extensionManager.removeExtension('sibA');
-    t.equal(vm.extensionManager.getExtensionURLs().sibB, url);
+    assert.strictEqual(vm.extensionManager.getExtensionURLs().sibB, url);
     delete global.document;
     vm.quit();
 });
 
-test('a project replaces every extension registered by an older copy of its script', async t => {
+test('a project replaces every extension registered by an older copy of its script', async () => {
     const vm = new VM();
     vm.extensionManager.securityManager.getSandboxMode = () => 'unsandboxed';
     vm.securityManager.canLoadExtensionFromProject = () => true;
@@ -281,13 +281,13 @@ test('a project replaces every extension registered by an older copy of its scri
     await vm._loadExtensions(['pairA', 'pairB'], new Map([['pairA', newURL], ['pairB', newURL]]), () => true, true);
 
     const names = vm.runtime._blockInfo.filter(info => info.id.startsWith('pair')).map(info => info.name);
-    t.same(names.sort(), ['pairA new', 'pairB new'], 'one category each, from the new script');
-    t.same(vm.extensionManager.getExtensionURLs(), {pairA: newURL, pairB: newURL});
+    assert.deepStrictEqual(names.sort(), ['pairA new', 'pairB new'], 'one category each, from the new script');
+    assert.deepStrictEqual(vm.extensionManager.getExtensionURLs(), {pairA: newURL, pairB: newURL});
     delete global.document;
     vm.quit();
 });
 
-test('removeExtension drops compiler.register entries and restores built-in compilers it replaced', t => {
+test('removeExtension drops compiler.register entries and restores built-in compilers it replaced', () => {
     const vm = new VM();
     const builtin = vm.runtime.compilerExtensions.get('mistsutils_notequals');
     vm.exports.compiler.register('mistsutils', {
@@ -298,24 +298,23 @@ test('removeExtension drops compiler.register entries and restores built-in comp
     });
     vm.runtime.compilerUnregisterExtension('mistsutils');
     vm.runtime.compilerUnregisterExtension('mine');
-    t.equal(vm.runtime.compilerExtensions.get('mistsutils_notequals'), builtin);
-    t.notOk(vm.runtime.compilerExtensions.has('mine_thing'));
+    assert.strictEqual(vm.runtime.compilerExtensions.get('mistsutils_notequals'), builtin);
+    assert.ok(!vm.runtime.compilerExtensions.has('mine_thing'));
     vm.quit();
-    t.end();
 });
 
-test('thread errors are emitted for the editor', async t => {
+test('thread errors are emitted for the editor', async () => {
     const vm = new VM();
     const seen = [];
     vm.runtime.on('THREAD_ERROR', ({error}) => seen.push(error.message));
     await loadCounterProject(vm);
     vm.greenFlag();
     vm.runtime._step();
-    t.ok(seen.includes('explode threw'));
+    assert.ok(seen.includes('explode threw'));
     vm.quit();
 });
 
-test('a script loaded for several extensions of a project is loaded once', async t => {
+test('a script loaded for several extensions of a project is loaded once', async () => {
     const vm = new VM();
     vm.extensionManager.securityManager.getSandboxMode = () => 'unsandboxed';
     vm.securityManager.canLoadExtensionFromProject = () => true;
@@ -323,12 +322,12 @@ test('a script loaded for several extensions of a project is loaded once', async
     const url = 'https://example.com/once.js';
     await vm._loadExtensions(['onceA', 'onceB'], new Map([['onceA', url], ['onceB', url]]));
     const names = vm.runtime._blockInfo.filter(info => info.id.startsWith('once')).map(info => info.name);
-    t.same(names.sort(), ['onceA v1', 'onceB v1']);
+    assert.deepStrictEqual(names.sort(), ['onceA v1', 'onceB v1']);
     delete global.document;
     vm.quit();
 });
 
-test('a hat predicate that throws every frame is logged once', async t => {
+test('a hat predicate that throws every frame is logged once', async () => {
     const log = require('../../src/util/log');
     const originalError = log.error;
     let logged = 0;
@@ -342,19 +341,18 @@ test('a hat predicate that throws every frame is logged once', async t => {
     });
     for (let i = 0; i < 20; i++) vm.runtime._step();
     log.error = originalError;
-    t.equal(logged, 1);
+    assert.strictEqual(logged, 1);
     vm.quit();
 });
 
-test('extension message context reports the target type', t => {
+test('extension message context reports the target type', () => {
     const vm = new VM();
-    t.same(vm.runtime.makeMessageContextForTarget({isStage: true}), {targetType: 'stage'});
-    t.same(vm.runtime.makeMessageContextForTarget({isStage: false}), {targetType: 'sprite'});
+    assert.deepStrictEqual(vm.runtime.makeMessageContextForTarget({isStage: true}), {targetType: 'stage'});
+    assert.deepStrictEqual(vm.runtime.makeMessageContextForTarget({isStage: false}), {targetType: 'sprite'});
     vm.quit();
-    t.end();
 });
 
-test('a primitive shadow without its field still saves', async t => {
+test('a primitive shadow without its field still saves', async () => {
     const vm = new VM();
     await vm.loadProject(stage({
         hat: {opcode: 'event_whenflagclicked', next: 'say', parent: null, inputs: {}, fields: {},
@@ -369,12 +367,13 @@ test('a primitive shadow without its field still saves', async t => {
     const reloaded = new VM();
     await reloaded.loadProject(saved);
     const opcodes = Object.values(reloaded.runtime.getTargetForStage().blocks._blocks).map(block => block.opcode);
-    t.same(opcodes.sort(), ['event_whenflagclicked', 'looks_say', 'text'], 'the project saved and loaded again');
+    assert.deepStrictEqual(opcodes.sort(), ['event_whenflagclicked', 'looks_say', 'text'],
+        'the project saved and loaded again');
     vm.quit();
     reloaded.quit();
 });
 
-test('a dynamic menu that throws or returns a null item falls back to an empty menu', t => {
+test('a dynamic menu that throws or returns a null item falls back to an empty menu', () => {
     const vm = new VM();
     const extension = {
         throwing: () => {
@@ -382,13 +381,12 @@ test('a dynamic menu that throws or returns a null item falls back to an empty m
         },
         withNull: () => [null, 'a']
     };
-    t.same(vm.extensionManager._getExtensionMenuItems(extension, 'throwing'), [['', '']]);
-    t.same(vm.extensionManager._getExtensionMenuItems(extension, 'withNull'), [['', '']]);
+    assert.deepStrictEqual(vm.extensionManager._getExtensionMenuItems(extension, 'throwing'), [['', '']]);
+    assert.deepStrictEqual(vm.extensionManager._getExtensionMenuItems(extension, 'withNull'), [['', '']]);
     vm.quit();
-    t.end();
 });
 
-test('blocks of a failed extension can be dragged to another sprite', async t => {
+test('blocks of a failed extension can be dragged to another sprite', async () => {
     const vm = new VM();
     await vm.loadProject(stage({}));
     vm.extensionManager.recordUnloadedExtension('ghost', 'https://example.com/ghost.js');
@@ -398,17 +396,16 @@ test('blocks of a failed extension can be dragged to another sprite', async t =>
         topLevel: true, x: 0, y: 0
     }], stageTarget.id);
     const opcodes = Object.values(stageTarget.blocks._blocks).map(block => block.opcode);
-    t.same(opcodes, ['ghost_say']);
-    t.equal(vm.extensionManager.getExtensionURLs().ghost, 'https://example.com/ghost.js');
+    assert.deepStrictEqual(opcodes, ['ghost_say']);
+    assert.strictEqual(vm.extensionManager.getExtensionURLs().ghost, 'https://example.com/ghost.js');
     vm.quit();
 });
 
-test('an extension that loads after failing is no longer reported as unloaded', t => {
+test('an extension that loads after failing is no longer reported as unloaded', () => {
     const vm = new VM();
     vm.extensionManager.recordUnloadedExtension('pen', 'https://example.com/pen.js');
-    t.equal(vm.extensionManager.isExtensionUnloaded('pen'), true);
+    assert.strictEqual(vm.extensionManager.isExtensionUnloaded('pen'), true);
     vm.extensionManager.loadExtensionIdSync('pen');
-    t.equal(vm.extensionManager.isExtensionUnloaded('pen'), false);
+    assert.strictEqual(vm.extensionManager.isExtensionUnloaded('pen'), false);
     vm.quit();
-    t.end();
 });

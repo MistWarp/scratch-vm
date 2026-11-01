@@ -1,13 +1,14 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 
 const {deserializeSound} = require('../../src/serialization/deserialize-assets');
 const {serializeSounds} = require('../../src/serialization/serialize-assets');
 
-test('deserializeSound preserves compressed OGG assets', async t => {
+test('deserializeSound preserves compressed OGG assets', async () => {
     const bytes = new Uint8Array([0x4f, 0x67, 0x67, 0x53]);
     const soundFile = {
         async: async format => {
-            t.equal(format, 'uint8array');
+            assert.strictEqual(format, 'uint8array');
             return bytes;
         }
     };
@@ -18,9 +19,9 @@ test('deserializeSound preserves compressed OGG assets', async t => {
         AssetType: {Sound: 'sound'},
         DataFormat: {MP3: 'mp3', WAV: 'wav'},
         createAsset: (assetType, dataFormat, data) => {
-            t.equal(assetType, 'sound');
-            t.equal(dataFormat, 'ogg');
-            t.same(data, bytes);
+            assert.strictEqual(assetType, 'sound');
+            assert.strictEqual(dataFormat, 'ogg');
+            assert.deepStrictEqual(data, bytes);
             return {assetId: 'sound', data, dataFormat};
         }
     };
@@ -32,9 +33,9 @@ test('deserializeSound preserves compressed OGG assets', async t => {
 
     await deserializeSound(sound, {storage}, zip);
 
-    t.equal(sound.asset.dataFormat, 'ogg');
-    t.equal(sound.md5, 'sound.ogg');
-    t.same(serializeSounds({targets: [{sprite: {sounds: [sound]}}]}), [{
+    assert.strictEqual(sound.asset.dataFormat, 'ogg');
+    assert.strictEqual(sound.md5, 'sound.ogg');
+    assert.deepStrictEqual(serializeSounds({targets: [{sprite: {sounds: [sound]}}]}), [{
         fileName: 'sound.ogg',
         fileContent: bytes
     }]);

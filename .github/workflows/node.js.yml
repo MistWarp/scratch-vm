@@ -22,4 +22,4 @@ jobs:
       - run: node scripts/check-conventions.mjs --base=origin/${{ github.base_ref }}
         if: github.event_name == 'pull_request'
       - run: npm run build
-      - run: npm run tap
+      - run: npm run test:node

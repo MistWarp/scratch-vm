@@ -1,9 +1,10 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 
 const BlockUtility = require('../../src/engine/block-utility');
 const Thread = require('../../src/engine/thread');
 
-test('BlockUtility basic behaviors', t => {
+test('BlockUtility basic behaviors', () => {
     let stoppedAll = false;
     let stoppedForTarget = null;
     let startedHats = null;
@@ -37,64 +38,62 @@ test('BlockUtility basic behaviors', t => {
 
     // stackFrame getter creates executionContext
     const frame = bu.stackFrame;
-    t.ok(frame != null);
+    assert.ok(frame != null);
     if (frame) {
         if (frame.executionContext == null) frame.executionContext = {};
-        t.type(frame.executionContext, 'object');
+        assert.strictEqual(typeof frame.executionContext, 'object');
     }
 
     // timer init
-    t.equal(bu.stackTimerNeedsInit(), true);
+    assert.strictEqual(bu.stackTimerNeedsInit(), true);
     bu.startStackTimer(10);
-    t.equal(bu.stackTimerNeedsInit(), false);
+    assert.strictEqual(bu.stackTimerNeedsInit(), false);
     // not finished yet
-    t.equal(bu.stackTimerFinished(), false);
+    assert.strictEqual(bu.stackTimerFinished(), false);
     // advance time
     sequencer.runtime.currentMSecs += 20;
-    t.equal(bu.stackTimerFinished(), true);
+    assert.strictEqual(bu.stackTimerFinished(), true);
 
     // yield states
     bu.yield();
-    t.equal(thread.status, Thread.STATUS_YIELD);
+    assert.strictEqual(thread.status, Thread.STATUS_YIELD);
     bu.yieldTick();
-    t.equal(thread.status, Thread.STATUS_YIELD_TICK);
+    assert.strictEqual(thread.status, Thread.STATUS_YIELD_TICK);
 
     // branch/procedure/start/stop behaviors
     bu.startBranch(2, true);
-    t.ok(steppedBranch);
+    assert.ok(steppedBranch);
     bu.stopAll();
-    t.equal(stoppedAll, true);
+    assert.strictEqual(stoppedAll, true);
     bu.stopOtherTargetThreads();
-    t.ok(stoppedForTarget);
+    assert.ok(stoppedForTarget);
 
     // stopThisScript should call thread.stopThisScript; set a spy
     let stoppedScript = false;
     thread.stopThisScript = () => { stoppedScript = true; };
     bu.stopThisScript();
-    t.equal(stoppedScript, true);
+    assert.strictEqual(stoppedScript, true);
 
     bu.startProcedure('procX');
-    t.ok(steppedProcedure);
+    assert.ok(steppedProcedure);
 
     // procedure param getters
-    t.same(bu.getProcedureParamNamesAndIds('p'), ['a']);
-    t.same(bu.getProcedureParamNamesIdsAndDefaults('p'), ['a']);
+    assert.deepStrictEqual(bu.getProcedureParamNamesAndIds('p'), ['a']);
+    assert.deepStrictEqual(bu.getProcedureParamNamesIdsAndDefaults('p'), ['a']);
 
     // initParams / pushParam / getParam using Thread implementation
     bu.initParams();
     bu.pushParam('x', 42);
-    t.equal(bu.getParam('x'), 42);
+    assert.strictEqual(bu.getParam('x'), 42);
 
     // startHats restores thread/sequencer after call
     const originalThread = bu.thread;
     const originalSequencer = bu.sequencer;
     const hats = bu.startHats('whenFlagClicked');
-    t.same(hats, ['threadA']);
-    t.equal(bu.thread, originalThread);
-    t.equal(bu.sequencer, originalSequencer);
+    assert.deepStrictEqual(hats, ['threadA']);
+    assert.strictEqual(bu.thread, originalThread);
+    assert.strictEqual(bu.sequencer, originalSequencer);
 
     // ioQuery
-    t.equal(bu.ioQuery('keyboard', 'query', [1]), 'ok');
-
-    t.end();
+    assert.strictEqual(bu.ioQuery('keyboard', 'query', [1]), 'ok');
 });

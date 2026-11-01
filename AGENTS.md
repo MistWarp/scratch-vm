@@ -26,7 +26,7 @@ scratch-vm runs MistWarp projects: the runtime, the interpreter, the compiler, s
 ## Checks
 
 - `npm run lint`, but in a worktree under `.claude/` run `npx eslint src`, because ESLint skips dot directories and reports nothing.
-- `npm run tap` runs unit and integration tests. `npx tap --no-coverage test/unit/*.js` is faster while you iterate.
+- `npm run test:node` runs unit and integration tests with Node's built-in test runner (`node:test` and `node:assert`). `npm run test:unit` and `npm run test:integration` run one half, and `node --test test/unit/<file>.js` runs a single file while you iterate.
 - `node test/snapshot` checks the compiler output. Run `node test/snapshot --update` only for an intended change, and review the diff. `node test/integration/execute.js` runs every fixture both interpreted and compiled.
 - `npm run check:conventions` rejects code comments and em dashes in the lines you add. Tool directives such as `eslint-disable` are allowed.
 - Engine changes must keep the results of the parity project (https://git.rotur.dev/Mist/scratch-parity, built to an sb3 with fractch) identical, and performance at least the same. Measure both with [scratch-bench](https://github.com/gradylink/scratch-bench), and compare against the same run on `develop`. `BENCH_VM_DIR=<this repo> node runtimes/node-vm.mjs mistwarp <project.sb3>` runs headless in Node (tests that need a renderer fail there on both sides). `runtimes/chromium-vm.mjs` runs with the real renderer, given `BENCH_BUNDLE_DIR` pointing at a browser bundle whose `vm/` is this repo's `npm run build` output.

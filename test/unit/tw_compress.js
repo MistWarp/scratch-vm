@@ -1,8 +1,9 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const compress = require('../../src/serialization/tw-compress-sb3');
 const uid = require('../../src/util/uid');
 
-test('handles type INPUT_DIFF_BLOCK_SHADOW (3) compressed inputs', t => {
+test('handles type INPUT_DIFF_BLOCK_SHADOW (3) compressed inputs', () => {
     const data = {
         targets: [
             {
@@ -76,24 +77,22 @@ test('handles type INPUT_DIFF_BLOCK_SHADOW (3) compressed inputs', t => {
     compress(data);
 
     const blocks = Object.entries(data.targets[0].blocks);
-    t.equal(blocks.length, 3);
+    assert.strictEqual(blocks.length, 3);
 
     const [parentId, parentBlock] = blocks.find(i => i[1].opcode === 'looks_switchbackdropto');
     const [inputId, inputBlock] = blocks.find(i => i[1].opcode === 'operator_not');
     const [shadowId, shadowBlock] = blocks.find(i => i[1].opcode === 'looks_backdrops');
 
-    t.equal(parentBlock.inputs.BACKDROP.length, 3);
-    t.equal(parentBlock.inputs.BACKDROP[0], 3);
-    t.equal(parentBlock.inputs.BACKDROP[1], inputId);
-    t.equal(parentBlock.inputs.BACKDROP[2], shadowId);
+    assert.strictEqual(parentBlock.inputs.BACKDROP.length, 3);
+    assert.strictEqual(parentBlock.inputs.BACKDROP[0], 3);
+    assert.strictEqual(parentBlock.inputs.BACKDROP[1], inputId);
+    assert.strictEqual(parentBlock.inputs.BACKDROP[2], shadowId);
 
-    t.equal(inputBlock.parent, parentId);
-    t.equal(shadowBlock.parent, parentId);
-
-    t.end();
+    assert.strictEqual(inputBlock.parent, parentId);
+    assert.strictEqual(shadowBlock.parent, parentId);
 });
 
-test('Compressed IDs will not collide with uncompressed IDs', t => {
+test('Compressed IDs will not collide with uncompressed IDs', () => {
     const soup = 'abcdefghjijklmnopqstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
     const items = [
         [soup, '', ''],
@@ -217,14 +216,12 @@ test('Compressed IDs will not collide with uncompressed IDs', t => {
             ...Object.keys(data.targets[0].comments)
         ];
         for (const compressedID of compressedIDs) {
-            t.notOk(uncompressedIDs.includes(compressedID), `${compressedID} does not collide`);
+            assert.ok(!uncompressedIDs.includes(compressedID), `${compressedID} does not collide`);
         }
     }
-
-    t.end();
 });
 
-test('Script execution order is preserved', t => {
+test('Script execution order is preserved', () => {
     const originalBlocks = {};
 
     const blockIds = [];
@@ -292,17 +289,17 @@ test('Script execution order is preserved', t => {
 
     // Sanity check: Make sure the new object is actually different
     const newBlocks = data.targets[0].blocks;
-    t.not(originalBlocks, newBlocks);
-    t.notSame(Object.keys(originalBlocks), Object.keys(newBlocks));
+    assert.notStrictEqual(originalBlocks, newBlocks);
+    assert.notDeepEqual(Object.keys(originalBlocks), Object.keys(newBlocks));
 
     // Check that the order has not changed
     const newBlockValues = Object.values(newBlocks);
-    t.same(Object.values(originalBlocks), newBlockValues);
-    t.equal(newBlockValues[0].fields.BROADCAST_OPTION[0], 'broadcast-name-45');
-    t.equal(newBlockValues[1].fields.BROADCAST_OPTION[0], 'broadcast-name-555');
-    t.equal(newBlockValues[339 + 2].fields.BROADCAST_OPTION[0], 'broadcast-name-muffin');
-    t.equal(newBlockValues[newBlockValues.length - 2].fields.BROADCAST_OPTION[0], 'broadcast-name-apple');
-    t.equal(newBlockValues[newBlockValues.length - 1].fields.BROADCAST_OPTION[0], 'broadcast-name--1');
+    assert.deepEqual(Object.values(originalBlocks), newBlockValues);
+    assert.strictEqual(newBlockValues[0].fields.BROADCAST_OPTION[0], 'broadcast-name-45');
+    assert.strictEqual(newBlockValues[1].fields.BROADCAST_OPTION[0], 'broadcast-name-555');
+    assert.strictEqual(newBlockValues[339 + 2].fields.BROADCAST_OPTION[0], 'broadcast-name-muffin');
+    assert.strictEqual(newBlockValues[newBlockValues.length - 2].fields.BROADCAST_OPTION[0], 'broadcast-name-apple');
+    assert.strictEqual(newBlockValues[newBlockValues.length - 1].fields.BROADCAST_OPTION[0], 'broadcast-name--1');
 
     // Check that the new IDs do not look like array indexes as their enumeration
     // order could cause unexpected behavior in other places.
@@ -310,14 +307,12 @@ test('Script execution order is preserved', t => {
         // The actual definition of an array index is: https://tc39.es/ecma262/#array-index
         // This approximation is currently good enough
         if (!Number.isNaN(+newBlockId)) {
-            t.fail(`${newBlockId} might be treated as an array index`);
+            assert.fail(`${newBlockId} might be treated as an array index`);
         }
     }
-
-    t.end();
 });
 
-test('fractch map comment follows the compressed block ids', t => {
+test('fractch map comment follows the compressed block ids', () => {
     const map = {scripts: {hatOne: 'main', hatTwo: 'enemies/boss', deletedHat: 'old'}, modules: {hatTwo: 'm'}};
     const data = {
         targets: [
@@ -351,18 +346,17 @@ test('fractch map comment follows the compressed block ids', t => {
     const idOf = opcode => Object.keys(target.blocks).find(id => target.blocks[id].opcode === opcode);
     const one = idOf('event_whenflagclicked');
     const two = idOf('event_whenkeypressed');
-    t.not(one, 'hatOne');
+    assert.notStrictEqual(one, 'hatOne');
     const comment = Object.values(target.comments)[0];
     const remapped = JSON.parse(comment.text.slice('_fractch_map_'.length));
-    t.equal(remapped.scripts[one], 'main');
-    t.equal(remapped.scripts[two], 'enemies/boss');
-    t.equal(remapped.modules[two], 'm');
-    t.equal(remapped.scripts.deletedHat, 'old');
-    t.notOk(Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
-    t.end();
+    assert.strictEqual(remapped.scripts[one], 'main');
+    assert.strictEqual(remapped.scripts[two], 'enemies/boss');
+    assert.strictEqual(remapped.modules[two], 'm');
+    assert.strictEqual(remapped.scripts.deletedHat, 'old');
+    assert.ok(!Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
 });
 
-test('a fractch map split across text and extraText is remapped whole', t => {
+test('a fractch map split across text and extraText is remapped whole', () => {
     const blocks = {};
     const scripts = {};
     for (let i = 0; i < 400; i++) {
@@ -372,7 +366,7 @@ test('a fractch map split across text and extraText is remapped whole', t => {
         scripts[id] = i % 2 ? 'enemies/boss' : 'main';
     }
     const fullText = `_fractch_map_${JSON.stringify({scripts})}`;
-    t.ok(fullText.length > 8000);
+    assert.ok(fullText.length > 8000);
     const data = {
         targets: [
             {
@@ -398,17 +392,16 @@ test('a fractch map split across text and extraText is remapped whole', t => {
     compress(data);
     const target = data.targets[0];
     const comment = Object.values(target.comments)[0];
-    t.ok(comment.text.length <= 8000);
+    assert.ok(comment.text.length <= 8000);
     const text = comment.text + (comment.extraText || '');
     const remapped = JSON.parse(text.slice('_fractch_map_'.length));
     const ids = Object.keys(target.blocks);
-    t.equal(Object.keys(remapped.scripts).length, 400);
-    t.ok(Object.keys(remapped.scripts).every(id => ids.includes(id)));
-    t.equal(remapped.scripts[ids[1]], 'enemies/boss');
-    t.end();
+    assert.strictEqual(Object.keys(remapped.scripts).length, 400);
+    assert.ok(Object.keys(remapped.scripts).every(id => ids.includes(id)));
+    assert.strictEqual(remapped.scripts[ids[1]], 'enemies/boss');
 });
 
-test('fractch map comment entries follow the compressed comment and block ids', t => {
+test('fractch map comment entries follow the compressed comment and block ids', () => {
     const map = {
         version: 1,
         scripts: {hatOne: 'enemies/boss'},
@@ -452,16 +445,15 @@ test('fractch map comment entries follow the compressed comment and block ids', 
     const idOfText = text => Object.keys(target.comments).find(id => target.comments[id].text === text);
     const one = idOfText('first');
     const two = idOfText('second');
-    t.not(one, 'noteOne');
-    t.not(hat, 'hatOne');
+    assert.notStrictEqual(one, 'noteOne');
+    assert.notStrictEqual(hat, 'hatOne');
     const mapText = target.comments[Object.keys(target.comments).find(id =>
         target.comments[id].text.startsWith('_fractch_map_'))].text;
     const remapped = JSON.parse(mapText.slice('_fractch_map_'.length));
-    t.same(remapped.scripts, {[hat]: 'enemies/boss'});
-    t.same(remapped.comments[one], {region: 'enemies/boss', before: hat});
-    t.same(remapped.comments[two], {});
-    t.same(remapped.comments.deletedNote, {before: 'deletedHat'});
-    t.notOk(Object.prototype.hasOwnProperty.call(target.comments, 'deletedNote'));
-    t.notOk(Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
-    t.end();
+    assert.deepStrictEqual(remapped.scripts, {[hat]: 'enemies/boss'});
+    assert.deepStrictEqual(remapped.comments[one], {region: 'enemies/boss', before: hat});
+    assert.deepStrictEqual(remapped.comments[two], {});
+    assert.deepStrictEqual(remapped.comments.deletedNote, {before: 'deletedHat'});
+    assert.ok(!Object.prototype.hasOwnProperty.call(target.comments, 'deletedNote'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(target.blocks, 'deletedHat'));
 });

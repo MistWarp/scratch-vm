@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 
 const unpackPath = require.resolve('scratch-parser/lib/unpack');
 const validatePath = require.resolve('../../src/serialization/validate-project');
@@ -11,7 +12,7 @@ delete require.cache[validatePath];
 const validateProject = require(validatePath);
 require.cache[unpackPath].exports = originalUnpack;
 
-test('raw project bytes use native decoding', t => {
+test('raw project bytes use native decoding', (t, done) => {
     const project = {
         targets: [],
         monitors: [],
@@ -20,8 +21,8 @@ test('raw project bytes use native decoding', t => {
     };
     const bytes = new TextEncoder().encode(JSON.stringify(project));
     validateProject(bytes, false, (error, result) => {
-        t.error(error);
-        t.equal(result[0].projectVersion, 3);
-        t.end();
+        assert.ifError(error);
+        assert.strictEqual(result[0].projectVersion, 3);
+        done();
     });
 });

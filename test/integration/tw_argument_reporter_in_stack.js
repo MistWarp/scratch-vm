@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VM = require('../../src/virtual-machine');
 
 const mutation = {
@@ -234,25 +235,24 @@ const project = {
     }
 };
 
-test('argument reporters used as stacked blocks run in compiled scripts', async t => {
+test('argument reporters used as stacked blocks run in compiled scripts', async () => {
     const vm = new VM();
     await vm.loadProject(project);
 
     vm.greenFlag();
-    t.equal(vm.runtime.threads.length, 2);
+    assert.strictEqual(vm.runtime.threads.length, 2);
     for (const thread of vm.runtime.threads) {
-        t.ok(thread.isCompiled, 'script is compiled');
+        assert.ok(thread.isCompiled, 'script is compiled');
     }
 
-    t.doesNotThrow(() => {
+    assert.doesNotThrow(() => {
         for (let i = 0; i < 5 && vm.runtime.threads.length; i++) {
             vm.runtime._step();
         }
     });
 
     const variables = vm.runtime.getTargetForStage().variables;
-    t.equal(variables.outX.value, 'hello');
-    t.equal(variables.outB.value, true);
-    t.equal(variables.done.value, 'yes');
-    t.end();
+    assert.strictEqual(variables.outX.value, 'hello');
+    assert.strictEqual(variables.outB.value, true);
+    assert.strictEqual(variables.done.value, 'yes');
 });

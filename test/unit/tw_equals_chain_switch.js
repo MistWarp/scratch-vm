@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 
@@ -70,7 +71,7 @@ const makeProject = () => ({
     meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
 });
 
-test('terminating equals chains lower to a native switch with identical behavior', async t => {
+test('terminating equals chains lower to a native switch with identical behavior', async () => {
     const sources = [];
     JSGenerator.testingApparatus = {
         report (jsgen, factorySource) {
@@ -93,14 +94,13 @@ test('terminating equals chains lower to a native switch with identical behavior
         return resultVar.value;
     };
 
-    t.equal(runWithX(1), 'a', 'first case');
-    t.equal(runWithX(2), 'b', 'middle case');
-    t.equal(runWithX(3), 'c', 'last case');
-    t.equal(runWithX(99), 'fallback', 'no case matches falls through');
-    t.equal(runWithX(2.5), 'fallback', 'fractional subject matches nothing');
+    assert.strictEqual(runWithX(1), 'a', 'first case');
+    assert.strictEqual(runWithX(2), 'b', 'middle case');
+    assert.strictEqual(runWithX(3), 'c', 'last case');
+    assert.strictEqual(runWithX(99), 'fallback', 'no case matches falls through');
+    assert.strictEqual(runWithX(2.5), 'fallback', 'fractional subject matches nothing');
 
-    t.ok(sources.some(source => source.includes('switch (')), 'chain compiled to a native switch');
+    assert.ok(sources.some(source => source.includes('switch (')), 'chain compiled to a native switch');
 
     JSGenerator.testingApparatus = null;
-    t.end();
 });

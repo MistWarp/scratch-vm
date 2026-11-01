@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 const sb3 = require('../../src/serialization/sb3');
 const makeTestStorage = require('../fixtures/make-test-storage');
@@ -63,7 +64,7 @@ const makeRuntime = () => {
 
 test('SB3 loading deduplicates asset work but preserves every reference', async t => {
     const {runtime, loads, counters, restoreGlobals} = makeRuntime();
-    t.teardown(restoreGlobals);
+    t.after(restoreGlobals);
     const progress = [];
     runtime.on(Runtime.ASSET_PROGRESS, (finished, total, detail) => {
         if (detail) progress.push({finished, total, detail});
@@ -72,33 +73,33 @@ test('SB3 loading deduplicates asset work but preserves every reference', async 
     const result = await sb3.deserialize(makeProject(), runtime, null);
     const target = result.targets[0];
 
-    t.same(Object.fromEntries(loads), {
+    assert.deepStrictEqual(Object.fromEntries(loads), {
         'image-0': 1,
         'image-1': 1,
         'sound-0': 1,
         'sound-1': 1
     }, 'each unique storage URL is requested once');
-    t.equal(counters.decodes, 2, 'each unique sound is decoded once');
-    t.equal(counters.imageDecodes, 2, 'each unique bitmap is decoded once');
-    t.equal(target.sprite.costumes.length, 60, 'all costume references are attached');
-    t.equal(new Set(target.sprite.costumes.map(costume => costume.skinId)).size, 60,
+    assert.strictEqual(counters.decodes, 2, 'each unique sound is decoded once');
+    assert.strictEqual(counters.imageDecodes, 2, 'each unique bitmap is decoded once');
+    assert.strictEqual(target.sprite.costumes.length, 60, 'all costume references are attached');
+    assert.strictEqual(new Set(target.sprite.costumes.map(costume => costume.skinId)).size, 60,
         'each costume reference keeps a separate renderer skin');
-    t.equal(target.sprite.sounds.length, 40, 'all sound references are attached');
-    t.equal(new Set(target.sprite.sounds.map(sound => sound.soundId)).size, 40,
+    assert.strictEqual(target.sprite.sounds.length, 40, 'all sound references are attached');
+    assert.strictEqual(new Set(target.sprite.sounds.map(sound => sound.soundId)).size, 40,
         'each sound reference has a separate player');
-    t.ok(target.sprite.costumes.every((costume, index) => costume.name === `costume ${index}`),
+    assert.ok(target.sprite.costumes.every((costume, index) => costume.name === `costume ${index}`),
         'per-reference costume metadata is preserved');
-    t.ok(progress.every((entry, index) => index === 0 || entry.finished >= progress[index - 1].finished),
+    assert.ok(progress.every((entry, index) => index === 0 || entry.finished >= progress[index - 1].finished),
         'overall progress is monotonic');
-    t.same([...new Set(progress.map(entry => entry.detail.phase))], ['download', 'prepare'],
+    assert.deepStrictEqual([...new Set(progress.map(entry => entry.detail.phase))], ['download', 'prepare'],
         'progress distinguishes download and preparation work');
-    t.equal(progress[progress.length - 1].finished, progress[progress.length - 1].total,
+    assert.strictEqual(progress[progress.length - 1].finished, progress[progress.length - 1].total,
         'progress completes after every reference is prepared');
 });
 
 test('a failed project-scoped asset entry is retried by the next load', async t => {
     const {runtime, loads, restoreGlobals} = makeRuntime();
-    t.teardown(restoreGlobals);
+    t.after(restoreGlobals);
     const retryProject = makeProject();
     retryProject.targets[0].costumes = retryProject.targets[0].costumes.slice(0, 1);
     retryProject.targets[0].sounds = [];
@@ -116,5 +117,5 @@ test('a failed project-scoped asset entry is retried by the next load', async t 
     await sb3.deserialize(retryProject, runtime, null);
     await sb3.deserialize(retryProject, runtime, null);
 
-    t.equal(loads.get('image-0'), 2, 'the second project load retries the failed asset');
+    assert.strictEqual(loads.get('image-0'), 2, 'the second project load retries the failed asset');
 });

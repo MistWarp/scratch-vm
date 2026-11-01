@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const fs = require('fs');
 const vm = require('vm');
 const source = fs.readFileSync(require.resolve('../../src/extension-support/extension-worker'), 'utf8');
@@ -58,29 +59,29 @@ const startWorker = behavior => {
     return {result, errors};
 };
 
-test('a script which loads without registering fails instead of hanging', async t => {
+test('a script which loads without registering fails instead of hanging', async () => {
     const worker = startWorker(({script, timeout}) => { script.onload(); timeout(); });
     const [, error] = await worker.result;
-    t.match(error, /did not finish registering/);
+    assert.match(error, /did not finish registering/);
     await new Promise(resolve => setImmediate(resolve));
-    t.equal(worker.errors.size, 0, 'startup error listener removed');
+    assert.strictEqual(worker.errors.size, 0, 'startup error listener removed');
 });
 
-test('a runtime error before registration reaches the host', async t => {
+test('a runtime error before registration reaches the host', async () => {
     const worker = startWorker(({script, crash}) => { crash(); script.onload(); });
     const [, error] = await worker.result;
-    t.match(error, /requires VM access/);
+    assert.match(error, /requires VM access/);
 });
 
-test('registration rejection reaches the host', async t => {
+test('registration rejection reaches the host', async () => {
     const behavior = ({script, register}) => { register({}); script.onload(); };
     behavior.registrationError = true;
     const [, error] = await startWorker(behavior).result;
-    t.match(error, /Invalid extension metadata/);
+    assert.match(error, /Invalid extension metadata/);
 });
 
-test('valid sandboxed extensions still initialize', async t => {
+test('valid sandboxed extensions still initialize', async () => {
     const [id, error] = await startWorker(({script, register}) => { register({}); script.onload(); }).result;
-    t.equal(id, 1);
-    t.equal(error, undefined);
+    assert.strictEqual(id, 1);
+    assert.strictEqual(error, undefined);
 });

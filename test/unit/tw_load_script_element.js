@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 
 const setup = () => {
     const listeners = new Set();
@@ -35,35 +36,32 @@ const load = () => {
     return require('../../src/extension-support/tw-load-script-element');
 };
 
-test('resolves once the script has run', async t => {
+test('resolves once the script has run', async () => {
     const {appended, listeners, run} = setup();
     const promise = load()('https://example.com/a.js');
     run(appended[0], () => {});
     appended[0].onload();
     await promise;
-    t.equal(listeners.size, 0);
-    t.end();
+    assert.strictEqual(listeners.size, 0);
 });
 
-test('rejects when the script throws while running', async t => {
+test('rejects when the script throws while running', async () => {
     const {appended, listeners, run} = setup();
     const promise = load()('https://example.com/a.js');
     run(appended[0], () => {
         throw new Error('boom');
     });
     appended[0].onload();
-    await t.rejects(promise, /encountered runtime error: Error: boom/);
-    t.equal(listeners.size, 0);
-    t.end();
+    await assert.rejects(promise, /encountered runtime error: Error: boom/);
+    assert.strictEqual(listeners.size, 0);
 });
 
-test('ignores errors from other scripts and hides data: URLs', async t => {
+test('ignores errors from other scripts and hides data: URLs', async () => {
     const {appended, run} = setup();
     const promise = load()('data:text/javascript,1');
     run({}, () => {
         throw new Error('other script');
     });
     appended[0].onerror();
-    await t.rejects(promise, /^Custom extension could not be loaded/);
-    t.end();
+    await assert.rejects(promise, {message: /^Custom extension could not be loaded/});
 });

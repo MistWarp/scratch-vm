@@ -1,9 +1,8 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 
-const test = tap.test;
-
-test('step listeners run before and after each step until removed', t => {
+test('step listeners run before and after each step until removed', () => {
     const rt = new Runtime();
     const calls = [];
     rt.sequencer.stepThreads = () => {
@@ -15,18 +14,17 @@ test('step listeners run before and after each step until removed', t => {
         after: () => calls.push('after')
     });
     rt._step();
-    t.same(calls, ['before', 'threads', 'after']);
+    assert.deepStrictEqual(calls, ['before', 'threads', 'after']);
     remove();
     remove();
     calls.length = 0;
     rt._step();
-    t.same(calls, ['threads']);
-    t.equal(rt._beforeStepListeners, null);
-    t.equal(rt._afterStepListeners, null);
-    t.end();
+    assert.deepStrictEqual(calls, ['threads']);
+    assert.strictEqual(rt._beforeStepListeners, null);
+    assert.strictEqual(rt._afterStepListeners, null);
 });
 
-test('step listeners can be added with only one side', t => {
+test('step listeners can be added with only one side', () => {
     const rt = new Runtime();
     const calls = [];
     const removeAfter = rt.addStepListener({after: () => calls.push('after')});
@@ -34,12 +32,11 @@ test('step listeners can be added with only one side', t => {
     rt._step();
     removeAfter();
     rt._step();
-    t.same(calls, ['before', 'after', 'before']);
-    t.throws(() => rt.addStepListener({}), TypeError);
-    t.end();
+    assert.deepStrictEqual(calls, ['before', 'after', 'before']);
+    assert.throws(() => rt.addStepListener({}), TypeError);
 });
 
-test('removing one step listener keeps another that uses the same function', t => {
+test('removing one step listener keeps another that uses the same function', () => {
     const rt = new Runtime();
     let count = 0;
     const after = () => {
@@ -49,11 +46,10 @@ test('removing one step listener keeps another that uses the same function', t =
     rt.addStepListener({after});
     removeFirst();
     rt._step();
-    t.equal(count, 1);
-    t.end();
+    assert.strictEqual(count, 1);
 });
 
-test('a step listener that removes itself does not skip the others', t => {
+test('a step listener that removes itself does not skip the others', () => {
     const rt = new Runtime();
     const calls = [];
     const removeFirst = rt.addStepListener({
@@ -65,13 +61,12 @@ test('a step listener that removes itself does not skip the others', t => {
     rt.addStepListener({after: () => calls.push('second')});
     rt._step();
     rt._step();
-    t.same(calls, ['first', 'second', 'second']);
-    t.end();
+    assert.deepStrictEqual(calls, ['first', 'second', 'second']);
 });
 
-test('_step stays a writable prototype method that wrappers still reach', t => {
+test('_step stays a writable prototype method that wrappers still reach', () => {
     const descriptor = Object.getOwnPropertyDescriptor(Runtime.prototype, '_step');
-    t.ok(descriptor.writable);
+    assert.ok(descriptor.writable);
     const rt = new Runtime();
     const calls = [];
     rt.addStepListener({after: () => calls.push('listener')});
@@ -81,6 +76,5 @@ test('_step stays a writable prototype method that wrappers still reach', t => {
         calls.push('wrapper');
     };
     rt._step();
-    t.same(calls, ['listener', 'wrapper']);
-    t.end();
+    assert.deepStrictEqual(calls, ['listener', 'wrapper']);
 });

@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const Cast = require('../../src/util/cast');
 
@@ -68,7 +69,7 @@ const AS = ['0', '1', '101', 'FF', 'ff', 'Z9', '777', '', 'abc', '-101', '10.5',
 const BS = ['2', '8', '10', '16', '36', 2, 16, '1', '37', '10.0', ' 10', '010', 'abc', ''];
 const CS = ['2', '10', '16', '36', '5', '37', ''];
 
-test('gallery true-fantom base compiler matches extension semantics', async t => {
+test('gallery true-fantom base compiler matches extension semantics', async () => {
     const vm = new VirtualMachine();
     vm.setCompilerOptions({enabled: true, warpTimer: false});
     vm.extensionManager.isExtensionLoaded = () => true;
@@ -77,7 +78,8 @@ test('gallery true-fantom base compiler matches extension semantics', async t =>
             throw new Error(`compat path used for ${op}`);
         };
     }
-    vm.on('COMPILE_ERROR', (target, error) => t.fail(`compile error: ${error}`));
+    const compileErrors = [];
+    vm.on('COMPILE_ERROR', (target, error) => compileErrors.push(`compile error: ${error}`));
 
     await vm.loadProject(JSON.stringify(makeProject()));
     vm.runtime.precompile();
@@ -108,7 +110,7 @@ test('gallery true-fantom base compiler matches extension semantics', async t =>
                     if (!Object.is(actual, expected)) {
                         failures++;
                         if (failures < 20) {
-                            t.fail(`${op} with ${JSON.stringify(v)}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+                            assert.fail(`${op} with ${JSON.stringify(v)}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
                         }
                     }
                     checks++;
@@ -116,6 +118,6 @@ test('gallery true-fantom base compiler matches extension semantics', async t =>
             }
         }
     }
-    t.equal(failures, 0, `no mismatches out of ${checks} checks`);
-    t.end();
+    assert.deepStrictEqual(compileErrors, []);
+    assert.strictEqual(failures, 0, `no mismatches out of ${checks} checks`);
 });

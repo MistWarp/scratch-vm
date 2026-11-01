@@ -1,4 +1,5 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 const RenderedTarget = require('../../src/sprites/rendered-target');
 const Sprite = require('../../src/sprites/sprite');
@@ -12,14 +13,13 @@ const {
     differingProjectOptions
 } = require('../../src/serialization/project-options-comment');
 
-tap.test('marker is the TurboWarp config marker', t => {
-    t.equal(PROJECT_OPTIONS_MARKER, ' // _twconfig_');
-    t.ok(isProjectOptionsText('Configuration\n{} // _twconfig_'));
-    t.notOk(isProjectOptionsText('just a comment'));
-    t.end();
+test('marker is the TurboWarp config marker', () => {
+    assert.strictEqual(PROJECT_OPTIONS_MARKER, ' // _twconfig_');
+    assert.ok(isProjectOptionsText('Configuration\n{} // _twconfig_'));
+    assert.ok(!isProjectOptionsText('just a comment'));
 });
 
-tap.test('options round trip through the comment text', t => {
+test('options round trip through the comment text', () => {
     const options = {
         framerate: 60,
         runtimeOptions: {maxClones: Infinity, miscLimits: false, fencing: false},
@@ -33,39 +33,37 @@ tap.test('options round trip through the comment text', t => {
         mistwarpTheme: {accent: '#ff0000'}
     };
     const text = serializeProjectOptionsText(options);
-    t.equal(text, 'Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, ' +
+    assert.strictEqual(text, 'Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, ' +
         'but don\'t edit it by hand. This comment can be deleted to remove the stored settings.\n' +
         '{"framerate":60,"runtimeOptions":{"maxClones":Infinity,"miscLimits":false,"fencing":false},' +
         '"interpolation":true,"turbo":true,"hq":true,"width":640,"height":360,"products":[{"id":"p","price":1}],' +
         '"categoryOrder":["motion","pen"],"mistwarpTheme":{"accent":"#ff0000"}} // _twconfig_');
-    t.ok(isProjectOptionsText(text));
-    t.same(parseProjectOptionsText(text), {options});
-    t.end();
+    assert.ok(isProjectOptionsText(text));
+    assert.deepStrictEqual(parseProjectOptionsText(text), {options});
 });
 
-tap.test('parse reports why options could not be read', t => {
-    t.same(parseProjectOptionsText('mentions // _twconfig_ in the middle'), {error: NO_OPTIONS_LINE});
+test('parse reports why options could not be read', () => {
+    assert.deepStrictEqual(parseProjectOptionsText('mentions // _twconfig_ in the middle'), {error: NO_OPTIONS_LINE});
     const invalid = parseProjectOptionsText('{oops // _twconfig_');
-    t.equal(invalid.error, INVALID_OPTIONS_JSON);
-    t.type(invalid.cause, Error);
+    assert.strictEqual(invalid.error, INVALID_OPTIONS_JSON);
+    assert.ok(invalid.cause instanceof Error);
     const notObject = parseProjectOptionsText('5 // _twconfig_');
-    t.equal(notObject.error, INVALID_OPTIONS_JSON);
-    t.equal(notObject.cause.message, 'Invalid object');
-    t.equal(parseProjectOptionsText('null // _twconfig_').error, INVALID_OPTIONS_JSON);
-    t.same(parseProjectOptionsText('first line\n{"turbo":true} // _twconfig_\nlast line'), {options: {turbo: true}});
-    t.end();
+    assert.strictEqual(notObject.error, INVALID_OPTIONS_JSON);
+    assert.strictEqual(notObject.cause.message, 'Invalid object');
+    assert.strictEqual(parseProjectOptionsText('null // _twconfig_').error, INVALID_OPTIONS_JSON);
+    assert.deepStrictEqual(parseProjectOptionsText('first line\n{"turbo":true} // _twconfig_\nlast line'),
+        {options: {turbo: true}});
 });
 
-tap.test('differing options only keep changed values', t => {
-    t.same(differingProjectOptions(
+test('differing options only keep changed values', () => {
+    assert.deepStrictEqual(differingProjectOptions(
         {framerate: 30, turbo: false, runtimeOptions: {maxClones: 300, fencing: true}, width: 480},
         {framerate: 60, turbo: false, runtimeOptions: {maxClones: 300, fencing: false}, width: 480}
     ), {framerate: 60, runtimeOptions: {fencing: false}});
-    t.same(differingProjectOptions({a: {b: 1}}, {a: {b: 1}}), {});
-    t.end();
+    assert.deepStrictEqual(differingProjectOptions({a: {b: 1}}, {a: {b: 1}}), {});
 });
 
-tap.test('Runtime stores and reads options through the comment', t => {
+test('Runtime stores and reads options through the comment', () => {
     const runtime = new Runtime();
     const sprite = new Sprite(null, runtime);
     const stage = new RenderedTarget(sprite, runtime);
@@ -76,8 +74,8 @@ tap.test('Runtime stores and reads options through the comment', t => {
     runtime.storeProjectOptions({mistwarpTheme: {accent: '#00ff00'}});
 
     const comment = runtime.findProjectOptionsComment();
-    t.ok(comment);
-    t.same(parseProjectOptionsText(comment.text), {
+    assert.ok(comment);
+    assert.deepStrictEqual(parseProjectOptionsText(comment.text), {
         options: {framerate: 60, width: 640, height: 400, mistwarpTheme: {accent: '#00ff00'}}
     });
 
@@ -88,9 +86,8 @@ tap.test('Runtime stores and reads options through the comment', t => {
     other.addTarget(otherStage);
     otherStage.createComment('c', null, comment.text, 0, 0, 100, 100, false);
     other.parseProjectOptions();
-    t.equal(other.frameLoop.framerate, 60);
-    t.equal(other.stageWidth, 640);
-    t.equal(other.stageHeight, 400);
-    t.same(other.getStoredProjectOptions().mistwarpTheme, {accent: '#00ff00'});
-    t.end();
+    assert.strictEqual(other.frameLoop.framerate, 60);
+    assert.strictEqual(other.stageWidth, 640);
+    assert.strictEqual(other.stageHeight, 400);
+    assert.deepStrictEqual(other.getStoredProjectOptions().mistwarpTheme, {accent: '#00ff00'});
 });

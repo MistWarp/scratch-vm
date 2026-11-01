@@ -2,7 +2,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {pathToFileURL} = require('url');
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VM = require('../../src/virtual-machine');
 const opcodes = require('../../src/engine/opcodes.generated.json');
 const {isReservedComment, isMapComment} = require('../../src/serialization/fractch-context');
@@ -112,44 +113,44 @@ test('code mode corpus identity', {skip: !fs.existsSync(fractchDir) || files.len
             await vm.loadProject(fs.readFileSync(file));
         } catch (e) {
             totals.skipped++;
-            t.comment(`skipped ${name}: ${e.message}`);
+            t.diagnostic(`skipped ${name}: ${e.message}`);
             continue;
         }
         totals.projects++;
-        await t.test(name, async tt => {
+        await t.test(name, async () => {
             for (const target of vm.runtime.targets.filter(x => x.isOriginal)) {
                 const where = `${name} / ${target.getName()}`;
                 const before = snapshot(vm, target);
                 const legacy = membership.readMembership(vm.getFractchContext(target.id).targets[0]);
                 const result = roundTrip(fractch, vm, target.id);
-                tt.same(result.errors, [], `${where}: no build errors`);
-                if (result.errors.length) continue;
+                assert.deepStrictEqual(result.errors, [], `${where}: no build errors`);
                 const {built, emitted} = result;
-                tt.same(built.changed, [], `${where}: no scripts changed`);
-                tt.same(built.created.scripts, [], `${where}: no scripts created`);
-                tt.same(built.removed.scripts, [], `${where}: no scripts removed`);
+                assert.deepStrictEqual(built.changed, [], `${where}: no scripts changed`);
+                assert.deepStrictEqual(built.created.scripts, [], `${where}: no scripts created`);
+                assert.deepStrictEqual(built.removed.scripts, [], `${where}: no scripts removed`);
                 const after = snapshot(vm, target);
-                tt.same(after.blocks, before.blocks, `${where}: blocks and ids`);
-                tt.same(after.scripts, before.scripts, `${where}: script order`);
-                tt.equal(after.frames, before.frames, `${where}: frames`);
-                tt.equal(after.variables, before.variables, `${where}: variables`);
-                tt.equal(after.hash, before.hash, `${where}: code state hash`);
-                tt.equal(after.reserved.length, before.reserved.length, `${where}: reserved comment count`);
+                assert.deepStrictEqual(after.blocks, before.blocks, `${where}: blocks and ids`);
+                assert.deepStrictEqual(after.scripts, before.scripts, `${where}: script order`);
+                assert.strictEqual(after.frames, before.frames, `${where}: frames`);
+                assert.strictEqual(after.variables, before.variables, `${where}: variables`);
+                assert.strictEqual(after.hash, before.hash, `${where}: code state hash`);
+                assert.strictEqual(after.reserved.length, before.reserved.length, `${where}: reserved comment count`);
                 for (const [id, comment] of before.reserved) {
-                    tt.equal(target.comments[id], comment, `${where}: reserved comment ${id} kept`);
+                    assert.strictEqual(target.comments[id], comment, `${where}: reserved comment ${id} kept`);
                 }
                 const gained = Object.keys(after.comments).filter(id => !(id in before.comments));
                 for (const id of gained) {
-                    tt.ok(isMapComment(target.comments[id]), `${where}: only a map comment is gained (${id})`);
+                    assert.ok(isMapComment(target.comments[id]), `${where}: only a map comment is gained (${id})`);
                     totals.gainedMaps++;
                     const map = membership.readMembership(vm.getFractchContext(target.id).targets[0]);
                     for (const topId of after.scripts) {
-                        tt.same(map.entryFor(topId), legacy.entryFor(topId), `${where}: map entry ${topId}`);
+                        assert.deepStrictEqual(map.entryFor(topId), legacy.entryFor(topId),
+                            `${where}: map entry ${topId}`);
                     }
                 }
                 for (const id of Object.keys(before.comments)) {
                     if (isMapComment(target.comments[id])) continue;
-                    tt.equal(after.comments[id], before.comments[id], `${where}: comment ${id}`);
+                    assert.strictEqual(after.comments[id], before.comments[id], `${where}: comment ${id}`);
                 }
                 totals.targets++;
                 totals.scripts += Object.keys(emitted.sourceMap.scripts).length;
@@ -162,24 +163,24 @@ test('code mode corpus identity', {skip: !fs.existsSync(fractchDir) || files.len
                 if (!editable) continue;
                 const editedIds = scriptIds(after.blocks, editable);
                 const edit = roundTrip(fractch, vm, target.id, e => insertStatement(editable, e));
-                tt.same(edit.errors, [], `${where}: edit builds`);
-                if (edit.errors.length) continue;
-                tt.equal(edit.built.changed.length, 1, `${where}: one script changed`);
+                assert.deepStrictEqual(edit.errors, [], `${where}: edit builds`);
+                assert.strictEqual(edit.built.changed.length, 1, `${where}: one script changed`);
                 const changedTop = edit.built.changed.length ? edit.built.changed[0].newTopId : editable;
                 const live = target.blocks._blocks;
                 const newScript = scriptIds(live, changedTop);
-                tt.same(Object.keys(after.blocks).filter(id => !editedIds.has(id) &&
+                assert.deepStrictEqual(Object.keys(after.blocks).filter(id => !editedIds.has(id) &&
                     JSON.stringify(live[id]) !== JSON.stringify(after.blocks[id])), [],
                 `${where}: blocks outside the edit are untouched`);
-                tt.same(Object.keys(live).filter(id => !(id in after.blocks) && !newScript.has(id)), [],
+                assert.deepStrictEqual(Object.keys(live).filter(id => !(id in after.blocks) && !newScript.has(id)), [],
                     `${where}: new ids are only in the edited script`);
-                tt.equal(JSON.stringify(target.variables), after.variables, `${where}: edit leaves variables alone`);
+                assert.strictEqual(JSON.stringify(target.variables), after.variables,
+                    `${where}: edit leaves variables alone`);
                 totals.edited++;
             }
         });
         vm.quit();
     }
-    t.comment(`${totals.projects} projects (${totals.skipped} skipped), ${totals.targets} targets, ` +
+    t.diagnostic(`${totals.projects} projects (${totals.skipped} skipped), ${totals.targets} targets, ` +
         `${totals.scripts} scripts, ${totals.locked} locked, ${totals.edited} edited, ` +
         `${totals.gainedMaps} map comments gained`);
 });

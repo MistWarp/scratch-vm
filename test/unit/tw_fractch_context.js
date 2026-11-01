@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VM = require('../../src/virtual-machine');
 const sb3 = require('../../src/serialization/sb3');
 const {
@@ -73,53 +74,52 @@ const load = async () => {
     return {vm, sprite, stage: vm.runtime.getTargetForStage()};
 };
 
-test('context is sb3 form from the live VM without expanding', async t => {
+test('context is sb3 form from the live VM without expanding', async () => {
     const {vm, sprite} = await load();
     const before = JSON.stringify(sprite.blocks._blocks);
     const context = vm.getFractchContext();
-    t.equal(JSON.stringify(sprite.blocks._blocks), before, 'the live blocks are not touched');
-    t.equal(context.generation, vm._projectLoadGeneration);
-    t.equal(context.targets.length, 2);
+    assert.strictEqual(JSON.stringify(sprite.blocks._blocks), before, 'the live blocks are not touched');
+    assert.strictEqual(context.generation, vm._projectLoadGeneration);
+    assert.strictEqual(context.targets.length, 2);
     const entry = context.targets.find(target => target.id === sprite.id);
-    t.equal(entry.name, 'Sprite1');
-    t.equal(entry.changeKey, vm.getFractchChangeKey(sprite.id));
+    assert.strictEqual(entry.name, 'Sprite1');
+    assert.strictEqual(entry.changeKey, vm.getFractchChangeKey(sprite.id));
 
     const add = entry.blocks.add;
-    t.equal(add.mutation.itemcount, '3', 'the variadic operator stays collapsed');
-    t.same(Object.keys(add.inputs), ['NUM1', 'NUM2', 'NUM3']);
-    t.notOk(entry.blocks.add2, 'no expanded operator is minted');
-    t.same(add.inputs.NUM1, [1, [4, '1']], 'primitives are compressed');
+    assert.strictEqual(add.mutation.itemcount, '3', 'the variadic operator stays collapsed');
+    assert.deepStrictEqual(Object.keys(add.inputs), ['NUM1', 'NUM2', 'NUM3']);
+    assert.ok(!entry.blocks.add2, 'no expanded operator is minted');
+    assert.deepStrictEqual(add.inputs.NUM1, [1, [4, '1']], 'primitives are compressed');
     const piId = sprite.blocks.getBlock('sayPi').inputs.MESSAGE.block;
-    t.equal(entry.blocks[piId].opcode, 'operator_pi', 'constants are not expanded into variables');
-    t.notOk(Object.keys(entry.variables).some(id => id.startsWith('mistwarp.')));
+    assert.strictEqual(entry.blocks[piId].opcode, 'operator_pi', 'constants are not expanded into variables');
+    assert.ok(!Object.keys(entry.variables).some(id => id.startsWith('mistwarp.')));
 
     const liveAdd = sprite.blocks.getBlock('add');
-    t.same(entry.primitiveIds.add.NUM1, {block: liveAdd.inputs.NUM1.block, shadow: liveAdd.inputs.NUM1.shadow});
-    t.equal(entry.obscuredShadows.add.length, 1);
+    assert.deepStrictEqual(entry.primitiveIds.add.NUM1,
+        {block: liveAdd.inputs.NUM1.block, shadow: liveAdd.inputs.NUM1.shadow});
+    assert.strictEqual(entry.obscuredShadows.add.length, 1);
     const obscured = entry.obscuredShadows.add[0];
-    t.equal(obscured.id, liveAdd.obscuredHeadShadows[0]);
-    t.equal(obscured.blocks[obscured.id].fields.NUM.value, '7', 'the obscured shadow keeps its value');
-    t.notOk(entry.blocks[obscured.id], 'the obscured shadow is only in the sidecar');
+    assert.strictEqual(obscured.id, liveAdd.obscuredHeadShadows[0]);
+    assert.strictEqual(obscured.blocks[obscured.id].fields.NUM.value, '7', 'the obscured shadow keeps its value');
+    assert.ok(!entry.blocks[obscured.id], 'the obscured shadow is only in the sidecar');
 
     const looseId = sprite.blocks.getScripts().find(id => sprite.blocks.getBlock(id).opcode === 'data_variable');
-    t.same(entry.blocks[looseId], [12, 'lives', 'l', 10, 300], 'loose reporters keep their live id');
-    t.equal(entry.comments.free.text.length, 9000, 'comment text is not split');
-    t.equal(entry.comments.attached.blockId, 'hat');
-    t.ok(entry.comments.map, 'the map comment is in the context');
-    t.end();
+    assert.deepStrictEqual(entry.blocks[looseId], [12, 'lives', 'l', 10, 300], 'loose reporters keep their live id');
+    assert.strictEqual(entry.comments.free.text.length, 9000, 'comment text is not split');
+    assert.strictEqual(entry.comments.attached.blockId, 'hat');
+    assert.ok(entry.comments.map, 'the map comment is in the context');
 });
 
-test('large lists are kept out of the context', async t => {
+test('large lists are kept out of the context', async () => {
     const {vm, stage} = await load();
     const entry = vm.getFractchContext(stage.id).targets[0];
-    t.same(entry.lists.small, ['small', [1, 2, 3]]);
-    t.same(entry.lists.big, ['big', null]);
-    t.same(entry.keptLists, {big: {length: 500}});
-    t.ok(entry.comments.cfg);
-    t.end();
+    assert.deepStrictEqual(entry.lists.small, ['small', [1, 2, 3]]);
+    assert.deepStrictEqual(entry.lists.big, ['big', null]);
+    assert.deepStrictEqual(entry.keptLists, {big: {length: 500}});
+    assert.ok(entry.comments.cfg);
 });
 
-test('the context matches what a save would load back', async t => {
+test('the context matches what a save would load back', async () => {
     const {vm, sprite} = await load();
     const entry = vm.getFractchContext(sprite.id).targets[0];
     const blocks = JSON.parse(JSON.stringify(entry.blocks));
@@ -129,31 +129,29 @@ test('the context matches what a save would load back', async t => {
         for (const item of entry.obscuredShadows[id]) Object.assign(blocks, item.blocks);
     }
     const live = JSON.parse(JSON.stringify(sprite.blocks._blocks));
-    t.same(Object.keys(blocks).sort(), Object.keys(live).sort(), 'every block id comes back');
+    assert.deepStrictEqual(Object.keys(blocks).sort(), Object.keys(live).sort(), 'every block id comes back');
     for (const id of Object.keys(live)) {
-        t.same(blocks[id].inputs, live[id].inputs, `inputs of ${id}`);
-        t.same(blocks[id].fields, live[id].fields, `fields of ${id}`);
+        assert.deepEqual(blocks[id].inputs, live[id].inputs, `inputs of ${id}`);
+        assert.deepEqual(blocks[id].fields, live[id].fields, `fields of ${id}`);
     }
-    t.end();
 });
 
-test('reserved and map comments are recognized', t => {
+test('reserved and map comments are recognized', () => {
     const stage = {isStage: true};
     const sprite = {isStage: false};
     const comment = text => ({blockId: null, text});
-    t.ok(isReservedComment(stage, comment('x // _twconfig_')));
-    t.ok(isReservedComment(stage, comment('WORKSPACE_BOOKMARKS:{}')));
-    t.ok(isReservedComment(stage, comment('{} // _gamepad_')));
-    t.notOk(isReservedComment(sprite, comment('x // _twconfig_')), 'only on the Stage');
-    t.notOk(isReservedComment(stage, {blockId: 'a', text: 'x // _twconfig_'}), 'only floating comments');
-    t.notOk(isReservedComment(stage, comment('hello')));
-    t.ok(isMapComment(comment(`${FRACTCH_MAP_COMMENT_MAGIC}{}`)));
-    t.notOk(isMapComment({blockId: 'a', text: `${FRACTCH_MAP_COMMENT_MAGIC}{}`}));
-    t.notOk(isMapComment(comment(`x${FRACTCH_MAP_COMMENT_MAGIC}`)));
-    t.end();
+    assert.ok(isReservedComment(stage, comment('x // _twconfig_')));
+    assert.ok(isReservedComment(stage, comment('WORKSPACE_BOOKMARKS:{}')));
+    assert.ok(isReservedComment(stage, comment('{} // _gamepad_')));
+    assert.ok(!isReservedComment(sprite, comment('x // _twconfig_')), 'only on the Stage');
+    assert.ok(!isReservedComment(stage, {blockId: 'a', text: 'x // _twconfig_'}), 'only floating comments');
+    assert.ok(!isReservedComment(stage, comment('hello')));
+    assert.ok(isMapComment(comment(`${FRACTCH_MAP_COMMENT_MAGIC}{}`)));
+    assert.ok(!isMapComment({blockId: 'a', text: `${FRACTCH_MAP_COMMENT_MAGIC}{}`}));
+    assert.ok(!isMapComment(comment(`x${FRACTCH_MAP_COMMENT_MAGIC}`)));
 });
 
-test('the map comment is hidden from the workspace but kept in the project', async t => {
+test('the map comment is hidden from the workspace but kept in the project', async () => {
     const {vm, sprite} = await load();
     let update = null;
     vm.on('workspaceUpdate', data => {
@@ -161,17 +159,16 @@ test('the map comment is hidden from the workspace but kept in the project', asy
     });
     vm.setEditingTarget(sprite.id);
     vm.emitWorkspaceUpdate();
-    t.ok(update);
-    t.notOk(update.headerXml.includes(FRACTCH_MAP_COMMENT_MAGIC), 'not in the header comments');
-    t.notOk(update.xml.includes(FRACTCH_MAP_COMMENT_MAGIC), 'not in the full xml');
-    t.notOk(update.blocks.comments.map, 'not in the comments the descs loader gets');
-    t.ok(update.blocks.comments.attached, 'other comments are still passed');
-    t.ok(update.blocks.comments.free);
-    t.ok(update.headerXml.includes('id="free"'));
-    t.ok(sprite.comments.map, 'the target still has it');
+    assert.ok(update);
+    assert.ok(!update.headerXml.includes(FRACTCH_MAP_COMMENT_MAGIC), 'not in the header comments');
+    assert.ok(!update.xml.includes(FRACTCH_MAP_COMMENT_MAGIC), 'not in the full xml');
+    assert.ok(!update.blocks.comments.map, 'not in the comments the descs loader gets');
+    assert.ok(update.blocks.comments.attached, 'other comments are still passed');
+    assert.ok(update.blocks.comments.free);
+    assert.ok(update.headerXml.includes('id="free"'));
+    assert.ok(sprite.comments.map, 'the target still has it');
     const saved = sb3.serialize(vm.runtime);
     const savedSprite = saved.targets.find(target => !target.isStage);
-    t.ok(Object.values(savedSprite.comments).some(comment => comment.text.startsWith(FRACTCH_MAP_COMMENT_MAGIC)),
+    assert.ok(Object.values(savedSprite.comments).some(comment => comment.text.startsWith(FRACTCH_MAP_COMMENT_MAGIC)),
         'the sb3 still carries it');
-    t.end();
 });

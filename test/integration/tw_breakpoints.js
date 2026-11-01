@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const Thread = require('../../src/engine/thread');
 
@@ -131,48 +132,45 @@ const resume = thread => {
 };
 
 for (const compilerEnabled of [false, true]) {
-    test(`interpreted stop before the breakpointed block (compiler ${compilerEnabled ? 'on' : 'off'})`, async t => {
+    test(`interpreted stop before the breakpointed block (compiler ${compilerEnabled ? 'on' : 'off'})`, async () => {
         const {vm, value} = await setup();
         vm.setCompilerOptions({enabled: compilerEnabled});
         const hits = pauseOnHit(vm);
         vm.runtime.setBreakpoints(['first']);
         vm.greenFlag();
         const thread = vm.runtime.threads[0];
-        t.equal(thread.isCompiled, false, 'a script with a breakpoint runs interpreted');
+        assert.strictEqual(thread.isCompiled, false, 'a script with a breakpoint runs interpreted');
         vm.runtime._step();
-        t.equal(hits.length, 1);
-        t.equal(hits[0].blockId, 'first');
-        t.equal(value('x'), 1, 'blocks before the breakpoint ran, the breakpointed block did not');
+        assert.strictEqual(hits.length, 1);
+        assert.strictEqual(hits[0].blockId, 'first');
+        assert.strictEqual(value('x'), 1, 'blocks before the breakpoint ran, the breakpointed block did not');
         vm.runtime._step();
-        t.equal(value('x'), 1, 'stays paused');
+        assert.strictEqual(value('x'), 1, 'stays paused');
         resume(thread);
         vm.runtime._step();
-        t.equal(value('x'), 3, 'resuming runs the breakpointed block once and continues');
-        t.equal(hits.length, 1);
-        t.end();
+        assert.strictEqual(value('x'), 3, 'resuming runs the breakpointed block once and continues');
+        assert.strictEqual(hits.length, 1);
     });
 }
 
-test('without a listener a breakpoint does not stop the thread', async t => {
+test('without a listener a breakpoint does not stop the thread', async () => {
     const {vm, value} = await setup();
     vm.runtime.setBreakpoints(['first']);
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(value('x'), 3);
-    t.end();
+    assert.strictEqual(value('x'), 3);
 });
 
-test('scripts without breakpoints still compile', async t => {
+test('scripts without breakpoints still compile', async () => {
     const {vm} = await setup();
     vm.runtime.setBreakpoints(['tick']);
     vm.greenFlag();
-    t.equal(vm.runtime.threads[0].isCompiled, true);
+    assert.strictEqual(vm.runtime.threads[0].isCompiled, true);
     vm.runtime.setBreakpoints(null);
-    t.equal(vm.runtime.breakpoints, null);
-    t.end();
+    assert.strictEqual(vm.runtime.breakpoints, null);
 });
 
-test('breakpoints in a called procedure keep the caller interpreted', t => {
+test('breakpoints in a called procedure keep the caller interpreted', () => {
     const vm = new VirtualMachine();
     const blocks = {
         getBlock: id => ({
@@ -183,34 +181,32 @@ test('breakpoints in a called procedure keep the caller interpreted', t => {
         getProcedureDefinition: () => 'def'
     };
     vm.runtime.setBreakpoints(['inner']);
-    t.equal(vm.runtime.scriptHasBreakpoint(blocks, 'top'), true);
+    assert.strictEqual(vm.runtime.scriptHasBreakpoint(blocks, 'top'), true);
     vm.runtime.setBreakpoints(['elsewhere']);
-    t.equal(vm.runtime.scriptHasBreakpoint(blocks, 'top'), false);
-    t.end();
+    assert.strictEqual(vm.runtime.scriptHasBreakpoint(blocks, 'top'), false);
 });
 
-test('a running compiled thread stops at its next yield point', async t => {
+test('a running compiled thread stops at its next yield point', async () => {
     const {vm, value} = await setup();
     const hits = pauseOnHit(vm);
     vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'go'});
     const thread = vm.runtime.threads[0];
-    t.equal(thread.isCompiled, true);
+    assert.strictEqual(thread.isCompiled, true);
     vm.runtime._step();
     const before = value('y');
-    t.ok(before >= 1);
+    assert.ok(before >= 1);
     vm.runtime.setBreakpoints(['tick']);
     vm.runtime._step();
-    t.equal(hits.length, 1);
-    t.equal(hits[0].blockId, 'loopHat', 'compiled threads report their top block');
-    t.equal(value('y'), before, 'no iteration ran after the stop');
+    assert.strictEqual(hits.length, 1);
+    assert.strictEqual(hits[0].blockId, 'loopHat', 'compiled threads report their top block');
+    assert.strictEqual(value('y'), before, 'no iteration ran after the stop');
     resume(thread);
     vm.runtime._step();
-    t.ok(value('y') > before, 'resuming runs at least one more iteration');
-    t.ok(hits.length >= 2, 'and stops again at the next yield');
-    t.end();
+    assert.ok(value('y') > before, 'resuming runs at least one more iteration');
+    assert.ok(hits.length >= 2, 'and stops again at the next yield');
 });
 
-test('a script with compiler-only blocks keeps compiling and stops at yield points', async t => {
+test('a script with compiler-only blocks keeps compiling and stops at yield points', async () => {
     const data = project();
     data.targets[0].lists = {lid: ['L', []]};
     Object.assign(data.targets[1].blocks, {
@@ -241,19 +237,18 @@ test('a script with compiler-only blocks keeps compiling and stops at yield poin
     vm.runtime.currentStepTime = 1000 / 30;
     const stage = vm.runtime.getTargetForStage();
     const sprite = vm.runtime.targets[1];
-    t.equal(vm.runtime.scriptNeedsCompiler(sprite.blocks, 'jsonHat'), true);
-    t.equal(vm.runtime.scriptNeedsCompiler(sprite.blocks, 'hat'), false);
+    assert.strictEqual(vm.runtime.scriptNeedsCompiler(sprite.blocks, 'jsonHat'), true);
+    assert.strictEqual(vm.runtime.scriptNeedsCompiler(sprite.blocks, 'hat'), false);
     const hits = pauseOnHit(vm);
     vm.runtime.setBreakpoints(['afterArray']);
     vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'json'});
     const thread = vm.runtime.threads[0];
-    t.equal(thread.isCompiled, true, 'compiler-only blocks keep the script compiled');
+    assert.strictEqual(thread.isCompiled, true, 'compiler-only blocks keep the script compiled');
     vm.runtime._step();
-    t.equal(hits.length, 1);
-    t.equal(hits[0].blockId, 'jsonHat');
-    t.same(stage.lookupVariableById('lid').value, [], 'stopped before the script ran');
+    assert.strictEqual(hits.length, 1);
+    assert.strictEqual(hits[0].blockId, 'jsonHat');
+    assert.deepStrictEqual(stage.lookupVariableById('lid').value, [], 'stopped before the script ran');
     resume(thread);
     vm.runtime._step();
-    t.equal(stage.lookupVariableById('lid').value.length, 3, 'the compiler-only block ran after resuming');
-    t.end();
+    assert.strictEqual(stage.lookupVariableById('lid').value.length, 3, 'the compiler-only block ran after resuming');
 });

@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const Cast = require('../../src/util/cast');
 
@@ -230,7 +231,7 @@ const CASES = [
 ];
 const OPS_VALUES = [1, '1', 'abc', true, 0, ''];
 
-test('gallery strings compiler matches extension semantics', async t => {
+test('gallery strings compiler matches extension semantics', async () => {
     const vm = new VirtualMachine();
     vm.setCompilerOptions({enabled: true, warpTimer: false});
     vm.extensionManager.isExtensionLoaded = () => true;
@@ -239,7 +240,8 @@ test('gallery strings compiler matches extension semantics', async t => {
             throw new Error(`compat path used for ${op}`);
         };
     }
-    vm.on('COMPILE_ERROR', (target, error) => t.fail(`compile error: ${error}`));
+    const compileErrors = [];
+    vm.on('COMPILE_ERROR', (target, error) => compileErrors.push(`compile error: ${error}`));
 
     await vm.loadProject(JSON.stringify(makeProject()));
     vm.runtime.precompile();
@@ -277,12 +279,12 @@ test('gallery strings compiler matches extension semantics', async t => {
             if (!Object.is(actual, expected)) {
                 failures++;
                 if (failures < 20) {
-                    t.fail(`${op} with ${JSON.stringify(v)}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+                    assert.fail(`${op} with ${JSON.stringify(v)}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
                 }
             }
             checks++;
         }
     }
-    t.equal(failures, 0, `no mismatches out of ${checks} checks`);
-    t.end();
+    assert.deepStrictEqual(compileErrors, []);
+    assert.strictEqual(failures, 0, `no mismatches out of ${checks} checks`);
 });

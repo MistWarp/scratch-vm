@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 
 const project = (blocks, extensions, extensionURLs = {}) => ({
@@ -40,32 +41,32 @@ const run = vm => {
 };
 
 for (const extensions of [['patching'], []]) {
-    test(`raw JavaScript does not run when patching was not allowed (${JSON.stringify(extensions)})`, async t => {
+    test(`raw JavaScript does not run when patching was not allowed (${JSON.stringify(extensions)})`, async () => {
         delete globalThis.__rawSourceRan;
         const vm = new VirtualMachine();
         vm.securityManager.canLoadExtensionFromProject = () => Promise.resolve(false);
         vm.setCompilerOptions({enabled: true});
         await vm.loadProject(project(rawCommand, extensions));
-        t.equal(vm.extensionManager.isExtensionLoaded('patching'), false);
+        assert.strictEqual(vm.extensionManager.isExtensionLoaded('patching'), false);
         run(vm);
-        t.notOk(globalThis.__rawSourceRan);
+        assert.ok(!globalThis.__rawSourceRan);
         vm.quit();
     });
 }
 
-test('raw JavaScript runs when patching was allowed', async t => {
+test('raw JavaScript runs when patching was allowed', async () => {
     delete globalThis.__rawSourceRan;
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => Promise.resolve(true);
     vm.setCompilerOptions({enabled: true});
     await vm.loadProject(project(rawCommand, ['patching']));
-    t.equal(vm.extensionManager.isExtensionLoaded('patching'), true);
+    assert.strictEqual(vm.extensionManager.isExtensionLoaded('patching'), true);
     run(vm);
-    t.equal(globalThis.__rawSourceRan, 1);
+    assert.strictEqual(globalThis.__rawSourceRan, 1);
     vm.quit();
 });
 
-test('the built-in compare compiler only accepts comparison operators', async t => {
+test('the built-in compare compiler only accepts comparison operators', async () => {
     const blocks = {
         hat: {opcode: 'event_whenflagclicked', next: 'set', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0},
         set: {
@@ -95,6 +96,6 @@ test('the built-in compare compiler only accepts comparison operators', async t 
     vm.setCompilerOptions({enabled: true});
     await vm.loadProject(project(blocks, ['mistsutils'], {mistsutils: 'https://example.com/utils.js'}));
     run(vm);
-    t.notOk(globalThis.__rawSourceRan);
+    assert.ok(!globalThis.__rawSourceRan);
     vm.quit();
 });

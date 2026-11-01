@@ -1,4 +1,5 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 const RuntimeEvents = require('../../src/engine/runtime-events');
 const VirtualMachineEvents = require('../../src/virtual-machine-events');
@@ -54,37 +55,34 @@ const ORIGINAL_EVENT_NAMES = [
     'PLATFORM_MISMATCH'
 ];
 
-tap.test('every original Runtime event getter keeps its name as its value', t => {
+test('every original Runtime event getter keeps its name as its value', () => {
     for (const name of ORIGINAL_EVENT_NAMES) {
-        t.equal(Runtime[name], name, name);
-        t.equal(RuntimeEvents[name], name, `RuntimeEvents.${name}`);
+        assert.strictEqual(Runtime[name], name, name);
+        assert.strictEqual(RuntimeEvents[name], name, `RuntimeEvents.${name}`);
     }
-    t.end();
 });
 
-tap.test('every RuntimeEvents entry is a static getter on Runtime', t => {
+test('every RuntimeEvents entry is a static getter on Runtime', () => {
     for (const name of Object.keys(RuntimeEvents)) {
         const descriptor = Object.getOwnPropertyDescriptor(Runtime, name);
-        t.type(descriptor.get, 'function', `${name} is a getter`);
-        t.equal(descriptor.set, undefined, `${name} has no setter`);
-        t.equal(descriptor.enumerable, false, `${name} is not enumerable`);
-        t.equal(descriptor.configurable, true, `${name} is configurable`);
-        t.equal(Runtime[name], RuntimeEvents[name], `Runtime.${name}`);
+        assert.strictEqual(typeof descriptor.get, 'function', `${name} is a getter`);
+        assert.strictEqual(descriptor.set, undefined, `${name} has no setter`);
+        assert.strictEqual(descriptor.enumerable, false, `${name} is not enumerable`);
+        assert.strictEqual(descriptor.configurable, true, `${name} is configurable`);
+        assert.strictEqual(Runtime[name], RuntimeEvents[name], `Runtime.${name}`);
     }
-    t.end();
 });
 
-tap.test('event values are unique strings', t => {
+test('event values are unique strings', () => {
     for (const events of [RuntimeEvents, VirtualMachineEvents]) {
         const values = Object.values(events);
-        t.ok(values.every(value => typeof value === 'string'));
-        t.equal(new Set(values).size, values.length);
+        assert.ok(values.every(value => typeof value === 'string'));
+        assert.strictEqual(new Set(values).size, values.length);
     }
-    t.end();
 });
 
-tap.test('event values that were string literals are unchanged', t => {
-    t.same({
+test('event values that were string literals are unchanged', () => {
+    assert.deepStrictEqual({
         THREAD_ERROR: RuntimeEvents.THREAD_ERROR,
         THREAD_STARTED: RuntimeEvents.THREAD_STARTED,
         BREAKPOINT_HIT: RuntimeEvents.BREAKPOINT_HIT,
@@ -121,7 +119,7 @@ tap.test('event values that were string literals are unchanged', t => {
         targetWasCreated: 'targetWasCreated',
         targetWasRemoved: 'targetWasRemoved'
     });
-    t.same(VirtualMachineEvents, {
+    assert.deepStrictEqual(VirtualMachineEvents, {
         LOAD_PROGRESS: 'LOAD_PROGRESS',
         EXTENSION_LOAD_ERROR: 'EXTENSION_LOAD_ERROR',
         LOCALE_CHANGED: 'LOCALE_CHANGED',
@@ -132,14 +130,12 @@ tap.test('event values that were string literals are unchanged', t => {
         WORKSPACE_UPDATE: 'workspaceUpdate',
         PLAYGROUND_DATA: 'playgroundData'
     });
-    t.end();
 });
 
-tap.test('non-event static constants are unchanged', t => {
-    t.equal(Runtime.STAGE_WIDTH, 480);
-    t.equal(Runtime.STAGE_HEIGHT, 360);
-    t.equal(Runtime.MAX_CLONES, 300);
-    t.equal(Runtime.THREAD_STEP_INTERVAL, 1000 / 60);
-    t.equal(Runtime.THREAD_STEP_INTERVAL_COMPATIBILITY, 1000 / 30);
-    t.end();
+test('non-event static constants are unchanged', () => {
+    assert.strictEqual(Runtime.STAGE_WIDTH, 480);
+    assert.strictEqual(Runtime.STAGE_HEIGHT, 360);
+    assert.strictEqual(Runtime.MAX_CLONES, 300);
+    assert.strictEqual(Runtime.THREAD_STEP_INTERVAL, 1000 / 60);
+    assert.strictEqual(Runtime.THREAD_STEP_INTERVAL_COMPATIBILITY, 1000 / 30);
 });
