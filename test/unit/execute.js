@@ -1,10 +1,11 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const execute = require('../../src/engine/execute');
 const BlocksExecuteCache = require('../../src/engine/blocks-execute-cache');
 const Thread = require('../../src/engine/thread');
 const Runtime = require('../../src/engine/runtime');
 
-test('execute retires thread when block not found', t => {
+test('execute retires thread when block not found', () => {
     const runtime = new Runtime();
     const sequencer = runtime.sequencer;
 
@@ -19,11 +20,10 @@ test('execute retires thread when block not found', t => {
     BlocksExecuteCache.getCached = () => null;
 
     execute(sequencer, thread);
-    t.ok(retired, 'thread retired when block missing');
-    t.end();
+    assert.ok(retired, 'thread retired when block missing');
 });
 
-test('execute retires hat thread when predicate false', t => {
+test('execute retires hat thread when predicate false', () => {
     const runtime = new Runtime();
     const sequencer = runtime.sequencer;
 
@@ -53,11 +53,10 @@ test('execute retires hat thread when predicate false', t => {
     BlocksExecuteCache.getCached = () => ({ _ops: [op], _isHat: true, _blockFunction: op._blockFunction });
 
     execute(sequencer, thread);
-    t.ok(retired, 'hat thread retired when predicate false');
-    t.end();
+    assert.ok(retired, 'hat thread retired when predicate false');
 });
 
-test('execute visualReport and requestUpdateMonitor on top-level reporter', t => {
+test('execute visualReport and requestUpdateMonitor on top-level reporter', () => {
     let reported = null;
     let monitorRequested = null;
     const runtime = new Runtime();
@@ -91,12 +90,11 @@ test('execute visualReport and requestUpdateMonitor on top-level reporter', t =>
 
     execute(sequencer, thread);
 
-    t.same(reported, {target: thread.target, id: 'b1', val: 123}, 'visualReport called for stackClick');
-    t.ok(monitorRequested && monitorRequested.value === 123, 'monitor update requested');
-    t.end();
+    assert.deepStrictEqual(reported, {target: thread.target, id: 'b1', val: 123}, 'visualReport called for stackClick');
+    assert.ok(monitorRequested && monitorRequested.value === 123, 'monitor update requested');
 });
 
-test('execute handles promise-returning primitive and resumes', t => {
+test('execute handles promise-returning primitive and resumes', (t, done) => {
     t.plan(2);
     const runtime = new Runtime();
     const sequencer = runtime.sequencer;
@@ -123,11 +121,11 @@ test('execute handles promise-returning primitive and resumes', t => {
     BlocksExecuteCache.getCached = () => ({ _ops: [op], _isHat: false, _blockFunction: op._blockFunction });
 
     execute(sequencer, thread);
-    t.equal(thread.status, Thread.STATUS_PROMISE_WAIT, 'thread yielded for promise');
+    t.assert.strictEqual(thread.status, Thread.STATUS_PROMISE_WAIT, 'thread yielded for promise');
 
     // Wait for promise microtask to resolve and then check status
     setImmediate(() => {
-        t.equal(thread.status, Thread.STATUS_RUNNING, 'thread resumed after promise resolved');
-        t.end();
+        t.assert.strictEqual(thread.status, Thread.STATUS_RUNNING, 'thread resumed after promise resolved');
+        done();
     });
 });

@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const nodeVM = require('vm');
 const {resolveObjectURL} = require('buffer');
 const VM = require('../../src/virtual-machine');
@@ -86,18 +87,17 @@ const makeVM = () => {
     return vm;
 };
 
-test('console arguments are formatted and located', t => {
-    t.equal(formatConsoleArgs(['a', 1, {b: 2}, new Error('x')]), 'a 1 {"b":2} Error: x');
+test('console arguments are formatted and located', () => {
+    assert.strictEqual(formatConsoleArgs(['a', 1, {b: 2}, new Error('x')]), 'a 1 {"b":2} Error: x');
     const circular = {};
     circular.self = circular;
-    t.equal(formatConsoleArgs([circular]), '[object Object]');
-    t.same(locateInStack('at f (mistwarp-extension:///3.js:12:5)', ['mistwarp-extension:///3.js'], 1),
+    assert.strictEqual(formatConsoleArgs([circular]), '[object Object]');
+    assert.deepStrictEqual(locateInStack('at f (mistwarp-extension:///3.js:12:5)', ['mistwarp-extension:///3.js'], 1),
         {line: 11, column: 5});
-    t.equal(locateInStack('at f (other.js:1:1)', ['mistwarp-extension:///3.js']), null);
-    t.end();
+    assert.strictEqual(locateInStack('at f (other.js:1:1)', ['mistwarp-extension:///3.js']), null);
 });
 
-test('an unsandboxed extension console call reaches EXTENSION_CONSOLE with its line', async t => {
+test('an unsandboxed extension console call reaches EXTENSION_CONSOLE with its line', async () => {
     const vm = makeVM();
     const text = source('console.warn(\'hello\', 42);');
     await vm.loadProject(project('loud_speak', {loud: toDataURL(text)}));
@@ -106,12 +106,15 @@ test('an unsandboxed extension console call reaches EXTENSION_CONSOLE with its l
     console.log('not from an extension');
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(events.length, 1, 'only the extension call is captured');
-    t.match(events[0], {extensionId: 'loud', level: 'warn', message: 'hello 42', line: 9});
+    assert.strictEqual(events.length, 1, 'only the extension call is captured');
+    assert.strictEqual(events[0].extensionId, 'loud');
+    assert.strictEqual(events[0].level, 'warn');
+    assert.strictEqual(events[0].message, 'hello 42');
+    assert.strictEqual(events[0].line, 9);
     vm.quit();
 });
 
-test('a sandboxed worker reports console output through dispatch for its own extension only', async t => {
+test('a sandboxed worker reports console output through dispatch for its own extension only', async () => {
     const tick = () => new Promise(resolve => setImmediate(resolve));
     const workers = [];
     class FakeWorker {
@@ -153,14 +156,14 @@ test('a sandboxed worker reports console output through dispatch for its own ext
     worker.send({service: 'extensions', method: 'reportConsole', responseId: 'c', args: ['error', 'bad', 3, 7]});
     worker.send({service: 'extensions', method: 'reportConsole', responseId: 'd', args: ['shout', 'odd']});
     await tick();
-    t.same(events, [
+    assert.deepStrictEqual(events, [
         {extensionId: 'sbx', level: 'error', message: 'bad', line: 3, column: 7},
         {extensionId: 'sbx', level: 'log', message: 'odd', line: null, column: null}
     ]);
     vm.quit();
 });
 
-test('a reload drops throttled error reports of the previous version', async t => {
+test('a reload drops throttled error reports of the previous version', async () => {
     const vm = makeVM();
     const text = source('return 1;');
     await vm.loadProject(project('loud_boom', {loud: toDataURL(text)}));
@@ -170,26 +173,26 @@ test('a reload drops throttled error reports of the previous version', async t =
     vm.runtime._step();
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(events.length, 1, 'the repeat is throttled');
+    assert.strictEqual(events.length, 1, 'the repeat is throttled');
     await vm.extensionManager.reloadExtension('loud', text.replace('throw new Error(\'boom\');', 'return 2;'));
     await new Promise(resolve => setTimeout(resolve, 300));
-    t.equal(events.length, 1, 'the throttled copy from before the reload is dropped');
+    assert.strictEqual(events.length, 1, 'the throttled copy from before the reload is dropped');
     vm.quit();
 });
 
-test('threads that start emit THREAD_STARTED and replaced scripts emit TARGET_SCRIPTS_REPLACED', async t => {
+test('threads that start emit THREAD_STARTED and replaced scripts emit TARGET_SCRIPTS_REPLACED', async () => {
     const vm = makeVM();
     await vm.loadProject(project('control_wait', {}));
     const started = [];
     vm.runtime.on('THREAD_STARTED', thread => started.push(thread.topBlock));
     vm.greenFlag();
     vm.greenFlag();
-    t.same(started, ['hat', 'hat'], 'a new thread and a restarted thread are both reported');
+    assert.deepStrictEqual(started, ['hat', 'hat'], 'a new thread and a restarted thread are both reported');
     const replaced = [];
     vm.runtime.on('TARGET_SCRIPTS_REPLACED', id => replaced.push(id));
     const stage = vm.runtime.getTargetForStage();
     const before = vm.replaceTargetScripts(stage.id, {restore: {}});
-    t.ok(before);
-    t.same(replaced, [stage.id]);
+    assert.ok(before);
+    assert.deepStrictEqual(replaced, [stage.id]);
     vm.quit();
 });

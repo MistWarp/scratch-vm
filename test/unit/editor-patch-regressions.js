@@ -1,23 +1,24 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 const EditingCommands = require('../../src/editing/commands');
 const Target = require('../../src/engine/target');
 
-test('remote sprite renames refresh cached name lookups', async t => {
+test('remote sprite renames refresh cached name lookups', async () => {
     const runtime = new Runtime();
     const target = {id: 'sprite', isStage: false, sprite: {name: 'before'}};
     runtime.targets = [target];
-    t.equal(runtime.getSpriteTargetByName('before'), target);
+    assert.strictEqual(runtime.getSpriteTargetByName('before'), target);
     const commands = Object.create(EditingCommands.prototype);
     commands.vm = {runtime};
     await commands.applyState(target, {name: 'after'}, () => null);
-    t.equal(runtime.getSpriteTargetByName('after'), target);
-    t.notOk(runtime.getSpriteTargetByName('before'));
+    assert.strictEqual(runtime.getSpriteTargetByName('after'), target);
+    assert.ok(!runtime.getSpriteTargetByName('before'));
     runtime.targets = [];
     runtime.dispose();
 });
 
-test('cloud variable patches notify create, rename and delete exactly once', async t => {
+test('cloud variable patches notify create, rename and delete exactly once', async () => {
     const runtime = new Runtime();
     const target = new Target(runtime);
     target.isStage = true;
@@ -32,7 +33,7 @@ test('cloud variable patches notify create, rename and delete exactly once', asy
     await commands.applyState(target, {variables: {v: variable}}, () => null);
     await commands.applyState(target, {variables: {v: {...variable, name: 'points'}}}, () => null);
     await commands.applyState(target, {variables: {v: null}}, () => null);
-    t.same(calls, [['create', 'score'], ['rename', 'score', 'points'], ['delete', 'points']]);
+    assert.deepStrictEqual(calls, [['create', 'score'], ['rename', 'score', 'points'], ['delete', 'points']]);
     runtime.targets = [];
     runtime.dispose();
 });

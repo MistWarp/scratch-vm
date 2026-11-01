@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const path = require('path');
 const VirtualMachine = require('../../src/index');
 const Runtime = require('../../src/engine/runtime');
@@ -15,27 +16,22 @@ const originSB3ProjectPath = path.resolve(__dirname, '../fixtures/origin.sb3');
 const originAbsentSB3ProjectPath = path.resolve(__dirname, '../fixtures/origin-absent.sb3');
 const FakeRenderer = require('../fixtures/fake-renderer');
 
-test('serialize', t => {
+test('serialize', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(exampleProjectPath))
-        .then(() => {
-            const result = sb3.serialize(vm.runtime);
-            // @todo Analyze
-            t.type(JSON.stringify(result), 'string');
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(exampleProjectPath));
+    const result = sb3.serialize(vm.runtime);
+    // @todo Analyze
+    assert.strictEqual(typeof JSON.stringify(result), 'string');
 });
 
-test('deserialize', t => {
+test('deserialize', async () => {
     const vm = new VirtualMachine();
-    sb3.deserialize('', vm.runtime).then(({targets}) => {
-        // @todo Analyze
-        t.type(targets, 'object');
-        t.end();
-    });
+    const {targets} = await sb3.deserialize('', vm.runtime);
+    // @todo Analyze
+    assert.strictEqual(typeof targets, 'object');
 });
 
-test('deserialize monitor with an inherited object property as its ID', async t => {
+test('deserialize monitor with an inherited object property as its ID', async () => {
     const runtime = new Runtime();
     await sb3.deserialize({
         targets: [],
@@ -49,241 +45,211 @@ test('deserialize monitor with an inherited object property as its ID', async t 
         }]
     }, runtime);
 
-    t.equal(Object.prototype.hasOwnProperty.call(runtime.monitorBlocks._blocks, 'constructor'), true);
-    t.equal(runtime.monitorBlocks._blocks.constructor.opcode, 'data_variable');
-    t.end();
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(runtime.monitorBlocks._blocks, 'constructor'), true);
+    assert.strictEqual(runtime.monitorBlocks._blocks.constructor.opcode, 'data_variable');
 });
 
 
-test('serialize sb2 project with comments as sb3', t => {
+test('serialize sb2 project with comments as sb3', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB2ProjectPath))
-        .then(() => {
-            const result = sb3.serialize(vm.runtime);
+    await vm.loadProject(readFileToBuffer(commentsSB2ProjectPath));
+    const result = sb3.serialize(vm.runtime);
 
-            t.type(JSON.stringify(result), 'string');
-            t.type(result.targets, 'object');
-            t.equal(Array.isArray(result.targets), true);
-            t.equal(result.targets.length, 2);
+    assert.strictEqual(typeof JSON.stringify(result), 'string');
+    assert.strictEqual(typeof result.targets, 'object');
+    assert.strictEqual(Array.isArray(result.targets), true);
+    assert.strictEqual(result.targets.length, 2);
 
-            const stage = result.targets[0];
-            t.equal(stage.isStage, true);
-            // The stage has 0 blocks, and 1 workspace comment
-            t.type(stage.blocks, 'object');
-            t.equal(Object.keys(stage.blocks).length, 0);
-            t.type(stage.comments, 'object');
-            t.equal(Object.keys(stage.comments).length, 1);
-            const stageBlockComments = Object.values(stage.comments).filter(comment => !!comment.blockId);
-            const stageWorkspaceComments = Object.values(stage.comments).filter(comment => comment.blockId === null);
-            t.equal(stageBlockComments.length, 0);
-            t.equal(stageWorkspaceComments.length, 1);
+    const stage = result.targets[0];
+    assert.strictEqual(stage.isStage, true);
+    // The stage has 0 blocks, and 1 workspace comment
+    assert.strictEqual(typeof stage.blocks, 'object');
+    assert.strictEqual(Object.keys(stage.blocks).length, 0);
+    assert.strictEqual(typeof stage.comments, 'object');
+    assert.strictEqual(Object.keys(stage.comments).length, 1);
+    const stageBlockComments = Object.values(stage.comments).filter(comment => !!comment.blockId);
+    const stageWorkspaceComments = Object.values(stage.comments).filter(comment => comment.blockId === null);
+    assert.strictEqual(stageBlockComments.length, 0);
+    assert.strictEqual(stageWorkspaceComments.length, 1);
 
-            const sprite = result.targets[1];
-            t.equal(sprite.isStage, false);
-            t.type(sprite.blocks, 'object');
-            // Sprite 1 has 6 blocks, 5 block comments, and 1 workspace comment
-            t.equal(Object.keys(sprite.blocks).length, 6);
-            t.type(sprite.comments, 'object');
-            t.equal(Object.keys(sprite.comments).length, 6);
+    const sprite = result.targets[1];
+    assert.strictEqual(sprite.isStage, false);
+    assert.strictEqual(typeof sprite.blocks, 'object');
+    // Sprite 1 has 6 blocks, 5 block comments, and 1 workspace comment
+    assert.strictEqual(Object.keys(sprite.blocks).length, 6);
+    assert.strictEqual(typeof sprite.comments, 'object');
+    assert.strictEqual(Object.keys(sprite.comments).length, 6);
 
-            const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
-            const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
-            t.equal(spriteBlockComments.length, 5);
-            t.equal(spriteWorkspaceComments.length, 1);
-
-            t.end();
-        });
+    const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
+    const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
+    assert.strictEqual(spriteBlockComments.length, 5);
+    assert.strictEqual(spriteWorkspaceComments.length, 1);
 });
 
-test('deserialize sb3 project with comments', t => {
+test('deserialize sb3 project with comments', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
-        .then(() => {
-            const runtime = vm.runtime;
+    await vm.loadProject(readFileToBuffer(commentsSB3ProjectPath));
+    const runtime = vm.runtime;
 
-            t.type(runtime.targets, 'object');
-            t.equal(Array.isArray(runtime.targets), true);
-            t.equal(runtime.targets.length, 2);
+    assert.strictEqual(typeof runtime.targets, 'object');
+    assert.strictEqual(Array.isArray(runtime.targets), true);
+    assert.strictEqual(runtime.targets.length, 2);
 
-            const stage = runtime.targets[0];
-            t.equal(stage.isStage, true);
-            // The stage has 0 blocks, and 1 workspace comment
-            t.type(stage.blocks, 'object');
-            t.equal(Object.keys(stage.blocks._blocks).length, 0);
-            t.type(stage.comments, 'object');
-            t.equal(Object.keys(stage.comments).length, 1);
-            const stageBlockComments = Object.values(stage.comments).filter(comment => !!comment.blockId);
-            const stageWorkspaceComments = Object.values(stage.comments).filter(comment => comment.blockId === null);
-            t.equal(stageBlockComments.length, 0);
-            t.equal(stageWorkspaceComments.length, 1);
+    const stage = runtime.targets[0];
+    assert.strictEqual(stage.isStage, true);
+    // The stage has 0 blocks, and 1 workspace comment
+    assert.strictEqual(typeof stage.blocks, 'object');
+    assert.strictEqual(Object.keys(stage.blocks._blocks).length, 0);
+    assert.strictEqual(typeof stage.comments, 'object');
+    assert.strictEqual(Object.keys(stage.comments).length, 1);
+    const stageBlockComments = Object.values(stage.comments).filter(comment => !!comment.blockId);
+    const stageWorkspaceComments = Object.values(stage.comments).filter(comment => comment.blockId === null);
+    assert.strictEqual(stageBlockComments.length, 0);
+    assert.strictEqual(stageWorkspaceComments.length, 1);
 
-            const sprite = runtime.targets[1];
-            t.equal(sprite.isStage, false);
-            t.type(sprite.blocks, 'object');
-            // Sprite 1 has 6 blocks, 5 block comments, and 1 workspace comment
-            t.equal(Object.values(sprite.blocks._blocks).filter(block => !block.shadow).length, 6);
-            t.type(sprite.comments, 'object');
-            t.equal(Object.keys(sprite.comments).length, 6);
+    const sprite = runtime.targets[1];
+    assert.strictEqual(sprite.isStage, false);
+    assert.strictEqual(typeof sprite.blocks, 'object');
+    // Sprite 1 has 6 blocks, 5 block comments, and 1 workspace comment
+    assert.strictEqual(Object.values(sprite.blocks._blocks).filter(block => !block.shadow).length, 6);
+    assert.strictEqual(typeof sprite.comments, 'object');
+    assert.strictEqual(Object.keys(sprite.comments).length, 6);
 
-            const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
-            const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
-            t.equal(spriteBlockComments.length, 5);
-            t.equal(spriteWorkspaceComments.length, 1);
-
-            t.end();
-        });
+    const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
+    const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
+    assert.strictEqual(spriteBlockComments.length, 5);
+    assert.strictEqual(spriteWorkspaceComments.length, 1);
 });
 
-test('deserialize sb3 project with comments - no duplicate id serialization', t => {
+test('deserialize sb3 project with comments - no duplicate id serialization', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB3NoDupeIds))
-        .then(() => {
-            const runtime = vm.runtime;
+    await vm.loadProject(readFileToBuffer(commentsSB3NoDupeIds));
+    const runtime = vm.runtime;
 
-            t.type(runtime.targets, 'object');
-            t.equal(Array.isArray(runtime.targets), true);
-            t.equal(runtime.targets.length, 2);
+    assert.strictEqual(typeof runtime.targets, 'object');
+    assert.strictEqual(Array.isArray(runtime.targets), true);
+    assert.strictEqual(runtime.targets.length, 2);
 
-            const stage = runtime.targets[0];
-            t.equal(stage.isStage, true);
-            // The stage has 0 blocks, and 0 workspace comment
-            t.type(stage.blocks, 'object');
-            t.equal(Object.keys(stage.blocks._blocks).length, 0);
-            t.type(stage.comments, 'object');
-            t.equal(Object.keys(stage.comments).length, 0);
+    const stage = runtime.targets[0];
+    assert.strictEqual(stage.isStage, true);
+    // The stage has 0 blocks, and 0 workspace comment
+    assert.strictEqual(typeof stage.blocks, 'object');
+    assert.strictEqual(Object.keys(stage.blocks._blocks).length, 0);
+    assert.strictEqual(typeof stage.comments, 'object');
+    assert.strictEqual(Object.keys(stage.comments).length, 0);
 
-            const sprite = runtime.targets[1];
-            t.equal(sprite.isStage, false);
-            t.type(sprite.blocks, 'object');
-            // Sprite1 has 1 blocks, 1 block comment, and 1 workspace comment
-            t.equal(Object.values(sprite.blocks._blocks).filter(block => !block.shadow).length, 1);
-            t.type(sprite.comments, 'object');
-            t.equal(Object.keys(sprite.comments).length, 2);
+    const sprite = runtime.targets[1];
+    assert.strictEqual(sprite.isStage, false);
+    assert.strictEqual(typeof sprite.blocks, 'object');
+    // Sprite1 has 1 blocks, 1 block comment, and 1 workspace comment
+    assert.strictEqual(Object.values(sprite.blocks._blocks).filter(block => !block.shadow).length, 1);
+    assert.strictEqual(typeof sprite.comments, 'object');
+    assert.strictEqual(Object.keys(sprite.comments).length, 2);
 
-            const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
-            const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
-            t.equal(spriteBlockComments.length, 1);
-            t.equal(spriteWorkspaceComments.length, 1);
-
-            t.end();
-        });
+    const spriteBlockComments = Object.values(sprite.comments).filter(comment => !!comment.blockId);
+    const spriteWorkspaceComments = Object.values(sprite.comments).filter(comment => comment.blockId === null);
+    assert.strictEqual(spriteBlockComments.length, 1);
+    assert.strictEqual(spriteWorkspaceComments.length, 1);
 });
 
-test('serializing and deserializing sb3 preserves sprite layer order', t => {
+test('serializing and deserializing sb3 preserves sprite layer order', async () => {
     const vm = new VirtualMachine();
     vm.attachRenderer(new FakeRenderer());
-    return vm.loadProject(readFileToBuffer(path.resolve(__dirname, '../fixtures/ordering.sb2')))
-        .then(() => {
-            // Target get layer order needs a renderer,
-            // fake the numbers we would get back from the
-            // renderer in order to test that they are serialized
-            // correctly
-            vm.runtime.targets[0].getLayerOrder = () => 0;
-            vm.runtime.targets[1].getLayerOrder = () => 20;
-            vm.runtime.targets[2].getLayerOrder = () => 10;
-            vm.runtime.targets[3].getLayerOrder = () => 30;
+    await vm.loadProject(readFileToBuffer(path.resolve(__dirname, '../fixtures/ordering.sb2')));
+    // Target get layer order needs a renderer,
+    // fake the numbers we would get back from the
+    // renderer in order to test that they are serialized
+    // correctly
+    vm.runtime.targets[0].getLayerOrder = () => 0;
+    vm.runtime.targets[1].getLayerOrder = () => 20;
+    vm.runtime.targets[2].getLayerOrder = () => 10;
+    vm.runtime.targets[3].getLayerOrder = () => 30;
 
-            const result = sb3.serialize(vm.runtime);
+    const result = sb3.serialize(vm.runtime);
 
-            t.type(JSON.stringify(result), 'string');
-            t.type(result.targets, 'object');
-            t.equal(Array.isArray(result.targets), true);
-            t.equal(result.targets.length, 4);
+    assert.strictEqual(typeof JSON.stringify(result), 'string');
+    assert.strictEqual(typeof result.targets, 'object');
+    assert.strictEqual(Array.isArray(result.targets), true);
+    assert.strictEqual(result.targets.length, 4);
 
-            // First check that the sprites are ordered correctly (as they would
-            // appear in the target pane)
-            t.equal(result.targets[0].name, 'Stage');
-            t.equal(result.targets[1].name, 'First');
-            t.equal(result.targets[2].name, 'Second');
-            t.equal(result.targets[3].name, 'Third');
+    // First check that the sprites are ordered correctly (as they would
+    // appear in the target pane)
+    assert.strictEqual(result.targets[0].name, 'Stage');
+    assert.strictEqual(result.targets[1].name, 'First');
+    assert.strictEqual(result.targets[2].name, 'Second');
+    assert.strictEqual(result.targets[3].name, 'Third');
 
-            // Check that they are in the correct layer order (as they would render
-            // back to front on the stage)
-            t.equal(result.targets[0].layerOrder, 0);
-            t.equal(result.targets[1].layerOrder, 2);
-            t.equal(result.targets[2].layerOrder, 1);
-            t.equal(result.targets[3].layerOrder, 3);
+    // Check that they are in the correct layer order (as they would render
+    // back to front on the stage)
+    assert.strictEqual(result.targets[0].layerOrder, 0);
+    assert.strictEqual(result.targets[1].layerOrder, 2);
+    assert.strictEqual(result.targets[2].layerOrder, 1);
+    assert.strictEqual(result.targets[3].layerOrder, 3);
 
-            return result;
-        })
-        .then(serializedObject =>
-            sb3.deserialize(
-                JSON.parse(JSON.stringify(serializedObject)), new Runtime(), null, false)
-                .then(({targets, layerOrder}) => {
-                    // First check that the sprites are ordered correctly (as they would
-                    // appear in the target pane)
-                    t.equal(targets[0].sprite.name, 'Stage');
-                    t.equal(targets[1].sprite.name, 'First');
-                    t.equal(targets[2].sprite.name, 'Second');
-                    t.equal(targets[3].sprite.name, 'Third');
+    const serializedObject = await result;
+    const {targets, layerOrder} = await sb3.deserialize(
+        JSON.parse(JSON.stringify(serializedObject)), new Runtime(), null, false);
+    // First check that the sprites are ordered correctly (as they would
+    // appear in the target pane)
+    assert.strictEqual(targets[0].sprite.name, 'Stage');
+    assert.strictEqual(targets[1].sprite.name, 'First');
+    assert.strictEqual(targets[2].sprite.name, 'Second');
+    assert.strictEqual(targets[3].sprite.name, 'Third');
 
-                    // Check that they are in the correct layer order (as they would render
-                    // back to front on the stage)
-                    t.same(layerOrder, [0, 2, 1, 3]);
-
-                    t.end();
-                }));
+    // Check that they are in the correct layer order (as they would render
+    // back to front on the stage)
+    assert.deepEqual(layerOrder, [0, 2, 1, 3]);
 });
 
-test('serializeBlocks', t => {
+test('serializeBlocks', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
-        .then(() => {
-            const blocks = vm.runtime.targets[1].blocks._blocks;
-            const result = sb3.serializeBlocks(blocks);
-            // @todo Analyze
-            t.type(result[0], 'object');
-            t.ok(Object.keys(result[0]).length < Object.keys(blocks).length, 'less blocks in serialized format');
-            t.ok(Array.isArray(result[1]));
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(commentsSB3ProjectPath));
+    const blocks = vm.runtime.targets[1].blocks._blocks;
+    const result = sb3.serializeBlocks(blocks);
+    // @todo Analyze
+    assert.strictEqual(typeof result[0], 'object');
+    assert.ok(Object.keys(result[0]).length < Object.keys(blocks).length, 'less blocks in serialized format');
+    assert.ok(Array.isArray(result[1]));
 });
 
-test('serializeBlocks serializes x and y for topLevel blocks with x,y of 0,0', t => {
+test('serializeBlocks serializes x and y for topLevel blocks with x,y of 0,0', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(topLevelReportersProjectPath))
-        .then(() => {
-            // Verify that there are 2 blocks and they are both top level
-            const blocks = vm.runtime.targets[1].blocks._blocks;
-            const blockIds = Object.keys(blocks);
-            t.equal(blockIds.length, 2);
-            const blocksArray = blockIds.map(key => blocks[key]);
-            t.equal(blocksArray.every(b => b.topLevel), true);
-            // Simulate cleaning up the blocks by resetting x and y positions to 0
-            blockIds.forEach(blockId => {
-                blocks[blockId].x = 0;
-                blocks[blockId].y = 0;
-            });
-            const result = sb3.serializeBlocks(blocks);
-            const serializedBlocks = result[0];
+    await vm.loadProject(readFileToBuffer(topLevelReportersProjectPath));
+    // Verify that there are 2 blocks and they are both top level
+    const blocks = vm.runtime.targets[1].blocks._blocks;
+    const blockIds = Object.keys(blocks);
+    assert.strictEqual(blockIds.length, 2);
+    const blocksArray = blockIds.map(key => blocks[key]);
+    assert.strictEqual(blocksArray.every(b => b.topLevel), true);
+    // Simulate cleaning up the blocks by resetting x and y positions to 0
+    blockIds.forEach(blockId => {
+        blocks[blockId].x = 0;
+        blocks[blockId].y = 0;
+    });
+    const result = sb3.serializeBlocks(blocks);
+    const serializedBlocks = result[0];
 
-            t.type(serializedBlocks, 'object');
-            const serializedBlockIds = Object.keys(serializedBlocks);
-            t.equal(serializedBlockIds.length, 2);
-            const firstBlock = serializedBlocks[serializedBlockIds[0]];
-            const secondBlock = serializedBlocks[serializedBlockIds[1]];
-            t.equal(firstBlock.x, 0);
-            t.equal(firstBlock.y, 0);
-            t.equal(secondBlock.x, 0);
-            t.equal(secondBlock.y, 0);
-
-            t.end();
-        });
+    assert.strictEqual(typeof serializedBlocks, 'object');
+    const serializedBlockIds = Object.keys(serializedBlocks);
+    assert.strictEqual(serializedBlockIds.length, 2);
+    const firstBlock = serializedBlocks[serializedBlockIds[0]];
+    const secondBlock = serializedBlocks[serializedBlockIds[1]];
+    assert.strictEqual(firstBlock.x, 0);
+    assert.strictEqual(firstBlock.y, 0);
+    assert.strictEqual(secondBlock.x, 0);
+    assert.strictEqual(secondBlock.y, 0);
 });
 
-test('deserializeBlocks', t => {
+test('deserializeBlocks', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
-        .then(() => {
-            const blocks = vm.runtime.targets[1].blocks._blocks;
-            const serialized = sb3.serializeBlocks(blocks)[0];
-            const deserialized = sb3.deserializeBlocks(serialized);
-            t.equal(Object.keys(deserialized).length, Object.keys(blocks).length, 'same number of blocks');
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(commentsSB3ProjectPath));
+    const blocks = vm.runtime.targets[1].blocks._blocks;
+    const serialized = sb3.serializeBlocks(blocks)[0];
+    const deserialized = sb3.deserializeBlocks(serialized);
+    assert.strictEqual(Object.keys(deserialized).length, Object.keys(blocks).length, 'same number of blocks');
 });
 
-test('empty not blocks become Boolean toggles only while loading', t => {
+test('empty not blocks become Boolean toggles only while loading', () => {
     const serialized = {
         parent: {
             opcode: 'control_if',
@@ -308,108 +274,86 @@ test('empty not blocks become Boolean toggles only while loading', t => {
     };
     const blocks = sb3.deserializeBlocks(serialized);
 
-    t.equal(blocks.not.booleanToggle, true);
-    t.match(blocks.parent.inputs.CONDITION, {block: 'not', shadow: null});
+    assert.strictEqual(blocks.not.booleanToggle, true);
+    assert.strictEqual(blocks.parent.inputs.CONDITION.block, 'not');
+    assert.strictEqual(blocks.parent.inputs.CONDITION.shadow, null);
 
     const saved = sb3.serializeBlocks(blocks)[0];
-    t.equal(saved.not.opcode, 'operator_not');
-    t.notOk(Object.prototype.hasOwnProperty.call(saved.not, 'booleanToggle'));
-    t.end();
+    assert.strictEqual(saved.not.opcode, 'operator_not');
+    assert.ok(!Object.prototype.hasOwnProperty.call(saved.not, 'booleanToggle'));
 });
 
-test('deserializeBlocks on already deserialized input', t => {
+test('deserializeBlocks on already deserialized input', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
-        .then(() => {
-            const blocks = vm.runtime.targets[1].blocks._blocks;
-            const serialized = sb3.serializeBlocks(blocks)[0];
-            const deserialized = sb3.deserializeBlocks(serialized);
-            const deserializedAgain = sb3.deserializeBlocks(deserialized);
-            t.deepEqual(deserialized, deserializedAgain, 'no change from second pass of deserialize');
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(commentsSB3ProjectPath));
+    const blocks = vm.runtime.targets[1].blocks._blocks;
+    const serialized = sb3.serializeBlocks(blocks)[0];
+    const deserialized = sb3.deserializeBlocks(serialized);
+    const deserializedAgain = sb3.deserializeBlocks(deserialized);
+    assert.deepEqual(deserialized, deserializedAgain, 'no change from second pass of deserialize');
 });
 
-test('getExtensionIdForOpcode', t => {
-    t.equal(sb3.getExtensionIdForOpcode('wedo_loopy'), 'wedo');
+test('getExtensionIdForOpcode', () => {
+    assert.strictEqual(sb3.getExtensionIdForOpcode('wedo_loopy'), 'wedo');
 
     // does not consider CORE to be extensions
-    t.false(sb3.getExtensionIdForOpcode('control_loopy'));
+    assert.ok(!sb3.getExtensionIdForOpcode('control_loopy'));
 
     // only considers things before the first underscore
-    t.equal(sb3.getExtensionIdForOpcode('hello_there_loopy'), 'hello');
+    assert.strictEqual(sb3.getExtensionIdForOpcode('hello_there_loopy'), 'hello');
 
     // does not return anything for opcodes with no extension
-    t.false(sb3.getExtensionIdForOpcode('hello'));
+    assert.ok(!sb3.getExtensionIdForOpcode('hello'));
 
     // forbidden characters must be replaced with '-'
-    t.equal(sb3.getExtensionIdForOpcode('hi:there/happy_people'), 'hi-there-happy');
-
-    t.end();
+    assert.strictEqual(sb3.getExtensionIdForOpcode('hi:there/happy_people'), 'hi-there-happy');
 });
 
-test('(#1608) serializeBlocks maintains top level variable reporters', t => {
+test('(#1608) serializeBlocks maintains top level variable reporters', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(variableReporterSB2ProjectPath))
-        .then(() => {
-            const blocks = vm.runtime.targets[0].blocks._blocks;
-            const result = sb3.serialize(vm.runtime);
-            // Project should have 1 block, a top-level variable reporter
-            t.equal(Object.keys(blocks).length, 1);
-            t.equal(Object.keys(result.targets[0].blocks).length, 1);
+    await vm.loadProject(readFileToBuffer(variableReporterSB2ProjectPath));
+    const blocks = vm.runtime.targets[0].blocks._blocks;
+    const result = sb3.serialize(vm.runtime);
+    // Project should have 1 block, a top-level variable reporter
+    assert.strictEqual(Object.keys(blocks).length, 1);
+    assert.strictEqual(Object.keys(result.targets[0].blocks).length, 1);
 
-            // Make sure deserializing these blocks works
-            t.doesNotThrow(() => {
-                sb3.deserialize(JSON.parse(JSON.stringify(result)), vm.runtime);
-            });
-            t.end();
-        });
+    // Make sure deserializing these blocks works
+    assert.doesNotThrow(() => {
+        sb3.deserialize(JSON.parse(JSON.stringify(result)), vm.runtime);
+    });
 });
 
-test('(#1850) sprite draggability state read when loading SB3 file', t => {
+test('(#1850) sprite draggability state read when loading SB3 file', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(draggableSB3ProjectPath))
-        .then(() => {
-            const sprite1Obj = vm.runtime.targets.find(target => target.sprite.name === 'Sprite1');
-            // Sprite1 in project should have draggable set to true
-            t.equal(sprite1Obj.draggable, true);
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(draggableSB3ProjectPath));
+    const sprite1Obj = vm.runtime.targets.find(target => target.sprite.name === 'Sprite1');
+    // Sprite1 in project should have draggable set to true
+    assert.strictEqual(sprite1Obj.draggable, true);
 });
 
-test('load origin value from SB3 file json metadata', t => {
+test('load origin value from SB3 file json metadata', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(originSB3ProjectPath))
-        .then(() => {
-            t.type(vm.runtime.origin, 'string');
-        })
-        .then(() => vm.loadProject(readFileToBuffer(originAbsentSB3ProjectPath)))
-        .then(() => {
-            // After loading a project with an origin, then loading one without an origin,
-            // origin value should no longer be set.
-            t.equal(vm.runtime.origin, null);
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(originSB3ProjectPath));
+    assert.strictEqual(typeof vm.runtime.origin, 'string');
+    await vm.loadProject(readFileToBuffer(originAbsentSB3ProjectPath));
+    // After loading a project with an origin, then loading one without an origin,
+    // origin value should no longer be set.
+    assert.strictEqual(vm.runtime.origin, null);
 });
 
-test('serialize origin value if it is present', t => {
+test('serialize origin value if it is present', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(originSB3ProjectPath))
-        .then(() => {
-            const result = sb3.serialize(vm.runtime);
-            t.type(result.meta.origin, 'string');
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(originSB3ProjectPath));
+    const result = sb3.serialize(vm.runtime);
+    assert.strictEqual(typeof result.meta.origin, 'string');
 });
 
-test('do not serialize origin value if it is not present', t => {
+test('do not serialize origin value if it is not present', async () => {
     const vm = new VirtualMachine();
-    vm.loadProject(readFileToBuffer(originAbsentSB3ProjectPath))
-        .then(() => {
-            const result = sb3.serialize(vm.runtime);
-            t.equal(result.meta.origin, undefined);
-            t.end();
-        });
+    await vm.loadProject(readFileToBuffer(originAbsentSB3ProjectPath));
+    const result = sb3.serialize(vm.runtime);
+    assert.strictEqual(result.meta.origin, undefined);
 });
 
 // Nested same-opcode operators (e.g. ((a+b)+c)+d) are merged into one variadic block on load
@@ -456,7 +400,7 @@ const buildNestedAddChain = (depth, order) => {
     };
 };
 
-test('extendable operators preserve obscured shadows across a load/save round trip', t => {
+test('extendable operators preserve obscured shadows across a load/save round trip', async () => {
     const orderings = [
         keys => keys,
         keys => [...keys].reverse(),
@@ -472,20 +416,17 @@ test('extendable operators preserve obscured shadows across a load/save round tr
         const raw = JSON.stringify(sb3.serialize(runtime).targets[1].blocks);
         for (const target of targets) runtime.disposeTarget(target);
         for (let i = 0; i < depth; i++) {
-            t.ok(raw.includes(`"${90 + i}"`), `depth ${depth}: obscured/head shadow ${90 + i} preserved`);
-            t.ok(raw.includes(`"${200 + i}"`), `depth ${depth}: tail shadow ${200 + i} preserved`);
+            assert.ok(raw.includes(`"${90 + i}"`), `depth ${depth}: obscured/head shadow ${90 + i} preserved`);
+            assert.ok(raw.includes(`"${200 + i}"`), `depth ${depth}: tail shadow ${200 + i} preserved`);
         }
         // The internal bookkeeping annotation must never leak into the saved project.
-        t.notOk(raw.includes('obscuredHeadShadows'), `depth ${depth}: annotation not serialized`);
+        assert.ok(!raw.includes('obscuredHeadShadows'), `depth ${depth}: annotation not serialized`);
     };
-    (async () => {
-        for (const depth of [2, 3, 4, 5, 6]) {
-            for (const order of orderings) {
-                await checkDepth(depth, order);
-            }
+    for (const depth of [2, 3, 4, 5, 6]) {
+        for (const order of orderings) {
+            await checkDepth(depth, order);
         }
-        t.end();
-    })();
+    }
 });
 
 // pi/newline have no vanilla opcode, so they are saved as stage variables holding their value and
@@ -513,37 +454,36 @@ const buildConstantsProject = () => ({
     ], monitors: [], extensions: [], meta: {semver: '3.0.0', vm: '0.2.0', agent: ''}
 });
 
-test('pi and newline round trip through stage variables', t => {
+test('pi and newline round trip through stage variables', async () => {
     const runtime = new Runtime();
-    (async () => {
-        const {targets} = await sb3.deserialize(buildConstantsProject(), runtime);
-        for (const target of targets) runtime.addTarget(target);
+    const {targets} = await sb3.deserialize(buildConstantsProject(), runtime);
+    for (const target of targets) runtime.addTarget(target);
 
-        const saved = sb3.serialize(runtime);
-        const stage = saved.targets.find(target => target.isStage);
-        t.same(stage.variables['mistwarp.pi'], ['mistwarp.pi', Math.PI], 'pi saved as a stage variable');
-        t.same(stage.variables['mistwarp.newline'], ['mistwarp.newline', '\n'], 'newline saved as a stage variable');
+    const saved = sb3.serialize(runtime);
+    const stage = saved.targets.find(target => target.isStage);
+    assert.deepStrictEqual(stage.variables['mistwarp.pi'], ['mistwarp.pi', Math.PI], 'pi saved as a stage variable');
+    assert.deepStrictEqual(stage.variables['mistwarp.newline'], ['mistwarp.newline', '\n'],
+        'newline saved as a stage variable');
 
-        const savedBlocks = saved.targets[1].blocks;
-        const opcodes = Object.values(savedBlocks).map(block => block.opcode);
-        t.notOk(opcodes.includes('operator_pi'), 'no operator_pi block saved');
-        t.notOk(opcodes.includes('operator_newline'), 'no operator_newline block saved');
-        const join = Object.values(savedBlocks).find(block => block.opcode === 'operator_join');
-        t.same(join.inputs.STRING1[1], [12, 'mistwarp.pi', 'mistwarp.pi'], 'pi is a variable reporter');
-        t.same(join.inputs.STRING2[1], [12, 'mistwarp.newline', 'mistwarp.newline'], 'newline is a variable reporter');
+    const savedBlocks = saved.targets[1].blocks;
+    const opcodes = Object.values(savedBlocks).map(block => block.opcode);
+    assert.ok(!opcodes.includes('operator_pi'), 'no operator_pi block saved');
+    assert.ok(!opcodes.includes('operator_newline'), 'no operator_newline block saved');
+    const join = Object.values(savedBlocks).find(block => block.opcode === 'operator_join');
+    assert.deepStrictEqual(join.inputs.STRING1[1], [12, 'mistwarp.pi', 'mistwarp.pi'], 'pi is a variable reporter');
+    assert.deepStrictEqual(join.inputs.STRING2[1], [12, 'mistwarp.newline', 'mistwarp.newline'],
+        'newline is a variable reporter');
 
-        for (const target of targets) runtime.disposeTarget(target);
+    for (const target of targets) runtime.disposeTarget(target);
 
-        const reloadRuntime = new Runtime();
-        const reloaded = await sb3.deserialize(JSON.parse(JSON.stringify(saved)), reloadRuntime);
-        const reloadedStage = reloaded.targets.find(target => target.isStage);
-        t.same(Object.keys(reloadedStage.variables), [], 'constant variables are not recreated on load');
-        const reloadedOpcodes = Object.values(reloaded.targets[1].blocks._blocks).map(block => block.opcode);
-        t.ok(reloadedOpcodes.includes('operator_pi'), 'pi block restored');
-        t.ok(reloadedOpcodes.includes('operator_newline'), 'newline block restored');
-        t.notOk(reloadedOpcodes.includes('data_variable'), 'no leftover variable reporters');
-        t.end();
-    })();
+    const reloadRuntime = new Runtime();
+    const reloaded = await sb3.deserialize(JSON.parse(JSON.stringify(saved)), reloadRuntime);
+    const reloadedStage = reloaded.targets.find(target => target.isStage);
+    assert.deepStrictEqual(Object.keys(reloadedStage.variables), [], 'constant variables are not recreated on load');
+    const reloadedOpcodes = Object.values(reloaded.targets[1].blocks._blocks).map(block => block.opcode);
+    assert.ok(reloadedOpcodes.includes('operator_pi'), 'pi block restored');
+    assert.ok(reloadedOpcodes.includes('operator_newline'), 'newline block restored');
+    assert.ok(!reloadedOpcodes.includes('data_variable'), 'no leftover variable reporters');
 });
 
 const operatorProject = blocks => ({
@@ -572,7 +512,7 @@ const roundTrip = async project => {
     return {sprite, saved, runtime};
 };
 
-test('empty extendable operator inputs get a shadow back on load and save', async t => {
+test('empty extendable operator inputs get a shadow back on load and save', async () => {
     const {sprite, saved} = await roundTrip(operatorProject({
         say: {opcode: 'looks_say', next: 'say2', parent: 'hat', inputs: {MESSAGE: [3, 'add', [10, '']]},
             fields: {}, shadow: false, topLevel: false},
@@ -586,19 +526,18 @@ test('empty extendable operator inputs get a shadow back on load and save', asyn
     }));
     const add = sprite.blocks.getBlock('add');
     const num2 = sprite.blocks.getBlock(add.inputs.NUM2.block);
-    t.equal(num2.opcode, 'math_number');
-    t.ok(num2.shadow);
-    t.equal(add.inputs.NUM2.shadow, add.inputs.NUM2.block);
+    assert.strictEqual(num2.opcode, 'math_number');
+    assert.ok(num2.shadow);
+    assert.strictEqual(add.inputs.NUM2.shadow, add.inputs.NUM2.block);
     const join = sprite.blocks.getBlock('join');
-    t.equal(sprite.blocks.getBlock(join.inputs.STRING2.block).opcode, 'text');
+    assert.strictEqual(sprite.blocks.getBlock(join.inputs.STRING2.block).opcode, 'text');
     const savedAdd = Object.values(saved).find(block => block.opcode === 'operator_add');
-    t.same(savedAdd.inputs.NUM2, [1, [4, '']]);
+    assert.deepStrictEqual(savedAdd.inputs.NUM2, [1, [4, '']]);
     const savedJoin = Object.values(saved).find(block => block.opcode === 'operator_join');
-    t.same(savedJoin.inputs.STRING2, [1, [10, '']]);
-    t.end();
+    assert.deepStrictEqual(savedJoin.inputs.STRING2, [1, [10, '']]);
 });
 
-test('inputs left past the item count are not saved', async t => {
+test('inputs left past the item count are not saved', async () => {
     const {sprite, saved, runtime} = await roundTrip(operatorProject({
         say: {opcode: 'looks_say', next: null, parent: 'hat', inputs: {MESSAGE: [3, 'mul', [10, '']]},
             fields: {}, shadow: false, topLevel: false},
@@ -612,13 +551,12 @@ test('inputs left past the item count are not saved', async t => {
     mul.inputs.NUM3 = {name: 'NUM3', block: null, shadow: 'stale'};
     const savedMul = Object.values(sb3.serialize(runtime).targets[1].blocks)
         .find(block => block.opcode === 'operator_multiply');
-    t.same(Object.keys(savedMul.inputs).sort(), ['NUM1', 'NUM2']);
-    t.ok(sprite.blocks.getBlock('stale'), 'saving does not change the running project');
-    t.ok(Object.values(saved).every(block => !Array.isArray(block) || block[0] !== 4));
-    t.end();
+    assert.deepStrictEqual(Object.keys(savedMul.inputs).sort(), ['NUM1', 'NUM2']);
+    assert.ok(sprite.blocks.getBlock('stale'), 'saving does not change the running project');
+    assert.ok(Object.values(saved).every(block => !Array.isArray(block) || block[0] !== 4));
 });
 
-test('an input whose block went missing falls back to its shadow', async t => {
+test('an input whose block went missing falls back to its shadow', async () => {
     const {sprite, runtime} = await roundTrip(operatorProject({
         say: {opcode: 'looks_say', next: null, parent: 'hat', inputs: {MESSAGE: [3, 'add', [10, '']]},
             fields: {}, shadow: false, topLevel: false},
@@ -628,29 +566,28 @@ test('an input whose block went missing falls back to its shadow', async t => {
             fields: {}, shadow: false, topLevel: false}
     }));
     const add = sprite.blocks.getBlock('add');
-    t.equal(sprite.blocks.getBlock(add.inputs.NUM3.block).opcode, 'math_number', 'missing third input is filled');
+    assert.strictEqual(sprite.blocks.getBlock(add.inputs.NUM3.block).opcode, 'math_number',
+        'missing third input is filled');
     add.inputs.NUM3 = {name: 'NUM3', block: null, shadow: add.inputs.NUM3.shadow};
     const saved = sb3.serialize(runtime).targets[1].blocks;
     const adds = Object.values(saved).filter(block => block.opcode === 'operator_add');
-    t.equal(adds.length, 2, 'three items are saved as two nested blocks');
+    assert.strictEqual(adds.length, 2, 'three items are saved as two nested blocks');
     for (const block of adds) {
         for (const name of ['NUM1', 'NUM2']) {
             const input = block.inputs[name];
-            t.ok(input && (input[0] !== 1 || input[1] !== null), `${name} is not empty`);
-            t.notOk(input[0] === 3 && input[1] === null, `${name} has a block`);
+            assert.ok(input && (input[0] !== 1 || input[1] !== null), `${name} is not empty`);
+            assert.ok(!(input[0] === 3 && input[1] === null), `${name} has a block`);
         }
     }
-    t.end();
 });
 
-test('empty boolean operands stay empty', async t => {
+test('empty boolean operands stay empty', async () => {
     const {sprite, saved} = await roundTrip(operatorProject({
         if: {opcode: 'control_if', next: null, parent: 'hat', inputs: {CONDITION: [2, 'and']},
             fields: {}, shadow: false, topLevel: false},
         and: {opcode: 'operator_and', next: null, parent: 'if', inputs: {},
             fields: {}, shadow: false, topLevel: false}
     }));
-    t.same(sprite.blocks.getBlock('and').inputs, {});
-    t.same(Object.values(saved).find(block => block.opcode === 'operator_and').inputs, {});
-    t.end();
+    assert.deepEqual(sprite.blocks.getBlock('and').inputs, {});
+    assert.deepEqual(Object.values(saved).find(block => block.opcode === 'operator_and').inputs, {});
 });

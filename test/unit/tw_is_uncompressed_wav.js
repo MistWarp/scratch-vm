@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const isUncompressedWav = require('../../src/util/is-uncompressed-wav');
 
 const wav = (format, {listChunk = false, oddChunk = false} = {}) => {
@@ -15,33 +16,29 @@ const wav = (format, {listChunk = false, oddChunk = false} = {}) => {
     return new Uint8Array(Buffer.concat([Buffer.from('RIFF'), size, Buffer.from('WAVE'), body]));
 };
 
-test('PCM, float and extensible WAV files are uncompressed', t => {
-    t.ok(isUncompressedWav(wav(0x0001)));
-    t.ok(isUncompressedWav(wav(0x0003)));
-    t.ok(isUncompressedWav(wav(0xFFFE)));
-    t.end();
+test('PCM, float and extensible WAV files are uncompressed', () => {
+    assert.ok(isUncompressedWav(wav(0x0001)));
+    assert.ok(isUncompressedWav(wav(0x0003)));
+    assert.ok(isUncompressedWav(wav(0xFFFE)));
 });
 
-test('ADPCM and other encodings are compressed', t => {
-    t.notOk(isUncompressedWav(wav(0x0011)));
-    t.notOk(isUncompressedWav(wav(0x0002)));
-    t.notOk(isUncompressedWav(wav(0x0055)));
-    t.end();
+test('ADPCM and other encodings are compressed', () => {
+    assert.ok(!isUncompressedWav(wav(0x0011)));
+    assert.ok(!isUncompressedWav(wav(0x0002)));
+    assert.ok(!isUncompressedWav(wav(0x0055)));
 });
 
-test('fmt chunks after other chunks are found, including odd-sized ones', t => {
-    t.notOk(isUncompressedWav(wav(0x0011, {listChunk: true})));
-    t.notOk(isUncompressedWav(wav(0x0011, {oddChunk: true})));
-    t.ok(isUncompressedWav(wav(0x0001, {listChunk: true, oddChunk: true})));
-    t.end();
+test('fmt chunks after other chunks are found, including odd-sized ones', () => {
+    assert.ok(!isUncompressedWav(wav(0x0011, {listChunk: true})));
+    assert.ok(!isUncompressedWav(wav(0x0011, {oddChunk: true})));
+    assert.ok(isUncompressedWav(wav(0x0001, {listChunk: true, oddChunk: true})));
 });
 
-test('anything that is not a parseable WAV file is treated as uncompressed', t => {
-    t.ok(isUncompressedWav(new Uint8Array(0)));
-    t.ok(isUncompressedWav(new Uint8Array([1, 2, 3])));
-    t.ok(isUncompressedWav(new TextEncoder().encode('not a wav file at all')));
-    t.ok(isUncompressedWav(wav(0x0011).subarray(0, 21)));
-    t.ok(isUncompressedWav('RIFF'));
-    t.ok(isUncompressedWav(null));
-    t.end();
+test('anything that is not a parseable WAV file is treated as uncompressed', () => {
+    assert.ok(isUncompressedWav(new Uint8Array(0)));
+    assert.ok(isUncompressedWav(new Uint8Array([1, 2, 3])));
+    assert.ok(isUncompressedWav(new TextEncoder().encode('not a wav file at all')));
+    assert.ok(isUncompressedWav(wav(0x0011).subarray(0, 21)));
+    assert.ok(isUncompressedWav('RIFF'));
+    assert.ok(isUncompressedWav(null));
 });

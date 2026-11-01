@@ -1,8 +1,9 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 
 const {deserializeCostume, deserializeSound} = require('../../src/serialization/deserialize-assets');
 
-test('duplicate sound references inflate and create the asset once', async t => {
+test('duplicate sound references inflate and create the asset once', async () => {
     let inflateCount = 0;
     let createCount = 0;
     const file = {
@@ -28,12 +29,12 @@ test('duplicate sound references inflate and create the asset once', async t => 
         deserializeSound(second, {storage}, zip)
     ]);
 
-    t.equal(inflateCount, 1);
-    t.equal(createCount, 1);
-    t.equal(first.asset, second.asset);
+    assert.strictEqual(inflateCount, 1);
+    assert.strictEqual(createCount, 1);
+    assert.strictEqual(first.asset, second.asset);
 });
 
-test('duplicate costume references inflate and create the asset once', async t => {
+test('duplicate costume references inflate and create the asset once', async () => {
     let inflateCount = 0;
     let createCount = 0;
     const file = {
@@ -58,12 +59,12 @@ test('duplicate costume references inflate and create the asset once', async t =
         deserializeCostume(second, {storage}, zip)
     ]);
 
-    t.equal(inflateCount, 1);
-    t.equal(createCount, 1);
-    t.equal(first.asset, second.asset);
+    assert.strictEqual(inflateCount, 1);
+    assert.strictEqual(createCount, 1);
+    assert.strictEqual(first.asset, second.asset);
 });
 
-test('zip asset cache does not cross storage instances', async t => {
+test('zip asset cache does not cross storage instances', async () => {
     const file = {
         async: async () => new Uint8Array([7, 8, 9])
     };
@@ -83,6 +84,6 @@ test('zip asset cache does not cross storage instances', async t => {
     await deserializeSound(first, {storage: makeStorage('first-storage')}, zip);
     await deserializeSound(second, {storage: makeStorage('second-storage')}, zip);
 
-    t.equal(first.asset.assetId, 'first-storage');
-    t.equal(second.asset.assetId, 'second-storage');
+    assert.strictEqual(first.asset.assetId, 'first-storage');
+    assert.strictEqual(second.asset.assetId, 'second-storage');
 });

@@ -1,22 +1,21 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const jsexecute = require('../../src/compiler/jsexecute');
 const Cast = require('../../src/util/cast');
 const {stringify} = require('@turbowarp/json');
 
 const evaluateRuntimeFunction = functionName => jsexecute.scopedEval(functionName);
 
-test('runtimeFunctions are valid', t => {
+test('runtimeFunctions are valid', () => {
     for (const functionName of Object.keys(jsexecute.runtimeFunctions)) {
         const fn = evaluateRuntimeFunction(functionName);
-        t.type(fn, 'function', `${functionName} is function`);
+        assert.strictEqual(typeof fn, 'function', `${functionName} is function`);
     }
-    t.end();
 });
 
-test('all runtimeFunctions can be used together', t => {
+test('all runtimeFunctions can be used together', () => {
     const script = Object.keys(jsexecute.runtimeFunctions).join(';');
     jsexecute.scopedEval(script);
-    t.end();
 });
 
 const VALUES = [
@@ -55,27 +54,24 @@ const VALUES = [
     'äpfel'
 ];
 
-test('comparison functions are equivalent to Cast.compare', t => {
+test('comparison functions are equivalent to Cast.compare', () => {
     const compareEqual = evaluateRuntimeFunction('compareEqual');
     const compareGreaterThan = evaluateRuntimeFunction('compareGreaterThan');
     const compareLessThan = evaluateRuntimeFunction('compareLessThan');
     for (const a of VALUES) {
         for (const b of VALUES) {
-            // Because there are so many tests, calling t.ok() each time is actually quite slow,
-            // so only call into tap when something failed.
             const cast = Cast.compare(a, b);
             if (compareEqual(a, b) !== (cast === 0)) {
-                t.fail(`${stringify(a)} should be === ${stringify(b)}`);
+                assert.fail(`${stringify(a)} should be === ${stringify(b)}`);
             }
             if (compareGreaterThan(a, b) !== (cast > 0)) {
-                t.fail(`${stringify(a)} should be > ${stringify(b)}`);
+                assert.fail(`${stringify(a)} should be > ${stringify(b)}`);
             }
             if (compareLessThan(a, b) !== (cast < 0)) {
-                t.fail(`${stringify(a)} should be < ${stringify(b)}`);
+                assert.fail(`${stringify(a)} should be < ${stringify(b)}`);
             }
         }
     }
-    t.end();
 });
 
 test('list search functions are equivalent to Cast.compare', t => {
@@ -85,7 +81,7 @@ test('list search functions are equivalent to Cast.compare', t => {
     const globalState = jsexecute.scopedEval('globalState');
     const previousThread = globalState.thread;
     globalState.thread = {target: {runtime: {runtimeOptions: {caseSensitiveLists: false}}}};
-    t.teardown(() => {
+    t.after(() => {
         globalState.thread = previousThread;
     });
     for (const item of VALUES) {
@@ -99,20 +95,21 @@ test('list search functions are equivalent to Cast.compare', t => {
             const expected = list.findIndex(v => Cast.compare(v, item) === 0) + 1;
             const actualIndex = listFind(list, item) + 1;
             if (actualIndex !== expected) {
-                t.fail(`index of ${stringify(item)} in ${stringify(list)} should be ${expected}, got ${actualIndex}`);
+                assert.fail(
+                    `index of ${stringify(item)} in ${stringify(list)} should be ${expected}, got ${actualIndex}`
+                );
             }
             if (listIndexOf({value: list}, item) !== expected) {
-                t.fail(`item # of ${stringify(item)} in ${stringify(list)} should be ${expected}`);
+                assert.fail(`item # of ${stringify(item)} in ${stringify(list)} should be ${expected}`);
             }
             if (listContains({value: list}, item) !== (expected !== 0)) {
-                t.fail(`${stringify(list)} should ${expected ? '' : 'not '}contain ${stringify(item)}`);
+                assert.fail(`${stringify(list)} should ${expected ? '' : 'not '}contain ${stringify(item)}`);
             }
         }
     }
-    t.end();
 });
 
-test('listGet is equivalent to listIndexSlow', t => {
+test('listGet is equivalent to listIndexSlow', () => {
     const listGet = evaluateRuntimeFunction('listGet');
     const listIndexSlow = evaluateRuntimeFunction('listIndexSlow');
     const list = ['a', 'b', 'c', 4, 5];
@@ -122,13 +119,12 @@ test('listGet is equivalent to listIndexSlow', t => {
         const expected = expectedIndex === -1 ? '' : list[expectedIndex];
         const actual = listGet(list, index);
         if (actual !== expected) {
-            t.fail(`item ${stringify(index)} should be ${stringify(expected)}, got ${stringify(actual)}`);
+            assert.fail(`item ${stringify(index)} should be ${stringify(expected)}, got ${stringify(actual)}`);
         }
     }
-    t.end();
 });
 
-test('listReplace is equivalent to listIndexSlow', t => {
+test('listReplace is equivalent to listIndexSlow', () => {
     const listReplace = evaluateRuntimeFunction('listReplace');
     const listIndexSlow = evaluateRuntimeFunction('listIndexSlow');
     const INDEXES = [...VALUES, 1, 2, 3.7, 5, 6, -1, -0.5, 2 ** 31, (2 ** 32) + 1, -(2 ** 32) + 2, 'last', '3', ' 2 '];
@@ -141,11 +137,12 @@ test('listReplace is equivalent to listIndexSlow', t => {
         }
         listReplace(list, index, 'new');
         if (stringify(list.value) !== stringify(expected)) {
-            t.fail(`replacing ${stringify(index)} should give ${stringify(expected)}, got ${stringify(list.value)}`);
+            assert.fail(
+                `replacing ${stringify(index)} should give ${stringify(expected)}, got ${stringify(list.value)}`
+            );
         }
         if (list._monitorUpToDate !== (expectedIndex === -1)) {
-            t.fail(`replacing ${stringify(index)} should ${expectedIndex === -1 ? 'not ' : ''}update monitor`);
+            assert.fail(`replacing ${stringify(index)} should ${expectedIndex === -1 ? 'not ' : ''}update monitor`);
         }
     }
-    t.end();
 });

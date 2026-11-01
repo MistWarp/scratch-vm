@@ -1,9 +1,10 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 const {runtimeFunctions} = require('../../src/compiler/jsexecute');
 
-test('MistWarp text and coordinate blocks compile directly', async t => {
+test('MistWarp text and coordinate blocks compile directly', async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     await vm.loadProject({
@@ -109,16 +110,16 @@ test('MistWarp text and coordinate blocks compile directly', async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.match(source, /Math\.atan2/, 'coordinate block is native');
-    t.match(source, /_printText/, 'pen text block is native');
-    t.match(source, /_printText\("text", 0, 0, target\)/, 'text operator on a literal is folded to its result');
-    t.match(source, /getCostumes\(\)\.map/, 'costume list reporter is native');
-    t.match(source, /JSON\.parse/, 'list import is native');
-    t.match(source, /JSON\.stringify\(.*\.value\)/, 'list export is native');
-    t.notMatch(source, /executeInCompatibilityLayer/, 'local blocks avoid compatibility fallback');
+    assert.match(source, /Math\.atan2/, 'coordinate block is native');
+    assert.match(source, /_printText/, 'pen text block is native');
+    assert.match(source, /_printText\("text", 0, 0, target\)/, 'text operator on a literal is folded to its result');
+    assert.match(source, /getCostumes\(\)\.map/, 'costume list reporter is native');
+    assert.match(source, /JSON\.parse/, 'list import is native');
+    assert.match(source, /JSON\.stringify\(.*\.value\)/, 'list export is native');
+    assert.doesNotMatch(source, /executeInCompatibilityLayer/, 'local blocks avoid compatibility fallback');
 });
 
-test('compiled list helpers preserve case-sensitive mode', t => {
+test('compiled list helpers preserve case-sensitive mode', () => {
     const globalState = {thread: {target: {runtime: {runtimeOptions: {caseSensitiveLists: true}}}}};
     const makeHelper = source => new Function(
         'globalState', `${source}; return ${source.match(/const (\w+)/)[1]};`
@@ -127,12 +128,11 @@ test('compiled list helpers preserve case-sensitive mode', t => {
     const indexOf = makeHelper(runtimeFunctions.listIndexOf);
     const list = {value: ['jump', 'Jump']};
 
-    t.equal(contains(list, 'JUMP'), false);
-    t.equal(indexOf(list, 'Jump'), 2);
-    t.end();
+    assert.strictEqual(contains(list, 'JUMP'), false);
+    assert.strictEqual(indexOf(list, 'Jump'), 2);
 });
 
-test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
+test("legacy Mist's Utils patch blocks splice raw JavaScript", async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     await vm.loadProject({
@@ -211,22 +211,23 @@ test("legacy Mist's Utils patch blocks splice raw JavaScript", async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.ok(vm.extensionManager.isExtensionLoaded('patching'), 'legacy blocks load built-in Patching');
-    t.notOk(vm.extensionManager.isExtensionLoaded('mistsutils'), "Mist's Utils is not loaded");
+    assert.ok(vm.extensionManager.isExtensionLoaded('patching'), 'legacy blocks load built-in Patching');
+    assert.ok(!vm.extensionManager.isExtensionLoaded('mistsutils'), "Mist's Utils is not loaded");
     const migrated = vm.runtime.getTargetForStage().blocks.getBlock('patch');
-    t.equal(migrated.opcode, 'patching_jscommand', 'legacy opcode is migrated');
-    t.equal(migrated.mutation.itemcount, '3', 'legacy arity is preserved');
-    t.match(
+    assert.strictEqual(migrated.opcode, 'patching_jscommand', 'legacy opcode is migrated');
+    assert.strictEqual(migrated.mutation.itemcount, '3', 'legacy arity is preserved');
+    assert.match(
         source,
         /globalThis\.__originPatch = \(3 \+ 3\);/,
         'literal source and variadic reporters are joined, and the spliced reporter stays an expression'
     );
-    t.match(source, /globalThis\.__nativePatch = 4;/, 'native Patching blocks splice JavaScript');
-    t.notMatch(source, /"globalThis\.__originPatch/, 'raw source is not emitted as a quoted statement');
-    t.notMatch(source, /executeInCompatibilityLayer/, 'patching does not use the runtime compatibility bridge');
+    assert.match(source, /globalThis\.__nativePatch = 4;/, 'native Patching blocks splice JavaScript');
+    assert.doesNotMatch(source, /"globalThis\.__originPatch/, 'raw source is not emitted as a quoted statement');
+    assert.doesNotMatch(source, /executeInCompatibilityLayer/,
+        'patching does not use the runtime compatibility bridge');
 });
 
-test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
+test("Mist's Utils compiler API cannot alter raw patch syntax", async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     vm.extensionManager.addBuiltinExtension('mistsutils', class {
@@ -309,11 +310,11 @@ test("Mist's Utils compiler API cannot alter raw patch syntax", async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.match(source, /if \(true\) globalThis\.__originIcon = 1;\s*else globalThis\.__originIcon = 2;/);
-    t.notMatch(source, /;;\s*else/, 'raw commands are not terminated twice');
+    assert.match(source, /if \(true\) globalThis\.__originIcon = 1;\s*else globalThis\.__originIcon = 2;/);
+    assert.doesNotMatch(source, /;;\s*else/, 'raw commands are not terminated twice');
 });
 
-test("Mist's Utils 5.9 blocks use native compiler cases", async t => {
+test("Mist's Utils 5.9 blocks use native compiler cases", async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     vm.extensionManager.addBuiltinExtension('mistsutils', class {
@@ -389,11 +390,11 @@ test("Mist's Utils 5.9 blocks use native compiler cases", async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.match(source, /\("origin"\)\.startsWith\("ori"\)/);
-    t.notMatch(source, /oldCompiler|executeInCompatibilityLayer/);
+    assert.match(source, /\("origin"\)\.startsWith\("ori"\)/);
+    assert.doesNotMatch(source, /oldCompiler|executeInCompatibilityLayer/);
 });
 
-test('native switch keeps raw patch values uncoerced', async t => {
+test('native switch keeps raw patch values uncoerced', async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     await vm.loadProject({
@@ -510,17 +511,18 @@ test('native switch keeps raw patch values uncoerced', async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.match(source, /switch \(\(num\)\) \{/, 'raw discriminant is not stringified');
-    t.match(source, /case \(tkn\.str\): \{/, 'raw case value is not stringified');
-    t.match(source, /case tkn\.cmd: globalThis\.__switchResult = "cmd"; break;/, 'spliced case statement is preserved');
+    assert.match(source, /switch \(\(num\)\) \{/, 'raw discriminant is not stringified');
+    assert.match(source, /case \(tkn\.str\): \{/, 'raw case value is not stringified');
+    assert.match(source, /case tkn\.cmd: globalThis\.__switchResult = "cmd"; break;/,
+        'spliced case statement is preserved');
 
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(global.__switchResult, 'cmd', 'raw spliced case matches the raw discriminant');
+    assert.strictEqual(global.__switchResult, 'cmd', 'raw spliced case matches the raw discriminant');
     delete global.__switchResult;
 });
 
-test('casting a raw patch reporter keeps its operator precedence', async t => {
+test('casting a raw patch reporter keeps its operator precedence', async () => {
     const vm = new VirtualMachine();
     vm.securityManager.canLoadExtensionFromProject = () => true;
     vm.extensionManager.addBuiltinExtension('mistsutils', class {
@@ -630,11 +632,11 @@ test('casting a raw patch reporter keeps its operator precedence', async t => {
     vm.runtime._step();
 
     // "" + labels.indexOf("data") + 1 would concatenate to "31" instead of adding to 4.
-    t.equal(`${global.__rawIndex}`, '4', 'the spliced expression is added, not concatenated');
+    assert.strictEqual(`${global.__rawIndex}`, '4', 'the spliced expression is added, not concatenated');
     delete global.__rawIndex;
 });
 
-test('cached compiled scripts recreate deleted variables with the correct type', async t => {
+test('cached compiled scripts recreate deleted variables with the correct type', async () => {
     const vm = new VirtualMachine();
     try {
         await vm.loadProject({
@@ -657,9 +659,9 @@ test('cached compiled scripts recreate deleted variables with the correct type',
         stage.deleteVariable('items');
         vm.greenFlag();
         vm.runtime._step();
-        t.equal(stage.variables.score.value, 7);
-        t.same(stage.variables.items.value, ['9']);
-        t.equal(stage.variables.items.type, 'list');
+        assert.strictEqual(stage.variables.score.value, 7);
+        assert.deepEqual(stage.variables.items.value, ['9']);
+        assert.strictEqual(stage.variables.items.type, 'list');
     } finally {
         vm.quit();
     }

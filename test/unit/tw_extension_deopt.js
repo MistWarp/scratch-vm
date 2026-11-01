@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 
@@ -27,7 +28,7 @@ const compile = async (blocks, setup) => {
     return {source, said};
 };
 
-test('an extension loop branch assumes nothing about variables', async t => {
+test('an extension loop branch assumes nothing about variables', async () => {
     const blocks = {
         hat: {opcode: 'event_whenflagclicked', next: 'set', parent: null, inputs: {}, fields: {}, topLevel: true,
             x: 0, y: 0},
@@ -53,6 +54,6 @@ test('an extension loop branch assumes nothing about variables', async t => {
         }
         twice () {}
     }));
-    t.match(source, /for \(let i = 0; i < 2; i\+\+\)/, 'the extension was compiled');
-    t.same(said, [4, 1], 'the second time round v is "a", and "a" + 1 is 1');
+    assert.match(source, /for \(let i = 0; i < 2; i\+\+\)/, 'the extension was compiled');
+    assert.deepStrictEqual(said, [4, 1], 'the second time round v is "a", and "a" + 1 is 1');
 });

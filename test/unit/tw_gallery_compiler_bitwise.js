@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const Cast = require('../../src/util/cast');
 
@@ -66,7 +67,7 @@ const makeProject = () => {
     };
 };
 
-test('gallery Bitwise compiler matches extension semantics', async t => {
+test('gallery Bitwise compiler matches extension semantics', async () => {
     const vm = new VirtualMachine();
     vm.setCompilerOptions({enabled: true, warpTimer: false});
     vm.extensionManager.isExtensionLoaded = () => true;
@@ -75,7 +76,8 @@ test('gallery Bitwise compiler matches extension semantics', async t => {
             throw new Error(`compat path used for ${op}`);
         };
     }
-    vm.on('COMPILE_ERROR', (target, error) => t.fail(`compile error: ${error}`));
+    const compileErrors = [];
+    vm.on('COMPILE_ERROR', (target, error) => compileErrors.push(`compile error: ${error}`));
 
     await vm.loadProject(JSON.stringify(makeProject()));
     vm.runtime.precompile();
@@ -104,7 +106,9 @@ test('gallery Bitwise compiler matches extension semantics', async t => {
                 const expected = reference[op](a, b);
                 const actual = byName[`r_${op}`].value;
                 if (!Object.is(actual, expected)) {
-                    t.fail(`${op}(${JSON.stringify(a)}, ${JSON.stringify(b)}): expected ${expected}, got ${actual}`);
+                    assert.fail(
+                        `${op}(${JSON.stringify(a)}, ${JSON.stringify(b)}): expected ${expected}, got ${actual}`
+                    );
                 }
                 checks++;
             }
@@ -114,11 +118,11 @@ test('gallery Bitwise compiler matches extension semantics', async t => {
             const expected = reference[op](a);
             const actual = byName[`r_${op}`].value;
             if (!Object.is(actual, expected)) {
-                t.fail(`${op}(${JSON.stringify(a)}): expected ${expected}, got ${actual}`);
+                assert.fail(`${op}(${JSON.stringify(a)}): expected ${expected}, got ${actual}`);
             }
             checks++;
         }
     }
-    t.ok(checks > 5000, `ran ${checks} checks`);
-    t.end();
+    assert.deepStrictEqual(compileErrors, []);
+    assert.ok(checks > 5000, `ran ${checks} checks`);
 });

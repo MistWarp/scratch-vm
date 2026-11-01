@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const nodeVM = require('vm');
 const {resolveObjectURL} = require('buffer');
 const VM = require('../../src/virtual-machine');
@@ -116,7 +117,7 @@ const run = vm => {
     return vm.runtime.getTargetForStage().variables.resultId.value;
 };
 
-test('confirm sees the opcode diff and a false answer keeps the old version', async t => {
+test('confirm sees the opcode diff and a false answer keeps the old version', async () => {
     const vm = await load();
     const manager = vm.extensionManager;
     let seen = null;
@@ -126,25 +127,27 @@ test('confirm sees the opcode diff and a false answer keeps the old version', as
             return Promise.resolve(false);
         }
     }).then(() => null, e => e);
-    t.ok(error, 'rejected');
-    t.match(error.message, /cancelled/);
-    t.same(seen.ids, ['hot']);
-    t.same(seen.changed, ['hot_value']);
-    t.same(Object.keys(seen.details.hot_value.after.arguments), ['A'], 'the new signature is passed');
-    t.notOk(seen.details.hot_value.before.arguments && Object.keys(seen.details.hot_value.before.arguments).length);
-    t.equal(run(vm), 1, 'the old version still runs');
-    t.equal(manager.getExtensionMode('hot'), 'unsandboxed');
+    assert.ok(error, 'rejected');
+    assert.match(error.message, /cancelled/);
+    assert.deepStrictEqual(seen.ids, ['hot']);
+    assert.deepStrictEqual(seen.changed, ['hot_value']);
+    assert.deepStrictEqual(Object.keys(seen.details.hot_value.after.arguments), ['A'], 'the new signature is passed');
+    assert.ok(
+        !(seen.details.hot_value.before.arguments && Object.keys(seen.details.hot_value.before.arguments).length)
+    );
+    assert.strictEqual(run(vm), 1, 'the old version still runs');
+    assert.strictEqual(manager.getExtensionMode('hot'), 'unsandboxed');
     const ok = await manager.reloadExtension('hot', extensionSource({value: 3}), {confirm: () => true});
-    t.same(ok.ids, ['hot']);
-    t.equal(run(vm), 3, 'a true answer commits');
+    assert.deepStrictEqual(ok.ids, ['hot']);
+    assert.strictEqual(run(vm), 3, 'a true answer commits');
     vm.quit();
 });
 
-test('staged compiler entries are set aside while confirm waits', async t => {
+test('staged compiler entries are set aside while confirm waits', async () => {
     const vm = await load(extensionSource({compiled: true}));
     const manager = vm.extensionManager;
     const oldEntry = vm.runtime.compilerExtensions.get('hot_value');
-    t.ok(oldEntry, 'the extension registered a compiler');
+    assert.ok(oldEntry, 'the extension registered a compiler');
     let during = null;
     await manager.reloadExtension('hot', extensionSource({value: 5, compiled: true}), {
         confirm: () => {
@@ -152,9 +155,9 @@ test('staged compiler entries are set aside while confirm waits', async t => {
             return true;
         }
     });
-    t.equal(during, oldEntry, 'the live compiler is the old one while confirm waits');
+    assert.strictEqual(during, oldEntry, 'the live compiler is the old one while confirm waits');
     const newEntry = vm.runtime.compilerExtensions.get('hot_value');
-    t.ok(newEntry && newEntry !== oldEntry, 'the staged compiler is installed on commit');
+    assert.ok(newEntry && newEntry !== oldEntry, 'the staged compiler is installed on commit');
 
     let staged = null;
     const error = await manager.reloadExtension('hot', extensionSource({value: 6, compiled: true}), {
@@ -163,13 +166,13 @@ test('staged compiler entries are set aside while confirm waits', async t => {
             return false;
         }
     }).then(() => null, e => e);
-    t.ok(error);
-    t.equal(staged, newEntry);
-    t.equal(vm.runtime.compilerExtensions.get('hot_value'), newEntry, 'a refusal keeps the old compiler');
+    assert.ok(error);
+    assert.strictEqual(staged, newEntry);
+    assert.strictEqual(vm.runtime.compilerExtensions.get('hot_value'), newEntry, 'a refusal keeps the old compiler');
     vm.quit();
 });
 
-test('changes during confirm refuse the reload', async t => {
+test('changes during confirm refuse the reload', async () => {
     const vm = await load();
     const manager = vm.extensionManager;
     const refuse = async (mutate, pattern) => {
@@ -179,9 +182,9 @@ test('changes during confirm refuse the reload', async t => {
                 return true;
             }
         }).then(() => null, e => e);
-        t.ok(error, 'rejected');
-        t.match(error.message, pattern);
-        t.equal(run(vm), 1, 'the old version still runs');
+        assert.ok(error, 'rejected');
+        assert.match(error.message, pattern);
+        assert.strictEqual(run(vm), 1, 'the old version still runs');
     };
     await refuse(() => {
         vm.editingCommands.handler = () => {};
@@ -204,13 +207,13 @@ test('changes during confirm refuse the reload', async t => {
         }
     }).then(() => null, e => e);
     const olderError = await older;
-    t.match(olderError.message, /newer edit/);
+    assert.match(olderError.message, /newer edit/);
     await newer;
-    t.equal(run(vm), 8);
+    assert.strictEqual(run(vm), 8);
     vm.quit();
 });
 
-test('running unsandboxed needs a one-shot allowance from the security manager', async t => {
+test('running unsandboxed needs a one-shot allowance from the security manager', async () => {
     const vm = await load();
     const manager = vm.extensionManager;
     const pretendSandboxed = () => {
@@ -219,10 +222,10 @@ test('running unsandboxed needs a one-shot allowance from the security manager',
     pretendSandboxed();
     const source = extensionSource({value: 4});
     const denied = await manager.reloadExtension('hot', source, {mode: 'unsandboxed'}).then(() => null, e => e);
-    t.match(denied.message, /not allowed/, 'a drop alone gets no allowance');
-    t.equal(await manager.requestUnsandboxedAllowance('hot', source, 'hot.js'), false,
+    assert.match(denied.message, /not allowed/, 'a drop alone gets no allowance');
+    assert.strictEqual(await manager.requestUnsandboxedAllowance('hot', source, 'hot.js'), false,
         'the default security manager says no');
-    t.match((await manager.reloadExtension('hot', source, {mode: 'unsandboxed'}).then(() => null, e => e)).message,
+    assert.match((await manager.reloadExtension('hot', source, {mode: 'unsandboxed'}).then(() => null, e => e)).message,
         /not allowed/);
 
     const prompts = [];
@@ -230,22 +233,22 @@ test('running unsandboxed needs a one-shot allowance from the security manager',
         prompts.push({fileName, id, first: text.split('\n')[0]});
         return Promise.resolve(true);
     };
-    t.equal(await manager.requestUnsandboxedAllowance('hot', source, 'hot.js'), true);
-    t.same(prompts, [{fileName: 'hot.js', id: 'hot', first: 'class HotExtension {'}]);
+    assert.strictEqual(await manager.requestUnsandboxedAllowance('hot', source, 'hot.js'), true);
+    assert.deepStrictEqual(prompts, [{fileName: 'hot.js', id: 'hot', first: 'class HotExtension {'}]);
     const other = await manager.reloadExtension('hot', extensionSource({value: 5}), {mode: 'unsandboxed'})
         .then(() => null, e => e);
-    t.match(other.message, /not allowed/, 'the allowance is for that source only');
+    assert.match(other.message, /not allowed/, 'the allowance is for that source only');
     const used = await manager.reloadExtension('hot', source, {mode: 'unsandboxed'}).then(() => null, e => e);
-    t.match(used.message, /not allowed/, 'a refused attempt used the allowance up');
+    assert.match(used.message, /not allowed/, 'a refused attempt used the allowance up');
 
     await manager.requestUnsandboxedAllowance('hot', source, 'hot.js');
     await manager.reloadExtension('hot', source, {mode: 'unsandboxed'});
-    t.equal(manager.getExtensionMode('hot'), 'unsandboxed');
-    t.equal(run(vm), 4);
+    assert.strictEqual(manager.getExtensionMode('hot'), 'unsandboxed');
+    assert.strictEqual(run(vm), 4);
     pretendSandboxed();
     const again = await manager.reloadExtension('hot', source, {mode: 'unsandboxed'}).then(() => null, e => e);
-    t.match(again.message, /not allowed/, 'the allowance is one-shot');
+    assert.match(again.message, /not allowed/, 'the allowance is one-shot');
     const unknown = await manager.reloadExtension('hot', source, {mode: 'nope'}).then(() => null, e => e);
-    t.match(unknown.message, /Unknown extension mode/);
+    assert.match(unknown.message, /Unknown extension mode/);
     vm.quit();
 });

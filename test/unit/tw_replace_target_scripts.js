@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VM = require('../../src/virtual-machine');
 const sb3 = require('../../src/serialization/sb3');
 const Variable = require('../../src/engine/variable');
@@ -134,7 +135,7 @@ const keepAllBut = (target, removed) => ({
     keepScripts: target.blocks.getScripts().filter(id => !removed.includes(id))
 });
 
-test('an edit reuses ids, keeps other scripts as they are and emits one change', async t => {
+test('an edit reuses ids, keeps other scripts as they are and emits one change', async () => {
     const {vm, sprite, changes} = await load();
     const container = sprite.blocks;
     const kept = container.getBlock('hatB');
@@ -144,31 +145,29 @@ test('an edit reuses ids, keeps other scripts as they are and emits one change',
     const result = vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat'], blocks => {
         blocks.moveA.inputs.STEPS = [1, [4, '20']];
     }));
-    t.equal(sprite.blocks, container, 'the Blocks container is kept');
-    t.equal(container.getBlock('hatB'), kept, 'unchanged scripts keep their objects');
-    t.same(container.getScripts(), order, 'script order is kept');
-    t.equal(container.getBlock('moveA').inputs.STEPS.block, stepsId, 'primitive ids are honoured');
-    t.equal(container.getBlock(stepsId).fields.NUM.value, '20');
-    t.equal(changes(), 1, 'PROJECT_CHANGED is emitted once');
-    t.ok(container.revision > revision);
-    t.same(result.rebuiltTopIds, ['hat']);
-    t.same(result.removedTopIds, []);
-    t.same(result.createdTopIds, []);
-    t.same(validateBlockIntegrity(container._blocks), [], 'the result is consistent');
-    t.end();
+    assert.strictEqual(sprite.blocks, container, 'the Blocks container is kept');
+    assert.strictEqual(container.getBlock('hatB'), kept, 'unchanged scripts keep their objects');
+    assert.deepStrictEqual(container.getScripts(), order, 'script order is kept');
+    assert.strictEqual(container.getBlock('moveA').inputs.STEPS.block, stepsId, 'primitive ids are honoured');
+    assert.strictEqual(container.getBlock(stepsId).fields.NUM.value, '20');
+    assert.strictEqual(changes(), 1, 'PROJECT_CHANGED is emitted once');
+    assert.ok(container.revision > revision);
+    assert.deepStrictEqual(result.rebuiltTopIds, ['hat']);
+    assert.deepStrictEqual(result.removedTopIds, []);
+    assert.deepStrictEqual(result.createdTopIds, []);
+    assert.deepStrictEqual(validateBlockIntegrity(container._blocks), [], 'the result is consistent');
 });
 
-test('kept scripts are carried as they are, even when unusual', async t => {
+test('kept scripts are carried as they are, even when unusual', async () => {
     const {vm, sprite} = await load();
     sprite.blocks.getBlock('turnB').inputs.EXTRA = {name: 'EXTRA', block: 'missing', shadow: null};
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat'], blocks => {
         blocks.moveA.inputs.STEPS = [1, [4, '30']];
     }));
-    t.equal(sprite.blocks.getBlock('turnB').inputs.EXTRA.block, 'missing');
-    t.end();
+    assert.strictEqual(sprite.blocks.getBlock('turnB').inputs.EXTRA.block, 'missing');
 });
 
-test('a failed change leaves the target untouched', async t => {
+test('a failed change leaves the target untouched', async () => {
     const {vm, sprite, changes} = await load();
     const blocks = sprite.blocks._blocks;
     const revision = sprite.blocks.revision;
@@ -177,16 +176,15 @@ test('a failed change leaves the target untouched', async t => {
         built.moveA.parent = 'nowhere';
     });
     change.variables = {create: [{id: 'speed', name: 'speed', value: 1}], delete: ['l']};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, change), CodeApplyError);
-    t.equal(sprite.blocks._blocks, blocks);
-    t.equal(sprite.blocks.revision, revision);
-    t.same(Object.keys(sprite.variables), variables);
-    t.ok(vm.runtime.getMonitorState().has('l'), 'the monitor is untouched');
-    t.equal(changes(), 0);
-    t.end();
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, change), CodeApplyError);
+    assert.strictEqual(sprite.blocks._blocks, blocks);
+    assert.strictEqual(sprite.blocks.revision, revision);
+    assert.deepStrictEqual(Object.keys(sprite.variables), variables);
+    assert.ok(vm.runtime.getMonitorState().has('l'), 'the monitor is untouched');
+    assert.strictEqual(changes(), 0);
 });
 
-test('block integrity validation', t => {
+test('block integrity validation', () => {
     const valid = () => ({
         a: {id: 'a', opcode: 'looks_say', next: 'b', parent: null, topLevel: true, shadow: false, fields: {},
             inputs: {MESSAGE: {name: 'MESSAGE', block: 'm', shadow: 'm'}}},
@@ -197,51 +195,50 @@ test('block integrity validation', t => {
         s: {id: 's', opcode: 'math_number', next: null, parent: 'b', topLevel: false, shadow: true, inputs: {},
             fields: {NUM: {name: 'NUM', value: '7'}}}
     });
-    t.same(validateBlockIntegrity(valid()), []);
+    assert.deepStrictEqual(validateBlockIntegrity(valid()), []);
     const broken = mutate => {
         const blocks = valid();
         mutate(blocks);
         return validateBlockIntegrity(blocks).map(error => error.message);
     };
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.b.parent = 'x';
     }).join('\n'), /missing parent/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.a.next = 'gone';
     }).join('\n'), /missing next/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.a.inputs.MESSAGE.shadow = 'zzz';
     }).join('\n'), /missing shadow/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.m.parent = null;
         b.m.topLevel = true;
     }).join('\n'), /Shadow block m is top level/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.b.obscuredHeadShadows = ['nope'];
     }).join('\n'), /Obscured shadow nope/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.a.parent = 'b';
         b.a.topLevel = false;
         b.b.next = 'a';
     }).join('\n'), /cycle/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.a.topLevel = false;
     }).join('\n'), /not top level/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.b.inputs.X = {name: 'X', block: 'm', shadow: null};
     }).join('\n'), /referenced 2 times/);
-    t.match(broken(b => {
+    assert.match(broken(b => {
         b.a.inputs.MESSAGE.name = 'OTHER';
     }).join('\n'), /has the name OTHER/);
     const comments = {c: {blockId: 'b'}};
     const blocks = valid();
     blocks.a.comment = 'c';
-    t.match(validateBlockIntegrity(blocks, null, comments)[0].message, /attached elsewhere/);
-    t.same(validateBlockIntegrity(blocks, ['m'], comments), [], 'only the listed blocks are checked');
-    t.end();
+    assert.match(validateBlockIntegrity(blocks, null, comments)[0].message, /attached elsewhere/);
+    assert.deepStrictEqual(validateBlockIntegrity(blocks, ['m'], comments), [], 'only the listed blocks are checked');
 });
 
-test('threads are stopped by the rules', async t => {
+test('threads are stopped by the rules', async () => {
     for (const compiled of [true, false]) {
         const {vm, sprite} = await load({compiled});
         const clone = sprite.makeClone();
@@ -253,28 +250,27 @@ test('threads are stopped by the rules', async t => {
         const threadA = thread('hat');
         const threadB = thread('hatB');
         const threadC = thread('hatC');
-        t.ok(threadA && threadB && threadC, 'the scripts run');
+        assert.ok(threadA && threadB && threadC, 'the scripts run');
         const result = vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat', 'defJ'], blocks => {
             blocks.changeJ.inputs.DY = [1, [4, '2']];
         }));
-        t.ok(threadA.isKilled, `a changed script stops (${compiled})`);
-        t.ok(threadC.isKilled, `a script calling a changed procedure stops (${compiled})`);
-        t.notOk(threadB.isKilled, `an unrelated script keeps running (${compiled})`);
-        t.ok(cloneA.isKilled, 'clones follow the same rule');
-        t.notOk(cloneB.isKilled);
-        t.equal(result.stoppedThreads, 3);
-        t.equal(threadB.blockContainer, sprite.blocks, 'running threads keep a valid container');
+        assert.ok(threadA.isKilled, `a changed script stops (${compiled})`);
+        assert.ok(threadC.isKilled, `a script calling a changed procedure stops (${compiled})`);
+        assert.ok(!threadB.isKilled, `an unrelated script keeps running (${compiled})`);
+        assert.ok(cloneA.isKilled, 'clones follow the same rule');
+        assert.ok(!cloneB.isKilled);
+        assert.strictEqual(result.stoppedThreads, 3);
+        assert.strictEqual(threadB.blockContainer, sprite.blocks, 'running threads keep a valid container');
         vm.runtime._step();
     }
-    t.end();
 });
 
-test('variables are created, deleted and set as asked', async t => {
+test('variables are created, deleted and set as asked', async () => {
     const {vm, sprite, stage} = await load();
     const clone = sprite.makeClone();
     stage.variables.g.value = 99;
     sprite.variables.items.value.push('live');
-    t.ok(vm.runtime.getMonitorState().has('l'));
+    assert.ok(vm.runtime.getMonitorState().has('l'));
     const change = keepAllBut(sprite, []);
     change.variables = {
         create: [
@@ -286,67 +282,65 @@ test('variables are created, deleted and set as asked', async t => {
         set: {items: ['x', 'y']}
     };
     const result = vm.replaceTargetScripts(sprite.id, change);
-    t.equal(sprite.variables.speed.value, 4);
-    t.equal(clone.variables.speed.value, 4, 'new variables reach clones');
-    t.not(clone.variables.speed, sprite.variables.speed);
-    t.ok(stage.variables.msg, 'broadcasts are created on the Stage');
-    t.notOk(sprite.variables.l, 'deleted');
-    t.notOk(clone.variables.l, 'deleted on clones too');
-    t.notOk(vm.runtime.getMonitorState().has('l'), 'the monitor goes with it');
-    t.notOk(vm.runtime.monitorBlocks.getBlock('l'));
-    t.same(sprite.variables.items.value, ['x', 'y'], 'an edited value is set');
-    t.equal(stage.variables.g.value, 99, 'other live values are kept');
-    t.same(result.createdVariableIds, ['speed', 'hidden', 'msg']);
-    t.same(result.deletedVariableIds, ['l']);
-    t.end();
+    assert.strictEqual(sprite.variables.speed.value, 4);
+    assert.strictEqual(clone.variables.speed.value, 4, 'new variables reach clones');
+    assert.notStrictEqual(clone.variables.speed, sprite.variables.speed);
+    assert.ok(stage.variables.msg, 'broadcasts are created on the Stage');
+    assert.ok(!sprite.variables.l, 'deleted');
+    assert.ok(!clone.variables.l, 'deleted on clones too');
+    assert.ok(!vm.runtime.getMonitorState().has('l'), 'the monitor goes with it');
+    assert.ok(!vm.runtime.monitorBlocks.getBlock('l'));
+    assert.deepStrictEqual(sprite.variables.items.value, ['x', 'y'], 'an edited value is set');
+    assert.strictEqual(stage.variables.g.value, 99, 'other live values are kept');
+    assert.deepStrictEqual(result.createdVariableIds, ['speed', 'hidden', 'msg']);
+    assert.deepStrictEqual(result.deletedVariableIds, ['l']);
 });
 
-test('variable changes are refused when unsafe', async t => {
+test('variable changes are refused when unsafe', async () => {
     const {vm, sprite} = await load();
     const clash = keepAllBut(sprite, []);
     clash.variables = {create: [{id: 'other', name: 'score'}]};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, clash), /score now names a different variable in the Stage/);
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, clash), /score now names a different variable in the Stage/);
 
     const used = rebuild(vm, sprite, ['hat'], blocks => {
         blocks.moveA.inputs.STEPS = [3, [12, 'lives', 'l'], [4, '10']];
     });
     used.variables = {delete: ['l']};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, used), /lives is used by Sprite1/);
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, used), /lives is used by Sprite1/);
 
     const global = keepAllBut(vm.runtime.getTargetForStage(), []);
     global.variables = {delete: ['b1']};
-    t.throws(() => vm.replaceTargetScripts(vm.runtime.getTargetForStage().id, global), /go is used by/);
+    assert.throws(() => vm.replaceTargetScripts(vm.runtime.getTargetForStage().id, global), /go is used by/);
 
     const twice = keepAllBut(sprite, []);
     twice.variables = {create: [{id: 'l', name: 'again'}]};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, twice), /already used/);
-    t.ok(sprite.variables.l);
-    t.end();
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, twice), /already used/);
+    assert.ok(sprite.variables.l);
 });
 
-test('comments: reserved ones are taken live and build comments are checked', async t => {
+test('comments: reserved ones are taken live and build comments are checked', async () => {
     const {vm, sprite, stage} = await load();
     const reserved = stage.comments.cfg;
     const stageChange = keepAllBut(stage, []);
     stageChange.comments = {cfg: {blockId: null, x: 0, y: 0, width: 1, height: 1, minimized: false,
         text: 'edited // _twconfig_'}};
     vm.replaceTargetScripts(stage.id, stageChange);
-    t.equal(stage.comments.cfg, reserved, 'the live reserved comment is kept');
-    t.equal(reserved.text, 'Configuration\n{} // _twconfig_');
+    assert.strictEqual(stage.comments.cfg, reserved, 'the live reserved comment is kept');
+    assert.strictEqual(reserved.text, 'Configuration\n{} // _twconfig_');
     const empty = keepAllBut(stage, []);
     empty.comments = {};
     vm.replaceTargetScripts(stage.id, empty);
-    t.equal(stage.comments.cfg, reserved, 'even when the build has none');
+    assert.strictEqual(stage.comments.cfg, reserved, 'even when the build has none');
 
     const twoOnOne = rebuild(vm, sprite, ['hat']);
     twoOnOne.comments = {
         c1: {blockId: 'moveA', x: 0, y: 0, width: 100, height: 100, minimized: false, text: 'one'},
         c2: {blockId: 'moveA', x: 0, y: 0, width: 100, height: 100, minimized: false, text: 'two'}
     };
-    t.throws(() => vm.replaceTargetScripts(sprite.id, twoOnOne), /two comments/);
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, twoOnOne), /two comments/);
     const second = rebuild(vm, sprite, ['hat']);
     second.comments = {c3: {blockId: 'hatB', x: 0, y: 0, width: 100, height: 100, minimized: false, text: 'x'}};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, second), /second comment/);
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, second), /second comment/);
 
     const attach = rebuild(vm, sprite, ['hat']);
     attach.comments = {
@@ -356,21 +350,20 @@ test('comments: reserved ones are taken live and build comments are checked', as
             text: `${FRACTCH_MAP_COMMENT_MAGIC}{}`}
     };
     vm.replaceTargetScripts(sprite.id, attach);
-    t.equal(sprite.blocks.getBlock('moveA').comment, 'c4');
-    t.equal(sprite.comments.c4.blockId, 'moveA');
-    t.equal(sprite.comments.floating.text, 'moved');
-    t.equal(sprite.comments.onB.blockId, 'hatB', 'comments of kept scripts are kept');
-    t.ok(sprite.comments.map);
+    assert.strictEqual(sprite.blocks.getBlock('moveA').comment, 'c4');
+    assert.strictEqual(sprite.comments.c4.blockId, 'moveA');
+    assert.strictEqual(sprite.comments.floating.text, 'moved');
+    assert.strictEqual(sprite.comments.onB.blockId, 'hatB', 'comments of kept scripts are kept');
+    assert.ok(sprite.comments.map);
 
     const keepComments = keepAllBut(sprite, []);
     vm.replaceTargetScripts(sprite.id, keepComments);
-    t.ok(sprite.comments.floating && sprite.comments.map, 'without comments in the change, floating ones stay');
-    t.end();
+    assert.ok(sprite.comments.floating && sprite.comments.map, 'without comments in the change, floating ones stay');
 });
 
-test('frame membership is pruned and remapped', async t => {
+test('frame membership is pruned and remapped', async () => {
     const {vm, sprite} = await load();
-    t.same(sprite.frames.f1.blocks, ['hatR', 'hatB']);
+    assert.deepStrictEqual(sprite.frames.f1.blocks, ['hatR', 'hatB']);
     const change = rebuild(vm, sprite, ['hatB'], blocks => {
         blocks.hatB2 = Object.assign(blocks.hatB, {});
         delete blocks.hatB;
@@ -379,11 +372,10 @@ test('frame membership is pruned and remapped', async t => {
     change.keepScripts = change.keepScripts.filter(id => id !== 'hatR');
     change.idMap = {hatB: 'hatB2'};
     vm.replaceTargetScripts(sprite.id, change);
-    t.same(sprite.frames.f1.blocks, ['hatB2']);
-    t.end();
+    assert.deepStrictEqual(sprite.frames.f1.blocks, ['hatB2']);
 });
 
-test('undo and redo restore scripts, comments, declarations and monitors', async t => {
+test('undo and redo restore scripts, comments, declarations and monitors', async () => {
     const {vm, sprite} = await load();
     const lives = sprite.variables.l;
     const monitorBefore = JSON.stringify(vm.runtime.getMonitorState().get('l'));
@@ -397,113 +389,107 @@ test('undo and redo restore scripts, comments, declarations and monitors', async
         create: [{id: 'made', name: 'made', type: Variable.BROADCAST_MESSAGE_TYPE}, {id: 'mine', name: 'mine'}]
     };
     const applied = vm.replaceTargetScripts(sprite.id, change);
-    t.notOk(sprite.blocks.getBlock('hatB'));
-    t.notOk(sprite.comments.floating);
-    t.notOk(sprite.comments.map, 'the map comment follows the change');
+    assert.ok(!sprite.blocks.getBlock('hatB'));
+    assert.ok(!sprite.comments.floating);
+    assert.ok(!sprite.comments.map, 'the map comment follows the change');
     const afterHash = vm.getCodeStateHash(sprite.id);
 
     const undone = vm.replaceTargetScripts(sprite.id, {restore: applied.previous});
-    t.same(JSON.parse(JSON.stringify(sprite.blocks._blocks)), blocksBefore, 'blocks deep-equal the before state');
-    t.same(JSON.parse(JSON.stringify(sprite.comments)), JSON.parse(commentsBefore), 'comments too');
-    t.equal(sprite.variables.l, lives, 'the deleted variable object comes back');
-    t.equal(lives.value, 3);
-    t.same(sprite.variables.items.value, ['a']);
-    t.equal(JSON.stringify(vm.runtime.getMonitorState().get('l')), monitorBefore, 'the monitor comes back');
-    t.ok(vm.runtime.monitorBlocks.getBlock('l'));
-    t.same(sprite.frames.f1.blocks, ['hatR', 'hatB']);
-    t.notOk(sprite.variables.mine, 'local variables the apply created are removed');
-    t.ok(vm.runtime.getTargetForStage().variables.made, 'Stage declarations the apply created stay');
-    t.same(undone.leftInPlaceVariableIds, ['made']);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(sprite.blocks._blocks)), blocksBefore,
+        'blocks deep-equal the before state');
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(sprite.comments)), JSON.parse(commentsBefore), 'comments too');
+    assert.strictEqual(sprite.variables.l, lives, 'the deleted variable object comes back');
+    assert.strictEqual(lives.value, 3);
+    assert.deepStrictEqual(sprite.variables.items.value, ['a']);
+    assert.strictEqual(JSON.stringify(vm.runtime.getMonitorState().get('l')), monitorBefore, 'the monitor comes back');
+    assert.ok(vm.runtime.monitorBlocks.getBlock('l'));
+    assert.deepStrictEqual(sprite.frames.f1.blocks, ['hatR', 'hatB']);
+    assert.ok(!sprite.variables.mine, 'local variables the apply created are removed');
+    assert.ok(vm.runtime.getTargetForStage().variables.made, 'Stage declarations the apply created stay');
+    assert.deepStrictEqual(undone.leftInPlaceVariableIds, ['made']);
 
     vm.replaceTargetScripts(sprite.id, {restore: undone.previous});
-    t.notOk(sprite.variables.l, 'redo deletes again');
-    t.notOk(vm.runtime.getMonitorState().has('l'));
-    t.same(sprite.variables.items.value, ['z']);
-    t.equal(vm.getCodeStateHash(sprite.id), afterHash, 'redo lands on the applied state');
-    t.end();
+    assert.ok(!sprite.variables.l, 'redo deletes again');
+    assert.ok(!vm.runtime.getMonitorState().has('l'));
+    assert.deepStrictEqual(sprite.variables.items.value, ['z']);
+    assert.strictEqual(vm.getCodeStateHash(sprite.id), afterHash, 'redo lands on the applied state');
 });
 
-test('undo brings back a broadcast the VM cleaned up, under its live name', async t => {
+test('undo brings back a broadcast the VM cleaned up, under its live name', async () => {
     const {vm, sprite, stage} = await load();
     vm.setEditingTarget(sprite.id);
     const applied = vm.replaceTargetScripts(sprite.id, keepAllBut(sprite, ['hatR']));
     stage.blocks.deleteBlock('send');
     vm._broadcastCleanupNeeded = true;
     vm.emitWorkspaceUpdate();
-    t.notOk(stage.variables.b1, 'the VM removed the unused broadcast');
+    assert.ok(!stage.variables.b1, 'the VM removed the unused broadcast');
     vm.replaceTargetScripts(sprite.id, {restore: applied.previous});
-    t.equal(stage.variables.b1.name, 'go', 'the broadcast is recreated');
+    assert.strictEqual(stage.variables.b1.name, 'go', 'the broadcast is recreated');
     const threads = vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'go'});
-    t.ok(threads.some(thread => thread.topBlock === 'hatR'), 'the hat fires');
-    t.end();
+    assert.ok(threads.some(thread => thread.topBlock === 'hatR'), 'the hat fires');
 });
 
-test('undo renames restored fields to live names', async t => {
+test('undo renames restored fields to live names', async () => {
     const {vm, sprite, stage} = await load();
     const applied = vm.replaceTargetScripts(sprite.id, keepAllBut(sprite, ['hatR']));
     stage.renameVariable('b1', 'start');
     stage.blocks.getBlock(stage.blocks.getBlock('send').inputs.BROADCAST_INPUT.block)
         .fields.BROADCAST_OPTION.value = 'start';
     vm.replaceTargetScripts(sprite.id, {restore: applied.previous});
-    t.equal(sprite.blocks.getBlock('hatR').fields.BROADCAST_OPTION.value, 'start');
+    assert.strictEqual(sprite.blocks.getBlock('hatR').fields.BROADCAST_OPTION.value, 'start');
     const threads = vm.runtime.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: 'start'});
-    t.ok(threads.some(thread => thread.topBlock === 'hatR'));
-    t.end();
+    assert.ok(threads.some(thread => thread.topBlock === 'hatR'));
 });
 
-test('undo restores obscured head shadows so a save keeps them', async t => {
+test('undo restores obscured head shadows so a save keeps them', async () => {
     const {vm, sprite} = await load();
     const applied = vm.replaceTargetScripts(sprite.id, keepAllBut(sprite, ['hatO']));
-    t.notOk(JSON.stringify(sb3.serialize(vm.runtime)).includes('[4,"7"]'));
+    assert.ok(!JSON.stringify(sb3.serialize(vm.runtime)).includes('[4,"7"]'));
     vm.replaceTargetScripts(sprite.id, {restore: applied.previous});
-    t.ok(JSON.stringify(sb3.serialize(vm.runtime)).includes('[4,"7"]'), 'the hidden value is saved again');
-    t.same(validateBlockIntegrity(sprite.blocks._blocks), []);
-    t.end();
+    assert.ok(JSON.stringify(sb3.serialize(vm.runtime)).includes('[4,"7"]'), 'the hidden value is saved again');
+    assert.deepStrictEqual(validateBlockIntegrity(sprite.blocks._blocks), []);
 });
 
-test('undo is refused when a recreated name now belongs to another variable', async t => {
+test('undo is refused when a recreated name now belongs to another variable', async () => {
     const {vm, stage} = await load();
     const change = keepAllBut(stage, []);
     change.variables = {delete: ['g']};
     const applied = vm.replaceTargetScripts(stage.id, change);
     stage.createVariable('g2', 'score', Variable.SCALAR_TYPE);
-    t.throws(() => vm.replaceTargetScripts(stage.id, {restore: applied.previous}),
+    assert.throws(() => vm.replaceTargetScripts(stage.id, {restore: applied.previous}),
         /score now names a different variable in the Stage/);
-    t.notOk(stage.variables.g);
-    t.end();
+    assert.ok(!stage.variables.g);
 });
 
-test('editing code is refused during collaboration', async t => {
+test('editing code is refused during collaboration', async () => {
     const {vm, sprite} = await load();
     vm.editingCommands.handler = () => {};
-    t.throws(() => vm.replaceTargetScripts(sprite.id, keepAllBut(sprite, [])),
+    assert.throws(() => vm.replaceTargetScripts(sprite.id, keepAllBut(sprite, [])),
         /Editing code is unavailable during collaboration/);
-    t.end();
 });
 
-test('the code state hash ignores values and reserved comments', async t => {
+test('the code state hash ignores values and reserved comments', async () => {
     const {vm, sprite, stage} = await load();
     const spriteHash = vm.getCodeStateHash(sprite.id);
     const stageHash = vm.getCodeStateHash(stage.id);
     sprite.variables.l.value = 100;
     stage.variables.g.value = 100;
     vm.runtime.storeProjectOptions({mistwarpTheme: 'x'});
-    t.equal(vm.getCodeStateHash(sprite.id), spriteHash);
-    t.equal(vm.getCodeStateHash(stage.id), stageHash);
+    assert.strictEqual(vm.getCodeStateHash(sprite.id), spriteHash);
+    assert.strictEqual(vm.getCodeStateHash(stage.id), stageHash);
     stage.renameVariable('g', 'points');
-    t.equal(vm.getCodeStateHash(sprite.id), spriteHash, 'the sprite does not reference g');
-    t.not(vm.getCodeStateHash(stage.id), stageHash);
+    assert.strictEqual(vm.getCodeStateHash(sprite.id), spriteHash, 'the sprite does not reference g');
+    assert.notStrictEqual(vm.getCodeStateHash(stage.id), stageHash);
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat'], blocks => {
         blocks.moveA.inputs.STEPS = [3, [12, 'points', 'g'], [4, '10']];
     }));
     const referencing = vm.getCodeStateHash(sprite.id);
     stage.renameVariable('g', 'score');
-    t.not(vm.getCodeStateHash(sprite.id), referencing, 'a referenced Stage variable counts');
+    assert.notStrictEqual(vm.getCodeStateHash(sprite.id), referencing, 'a referenced Stage variable counts');
     const before = vm.getCodeStateHash(sprite.id);
     sprite.blocks.changeBlock({id: sprite.blocks.getBlock('turnB').inputs.DEGREES.block, element: 'field',
         name: 'NUM', value: '11'});
-    t.not(vm.getCodeStateHash(sprite.id), before);
-    t.end();
+    assert.notStrictEqual(vm.getCodeStateHash(sprite.id), before);
 });
 
 const loadSprite = async (blocks, comments = {}) => {
@@ -515,51 +501,48 @@ const loadSprite = async (blocks, comments = {}) => {
     return {vm, sprite: vm.runtime.targets.find(target => !target.isStage)};
 };
 
-test('a rebuilt script takes over a shadow whose parent pointer was lost', async t => {
+test('a rebuilt script takes over a shadow whose parent pointer was lost', async () => {
     const {vm, sprite} = await loadSprite({
         hat: top('event_whenflagclicked', 'sw'),
         sw: child('looks_switchcostumeto', 'hat', null, {inputs: {COSTUME: [3, 'num', 'orphan']}}),
         num: child('looks_costumenumbername', 'sw', null, {fields: {NUMBER_NAME: ['number', null]}}),
         orphan: top('looks_costume', null, {shadow: true, fields: {COSTUME: ['costume1', null]}})
     });
-    t.equal(sprite.blocks.getBlock('orphan').parent, null);
+    assert.strictEqual(sprite.blocks.getBlock('orphan').parent, null);
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat'], blocks => {
         blocks.orphan.parent = 'sw';
         blocks.orphan.topLevel = false;
     }));
-    t.equal(sprite.blocks.getBlock('orphan').parent, 'sw');
-    t.same(sprite.blocks.getScripts(), ['hat']);
-    t.same(validateBlockIntegrity(sprite.blocks._blocks), []);
-    t.end();
+    assert.strictEqual(sprite.blocks.getBlock('orphan').parent, 'sw');
+    assert.deepStrictEqual(sprite.blocks.getScripts(), ['hat']);
+    assert.deepStrictEqual(validateBlockIntegrity(sprite.blocks._blocks), []);
 });
 
-test('a rebuilt script keeps a stack input loaded in the same-block form', async t => {
+test('a rebuilt script keeps a stack input loaded in the same-block form', async () => {
     const {vm, sprite} = await loadSprite({
         hat: top('event_whenflagclicked', 'if'),
         if: child('control_if', 'hat', null, {inputs: {SUBSTACK: [1, 'say']}}),
         say: child('looks_say', 'if', null, {inputs: {MESSAGE: [1, [10, 'hi']]}})
     });
-    t.equal(sprite.blocks.getBlock('if').inputs.SUBSTACK.shadow, 'say');
+    assert.strictEqual(sprite.blocks.getBlock('if').inputs.SUBSTACK.shadow, 'say');
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat']));
-    t.equal(sprite.blocks.getBlock('if').inputs.SUBSTACK.block, 'say');
-    t.end();
+    assert.strictEqual(sprite.blocks.getBlock('if').inputs.SUBSTACK.block, 'say');
 });
 
-test('a comment attached to a block that no longer exists is carried', async t => {
+test('a comment attached to a block that no longer exists is carried', async () => {
     const dangling = {blockId: 'gone', x: 1, y: 2, width: 200, height: 200, minimized: false, text: 'old'};
     const {vm, sprite} = await loadSprite({hat: top('event_whenflagclicked', null)}, {dangling});
     const comment = sprite.comments.dangling;
-    t.equal(comment.blockId, 'gone');
+    assert.strictEqual(comment.blockId, 'gone');
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['hat']));
-    t.equal(sprite.comments.dangling, comment, 'kept when the change has no comments');
+    assert.strictEqual(sprite.comments.dangling, comment, 'kept when the change has no comments');
     const change = rebuild(vm, sprite, ['hat']);
     change.comments = {dangling};
     vm.replaceTargetScripts(sprite.id, change);
-    t.equal(sprite.comments.dangling, comment, 'kept when the change passes it back');
-    t.end();
+    assert.strictEqual(sprite.comments.dangling, comment, 'kept when the change passes it back');
 });
 
-test('detached blocks and stray script entries are carried where they are', async t => {
+test('detached blocks and stray script entries are carried where they are', async () => {
     const {vm, sprite} = await load();
     const container = sprite.blocks;
     container.createBlock({id: 'loose', opcode: 'data_variable', parent: null, topLevel: false, next: null,
@@ -576,17 +559,15 @@ test('detached blocks and stray script entries are carried where they are', asyn
     change.blocks.stray = entry.blocks.stray;
     change.keepScripts = change.keepScripts.filter(id => id !== 'loopB').concat('loose');
     vm.replaceTargetScripts(sprite.id, change);
-    t.same(container.getScripts(), order, 'no script is added or dropped');
-    t.equal(container.getBlock('loose'), loose);
-    t.equal(container.getBlock('stray'), stray);
-    t.ok(container.getBlock('turnB'), 'the stray entry does not take blocks from its script');
-    t.end();
+    assert.deepStrictEqual(container.getScripts(), order, 'no script is added or dropped');
+    assert.strictEqual(container.getBlock('loose'), loose);
+    assert.strictEqual(container.getBlock('stray'), stray);
+    assert.ok(container.getBlock('turnB'), 'the stray entry does not take blocks from its script');
 });
 
-test('a rebuilt definition keeps a prototype loaded without a shadow slot', async t => {
+test('a rebuilt definition keeps a prototype loaded without a shadow slot', async () => {
     const {vm, sprite} = await load();
     sprite.blocks.getBlock('defJ').inputs.custom_block.shadow = null;
     vm.replaceTargetScripts(sprite.id, rebuild(vm, sprite, ['defJ']));
-    t.equal(sprite.blocks.getBlock('defJ').inputs.custom_block.block, 'protoJ');
-    t.end();
+    assert.strictEqual(sprite.blocks.getBlock('defJ').inputs.custom_block.block, 'protoJ');
 });

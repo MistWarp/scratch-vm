@@ -1,9 +1,10 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 const {ReturnType} = require('../../src/compiler/enums');
 
-test('compiler extension API emits native code', async t => {
+test('compiler extension API emits native code', async () => {
     const vm = new VirtualMachine();
     const {compiler} = vm.exports;
     compiler.register('compilerTest', {
@@ -89,12 +90,12 @@ test('compiler extension API emits native code', async t => {
     vm.runtime.precompile();
     JSGenerator.testingApparatus = null;
 
-    t.match(source, /3 \* 2/, 'custom reporter was compiled directly');
-    t.notMatch(source, /compilerTest_double/, 'compatibility bridge was not used');
+    assert.match(source, /3 \* 2/, 'custom reporter was compiled directly');
+    assert.doesNotMatch(source, /compilerTest_double/, 'compatibility bridge was not used');
 
     const input = name => name;
     input.number = name => name;
-    t.equal(
+    assert.strictEqual(
         vm.runtime.compilerExtensions.get('operator_min').compile({input, mutation: {itemcount: '3'}}),
         'Math.min(NUM1,NUM2,NUM3)',
         'extendable compiler inputs follow their mutation'
@@ -135,7 +136,7 @@ const compileSource = vm => {
     return source;
 };
 
-test('compFunc extension API emits native code from getInfo', async t => {
+test('compFunc extension API emits native code from getInfo', async () => {
     const vm = new VirtualMachine();
     class CompFuncTest {
         getInfo () {
@@ -211,12 +212,12 @@ test('compFunc extension API emits native code from getInfo', async t => {
     }));
 
     const source = compileSource(vm);
-    t.match(source, /3 \*\* 2/, 'compFunc reporter was compiled directly');
-    t.match(source, /target\._customAnnounce\("hi"\);/, 'compFunc command was emitted as a statement');
-    t.notMatch(source, /compFuncTest_square/, 'reporter did not use the compatibility bridge');
+    assert.match(source, /3 \*\* 2/, 'compFunc reporter was compiled directly');
+    assert.match(source, /target\._customAnnounce\("hi"\);/, 'compFunc command was emitted as a statement');
+    assert.doesNotMatch(source, /compFuncTest_square/, 'reporter did not use the compatibility bridge');
 });
 
-test('compFunc token interpolation compiles as the any value', async t => {
+test('compFunc token interpolation compiles as the any value', async () => {
     const vm = new VirtualMachine();
     class InterpTest {
         getInfo () {
@@ -271,10 +272,10 @@ test('compFunc token interpolation compiles as the any value', async t => {
     }));
 
     const source = compileSource(vm);
-    t.match(source, /-7/, 'a token interpolated into a template string compiled to the any value');
+    assert.match(source, /-7/, 'a token interpolated into a template string compiled to the any value');
 });
 
-test('compFunc types come from the block type unless declared', async t => {
+test('compFunc types come from the block type unless declared', async () => {
     const vm = new VirtualMachine();
     class TypesTest {
         getInfo () {
@@ -348,15 +349,15 @@ test('compFunc types come from the block type unless declared', async t => {
     }));
 
     const types = vm.runtime.compilerExtensions;
-    t.equal(types.get('typesTest_anyRep').type, 'any', 'reporter defaults to any');
-    t.equal(types.get('typesTest_boolRep').type, 'boolean', 'Boolean block maps to boolean');
-    t.equal(types.get('typesTest_cmd').type, 'command', 'command block maps to command');
-    t.equal(types.get('typesTest_strRep').type, 'string', 'declared returnType overrides the default');
-    t.equal(types.get('typesTest_numRep').type, 'numberOrNaN', 'ReturnType.NUMBER is the safe number');
-    t.equal(types.get('typesTest_alwaysRep').type, 'number', 'ReturnType.NUMBER_NEVER_NAN is strict');
+    assert.strictEqual(types.get('typesTest_anyRep').type, 'any', 'reporter defaults to any');
+    assert.strictEqual(types.get('typesTest_boolRep').type, 'boolean', 'Boolean block maps to boolean');
+    assert.strictEqual(types.get('typesTest_cmd').type, 'command', 'command block maps to command');
+    assert.strictEqual(types.get('typesTest_strRep').type, 'string', 'declared returnType overrides the default');
+    assert.strictEqual(types.get('typesTest_numRep').type, 'numberOrNaN', 'ReturnType.NUMBER is the safe number');
+    assert.strictEqual(types.get('typesTest_alwaysRep').type, 'number', 'ReturnType.NUMBER_NEVER_NAN is strict');
 });
 
-test('compiler.register overrides an automatic compFunc entry', async t => {
+test('compiler.register overrides an automatic compFunc entry', async () => {
     const vm = new VirtualMachine();
     vm.exports.compiler.register('overrideTest', {
         square: {
@@ -412,12 +413,12 @@ test('compiler.register overrides an automatic compFunc entry', async t => {
     }));
 
     const entry = vm.runtime.compilerExtensions.get('overrideTest_square');
-    t.equal(entry.type, 'string', 'explicit register entry is kept');
-    t.equal(typeof entry.compile, 'function', 'explicit compile is kept');
-    t.equal(entry.compFunc, undefined, 'compFunc did not clobber the explicit entry');
+    assert.strictEqual(entry.type, 'string', 'explicit register entry is kept');
+    assert.strictEqual(typeof entry.compile, 'function', 'explicit compile is kept');
+    assert.strictEqual(entry.compFunc, undefined, 'compFunc did not clobber the explicit entry');
 });
 
-test('compFunc args and cast coerce inputs and fields', t => {
+test('compFunc args and cast coerce inputs and fields', () => {
     const {buildCompFuncHelpers} = require('../../src/compiler/extension-compiler');
     const input = name => `any(${name})`;
     input.raw = name => `raw(${name})`;
@@ -429,13 +430,12 @@ test('compFunc args and cast coerce inputs and fields', t => {
 
     const {args, cast} = buildCompFuncHelpers(['A', 'B'], {CHOICE: 'red'}, input, field);
 
-    t.equal(`${args.A}`, 'any(A)', 'interpolating a token coerces to any');
-    t.equal(cast.toNumber(args.A), 'num(A)', 'a cast helper coerces to a specific type');
-    t.equal(cast.toNumber(args.A), `${args.A}`.replace('any', 'num'), 'cast matches the token name');
-    t.equal(cast.toRaw(args.B), 'raw(B)', 'raw cast uses the raw helper');
-    t.equal(cast.toString('B'), 'str(B)', 'cast accepts a bare argument name');
-    t.equal(`${args.CHOICE}`, '"red"', 'a field token serializes as a JSON literal');
-    t.equal(cast.toAny(args.CHOICE), '"red"', 'field casts agree with interpolation');
-    t.equal(args.CHOICE.kind, 'field', 'fields are marked on the token');
-    t.end();
+    assert.strictEqual(`${args.A}`, 'any(A)', 'interpolating a token coerces to any');
+    assert.strictEqual(cast.toNumber(args.A), 'num(A)', 'a cast helper coerces to a specific type');
+    assert.strictEqual(cast.toNumber(args.A), `${args.A}`.replace('any', 'num'), 'cast matches the token name');
+    assert.strictEqual(cast.toRaw(args.B), 'raw(B)', 'raw cast uses the raw helper');
+    assert.strictEqual(cast.toString('B'), 'str(B)', 'cast accepts a bare argument name');
+    assert.strictEqual(`${args.CHOICE}`, '"red"', 'a field token serializes as a JSON literal');
+    assert.strictEqual(cast.toAny(args.CHOICE), '"red"', 'field casts agree with interpolation');
+    assert.strictEqual(args.CHOICE.kind, 'field', 'fields are marked on the token');
 });

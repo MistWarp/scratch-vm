@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
 
 const makeRuntime = spriteCount => {
@@ -16,7 +17,7 @@ const makeRuntime = spriteCount => {
 
 const order = runtime => runtime.executableTargets.map(target => target.id).join(',');
 
-test('setExecutablePosition matches the splice-based reordering it replaced', t => {
+test('setExecutablePosition matches the splice-based reordering it replaced', () => {
     const referenceMove = (targets, oldIndex, delta) => {
         const copy = targets.slice();
         const moved = copy[oldIndex];
@@ -34,35 +35,32 @@ test('setExecutablePosition matches the splice-based reordering it replaced', t 
                 const {runtime} = makeRuntime(spriteCount);
                 const expected = referenceMove(runtime.executableTargets, from, delta);
                 runtime.moveExecutable(runtime.executableTargets[from], delta);
-                t.equal(order(runtime), expected, `n=${spriteCount} from=${from} delta=${delta}`);
+                assert.strictEqual(order(runtime), expected, `n=${spriteCount} from=${from} delta=${delta}`);
             }
         }
     }
-    t.end();
 });
 
-test('go to front and back put targets at the ends, keeping the stage first', t => {
+test('go to front and back put targets at the ends, keeping the stage first', () => {
     const {runtime, sprites} = makeRuntime(4);
     runtime.setExecutablePosition(sprites[3], Infinity);
-    t.equal(order(runtime), 'stage,sprite0,sprite1,sprite2,sprite3', 'front means last in execution order');
+    assert.strictEqual(order(runtime), 'stage,sprite0,sprite1,sprite2,sprite3', 'front means last in execution order');
 
     runtime.setExecutablePosition(sprites[0], Infinity);
-    t.equal(order(runtime), 'stage,sprite1,sprite2,sprite3,sprite0', 'moving to front shifts the rest down');
+    assert.strictEqual(order(runtime), 'stage,sprite1,sprite2,sprite3,sprite0', 'moving to front shifts the rest down');
 
     runtime.setExecutablePosition(sprites[0], -Infinity);
-    t.equal(order(runtime), 'stage,sprite0,sprite1,sprite2,sprite3', 'back means just after the stage');
-    t.end();
+    assert.strictEqual(order(runtime), 'stage,sprite0,sprite1,sprite2,sprite3', 'back means just after the stage');
 });
 
-test('repositioning a target that is already in place changes nothing', t => {
+test('repositioning a target that is already in place changes nothing', () => {
     const {runtime, sprites} = makeRuntime(4);
     const before = order(runtime);
     const returned = runtime.setExecutablePosition(sprites[0], -Infinity);
-    t.equal(order(runtime), before, 'order is untouched');
-    t.equal(returned, 1, 'still reports the resting index');
+    assert.strictEqual(order(runtime), before, 'order is untouched');
+    assert.strictEqual(returned, 1, 'still reports the resting index');
 
     const front = runtime.setExecutablePosition(sprites[3], Infinity);
-    t.equal(order(runtime), before, 'front target already at the end stays put');
-    t.equal(front, 4, 'reports the last index');
-    t.end();
+    assert.strictEqual(order(runtime), before, 'front target already at the end stays put');
+    assert.strictEqual(front, 4, 'reports the last index');
 });

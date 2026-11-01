@@ -1,13 +1,12 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const path = require('path');
 const fs = require('fs');
 const VirtualMachine = require('../../src/virtual-machine');
 
-const test = tap.test;
-
 const projectPath = path.resolve(__dirname, '../fixtures/default.sb3');
 
-test('registered metadata is written to the project meta and read back on load', async t => {
+test('registered metadata is written to the project meta and read back on load', async () => {
     const vm = new VirtualMachine();
     let loaded = 'unset';
     let created = null;
@@ -20,28 +19,26 @@ test('registered metadata is written to the project meta and read back on load',
     vm.registerProjectMetadata('agent', {serialize: builtIn => `${builtIn}custom`});
 
     await vm.loadProject(fs.readFileSync(projectPath));
-    t.equal(loaded, undefined);
+    assert.strictEqual(loaded, undefined);
 
     created = '2026-11-01';
     const meta = JSON.parse(vm.toJSON()).meta;
-    t.equal(meta.created, '2026-11-01');
-    t.equal(meta.agent, 'custom');
-    t.equal(meta.semver, '3.0.0');
+    assert.strictEqual(meta.created, '2026-11-01');
+    assert.strictEqual(meta.agent, 'custom');
+    assert.strictEqual(meta.semver, '3.0.0');
 
     await vm.loadProject(vm.toJSON());
-    t.equal(loaded, '2026-11-01');
-    t.end();
+    assert.strictEqual(loaded, '2026-11-01');
 });
 
-test('a serializer that returns undefined writes nothing', t => {
+test('a serializer that returns undefined writes nothing', () => {
     const vm = new VirtualMachine();
     vm.registerProjectMetadata('author', {serialize: () => undefined});
     const meta = JSON.parse(vm.toJSON()).meta;
-    t.notOk(Object.prototype.hasOwnProperty.call(meta, 'author'));
-    t.end();
+    assert.ok(!Object.prototype.hasOwnProperty.call(meta, 'author'));
 });
 
-test('sprite exports do not get project metadata', async t => {
+test('sprite exports do not get project metadata', async () => {
     const vm = new VirtualMachine();
     await vm.loadProject(fs.readFileSync(projectPath));
     let calls = 0;
@@ -53,26 +50,24 @@ test('sprite exports do not get project metadata', async t => {
     });
     const sprite = vm.runtime.targets.find(target => !target.isStage);
     const json = JSON.parse(vm.toJSON(sprite.id));
-    t.equal(calls, 0);
-    t.notOk(json.meta);
-    t.end();
+    assert.strictEqual(calls, 0);
+    assert.ok(!json.meta);
 });
 
-test('keys are unique, built-in keys are reserved and handlers can be removed', t => {
+test('keys are unique, built-in keys are reserved and handlers can be removed', () => {
     const vm = new VirtualMachine();
     const remove = vm.registerProjectMetadata('created', {serialize: () => 'a'});
-    t.throws(() => vm.registerProjectMetadata('created', {}));
-    t.throws(() => vm.registerProjectMetadata('platform', {}), TypeError);
-    t.throws(() => vm.registerProjectMetadata('', {}), TypeError);
+    assert.throws(() => vm.registerProjectMetadata('created', {}));
+    assert.throws(() => vm.registerProjectMetadata('platform', {}), TypeError);
+    assert.throws(() => vm.registerProjectMetadata('', {}), TypeError);
     remove();
-    t.notOk(Object.prototype.hasOwnProperty.call(JSON.parse(vm.toJSON()).meta, 'created'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(JSON.parse(vm.toJSON()).meta, 'created'));
     vm.registerProjectMetadata('created', {serialize: () => 'b'});
     remove();
-    t.equal(JSON.parse(vm.toJSON()).meta.created, 'b');
-    t.end();
+    assert.strictEqual(JSON.parse(vm.toJSON()).meta.created, 'b');
 });
 
-test('a failing handler does not break saving or loading', async t => {
+test('a failing handler does not break saving or loading', async () => {
     const vm = new VirtualMachine();
     vm.registerProjectMetadata('broken', {
         serialize: () => {
@@ -83,13 +78,12 @@ test('a failing handler does not break saving or loading', async t => {
         }
     });
     const json = vm.toJSON();
-    t.ok(JSON.parse(json).meta);
+    assert.ok(JSON.parse(json).meta);
     await vm.loadProject(fs.readFileSync(projectPath));
-    t.ok(vm.runtime.targets.length > 0);
-    t.end();
+    assert.ok(vm.runtime.targets.length > 0);
 });
 
-test('handlers also get the whole meta being saved or loaded', async t => {
+test('handlers also get the whole meta being saved or loaded', async () => {
     const vm = new VirtualMachine();
     let savedMeta = null;
     let loadedMeta = null;
@@ -103,27 +97,28 @@ test('handlers also get the whole meta being saved or loaded', async t => {
             meta.semver = 'changed';
         }
     });
+    const editedSemvers = [];
     vm.registerProjectMetadata('edited', {
         deserialize: (value, meta) => {
-            t.equal(meta.semver, 'changed');
+            editedSemvers.push(meta.semver);
         }
     });
 
     const json = JSON.parse(vm.toJSON());
-    t.equal(savedMeta.semver, '3.0.0');
-    t.ok(savedMeta.platform);
-    t.notOk(Object.prototype.hasOwnProperty.call(savedMeta, 'created'));
+    assert.strictEqual(savedMeta.semver, '3.0.0');
+    assert.ok(savedMeta.platform);
+    assert.ok(!Object.prototype.hasOwnProperty.call(savedMeta, 'created'));
 
     await vm.loadProject(fs.readFileSync(projectPath));
     json.meta.custom = {kept: true};
     await vm.loadProject(JSON.stringify(json));
-    t.same(loadedMeta.custom, {kept: true});
-    t.equal(loadedMeta.created, 'today');
-    t.equal(JSON.parse(vm.toJSON()).meta.semver, '3.0.0');
-    t.end();
+    assert.deepStrictEqual(editedSemvers, ['changed', 'changed']);
+    assert.deepStrictEqual(loadedMeta.custom, {kept: true});
+    assert.strictEqual(loadedMeta.created, 'today');
+    assert.strictEqual(JSON.parse(vm.toJSON()).meta.semver, '3.0.0');
 });
 
-test('a handler changing the loaded meta does not change what the VM loads', async t => {
+test('a handler changing the loaded meta does not change what the VM loads', async () => {
     const vm = new VirtualMachine();
     const mismatches = [];
     vm.runtime.on('PLATFORM_MISMATCH', (platform, proceed) => {
@@ -138,6 +133,5 @@ test('a handler changing the loaded meta does not change what the VM loads', asy
     const json = JSON.parse(vm.toJSON());
     json.meta.platform = {name: 'Other', url: 'https://example.com/'};
     await vm.loadProject(JSON.stringify(json));
-    t.same(mismatches, ['Other']);
-    t.end();
+    assert.deepStrictEqual(mismatches, ['Other']);
 });

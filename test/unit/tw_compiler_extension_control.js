@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 
@@ -76,7 +77,7 @@ const RepeatExtension = class {
     repeatTimes () {}
 };
 
-test('compFunc on a loop block compiles its branches inline', async t => {
+test('compFunc on a loop block compiles its branches inline', async () => {
     const vm = new VirtualMachine();
     vm.extensionManager.addBuiltinExtension('loopTest', RepeatExtension);
     await vm.loadProject(buildProject({
@@ -103,17 +104,17 @@ test('compFunc on a loop block compiles its branches inline', async t => {
     }));
 
     const entry = vm.runtime.compilerExtensions.get('loopTest_repeatTimes');
-    t.equal(entry.type, 'command', 'a loop compiles as a command descriptor');
+    assert.strictEqual(entry.type, 'command', 'a loop compiles as a command descriptor');
 
     const source = compileSource(vm);
-    t.match(source, /for \(let i = 0, n = 3; i < n; i\+\+\)/, 'the extension owns the loop header');
-    t.match(source, /yield;/, 'the loop yields once per iteration outside warp mode');
-    t.match(source, /_say\("hi", target\)/, 'the branch body is compiled natively');
-    t.notMatch(source, /getOpcodeFunction\("loopTest_repeatTimes"\)/, 'the compatibility layer is not used');
-    t.notMatch(source, /createBranchInfo/, 'no branch dispatch is generated');
+    assert.match(source, /for \(let i = 0, n = 3; i < n; i\+\+\)/, 'the extension owns the loop header');
+    assert.match(source, /yield;/, 'the loop yields once per iteration outside warp mode');
+    assert.match(source, /_say\("hi", target\)/, 'the branch body is compiled natively');
+    assert.doesNotMatch(source, /getOpcodeFunction\("loopTest_repeatTimes"\)/, 'the compatibility layer is not used');
+    assert.doesNotMatch(source, /createBranchInfo/, 'no branch dispatch is generated');
 });
 
-test('compiler.register can compile a conditional with two branches', async t => {
+test('compiler.register can compile a conditional with two branches', async () => {
     const vm = new VirtualMachine();
     const {compiler} = vm.exports;
     compiler.register('ifTest', {
@@ -175,13 +176,13 @@ test('compiler.register can compile a conditional with two branches', async t =>
     }));
 
     const source = compileSource(vm);
-    t.match(source, /if \(true\) \{/, 'the condition is compiled into the if header');
-    t.match(source, /_say\("yes", target\)/, 'the first branch is compiled');
-    t.match(source, /_say\("no", target\)/, 'the second branch is compiled');
-    t.notMatch(source, /createBranchInfo/, 'no branch dispatch is generated');
+    assert.match(source, /if \(true\) \{/, 'the condition is compiled into the if header');
+    assert.match(source, /_say\("yes", target\)/, 'the first branch is compiled');
+    assert.match(source, /_say\("no", target\)/, 'the second branch is compiled');
+    assert.doesNotMatch(source, /createBranchInfo/, 'no branch dispatch is generated');
 });
 
-test('an inline loop runs the same number of iterations as the interpreter', async t => {
+test('an inline loop runs the same number of iterations as the interpreter', async () => {
     const vm = new VirtualMachine();
     vm.extensionManager.addBuiltinExtension('loopTest', RepeatExtension);
     await vm.loadProject(buildProject({
@@ -212,10 +213,10 @@ test('an inline loop runs the same number of iterations as the interpreter', asy
     while (vm.runtime.threads.length !== 0) {
         vm.runtime._step();
     }
-    t.equal(stage.variables.count.value, 3, 'the branch ran three times');
+    assert.strictEqual(stage.variables.count.value, 3, 'the branch ran three times');
 });
 
-test('a loop inside a custom procedure marks the procedure as yielding', async t => {
+test('a loop inside a custom procedure marks the procedure as yielding', async () => {
     const vm = new VirtualMachine();
     const errors = [];
     vm.runtime.on('COMPILE_ERROR', (target, error) => {
@@ -291,12 +292,12 @@ test('a loop inside a custom procedure marks the procedure as yielding', async t
     }));
 
     const source = compileSource(vm);
-    t.equal(errors.length, 0, 'the procedure compiled without a yield error');
-    t.match(source, /function\* gen\d+ \(\)/, 'the procedure is compiled as a generator');
-    t.match(source, /_say\("in procedure", target\)/, 'the procedure branch is compiled');
+    assert.strictEqual(errors.length, 0, 'the procedure compiled without a yield error');
+    assert.match(source, /function\* gen\d+ \(\)/, 'the procedure is compiled as a generator');
+    assert.match(source, /_say\("in procedure", target\)/, 'the procedure branch is compiled');
 });
 
-test('nested compiled C blocks splice their own branches', async t => {
+test('nested compiled C blocks splice their own branches', async () => {
     const vm = new VirtualMachine();
     vm.extensionManager.addBuiltinExtension('loopTest', RepeatExtension);
     await vm.loadProject(buildProject({
@@ -334,17 +335,17 @@ test('nested compiled C blocks splice their own branches', async t => {
     }, {count: ['count', 0]}));
 
     const source = compileSource(vm);
-    t.equal((source.match(/for \(let i = 0/g) || []).length, 2, 'both loops are emitted');
+    assert.strictEqual((source.match(/for \(let i = 0/g) || []).length, 2, 'both loops are emitted');
 
     const stage = vm.runtime.getTargetForStage();
     vm.greenFlag();
     while (vm.runtime.threads.length !== 0) {
         vm.runtime._step();
     }
-    t.equal(stage.variables.count.value, 4, 'the inner branch ran inside the outer branch');
+    assert.strictEqual(stage.variables.count.value, 4, 'the inner branch ran inside the outer branch');
 });
 
-test('a loop inside a warp procedure emits no yield', async t => {
+test('a loop inside a warp procedure emits no yield', async () => {
     const vm = new VirtualMachine();
     const errors = [];
     vm.runtime.on('COMPILE_ERROR', (target, error) => {
@@ -420,12 +421,12 @@ test('a loop inside a warp procedure emits no yield', async t => {
     }));
 
     const source = compileSource(vm);
-    t.equal(errors.length, 0, 'the warp procedure compiled');
-    t.match(source, /function fun\d+_myLoop \(\)/, 'the procedure is a normal function');
-    t.notMatch(source, /yield;/, 'warp loops emit no yield');
+    assert.strictEqual(errors.length, 0, 'the warp procedure compiled');
+    assert.match(source, /function fun\d+_myLoop \(\)/, 'the procedure is a normal function');
+    assert.doesNotMatch(source, /yield;/, 'warp loops emit no yield');
 });
 
-test('a compiler that drops a non-empty branch reports a compile error', async t => {
+test('a compiler that drops a non-empty branch reports a compile error', async () => {
     const vm = new VirtualMachine();
     const errors = [];
     vm.runtime.on('COMPILE_ERROR', (target, error) => {
@@ -470,6 +471,6 @@ test('a compiler that drops a non-empty branch reports a compile error', async t
     }));
 
     compileSource(vm);
-    t.equal(errors.length, 1, 'one compile error was reported');
-    t.match(errors[0].message, /did not include branch 1/, 'the missing branch is named');
+    assert.strictEqual(errors.length, 1, 'one compile error was reported');
+    assert.match(errors[0].message, /did not include branch 1/, 'the missing branch is named');
 });

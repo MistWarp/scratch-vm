@@ -1,7 +1,6 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
-
-const test = tap.test;
 
 const makeRuntime = () => {
     const rt = new Runtime();
@@ -14,39 +13,36 @@ const makeRuntime = () => {
     return rt;
 };
 
-test('every step draws exactly once', t => {
+test('every step draws exactly once', () => {
     const rt = makeRuntime();
     for (let i = 0; i < 5; i++) {
         rt._step();
     }
-    t.equal(rt.draws, 5);
-    t.end();
+    assert.strictEqual(rt.draws, 5);
 });
 
-test('steps do not draw while interpolation owns drawing', t => {
+test('steps do not draw while interpolation owns drawing', () => {
     const rt = makeRuntime();
     rt.setInterpolation(true);
     rt.start();
     rt._step();
-    t.equal(rt.draws, 0);
+    assert.strictEqual(rt.draws, 0);
     rt._renderInterpolatedPositions();
-    t.equal(rt.draws, 1);
+    assert.strictEqual(rt.draws, 1);
     rt.quit();
-    t.end();
 });
 
-test('screenRefreshTime measures the gap between draws', t => {
+test('screenRefreshTime measures the gap between draws', () => {
     const rt = makeRuntime();
     let time = 1000;
     rt.frameLoop.now = () => time;
     rt._step();
     time += 33;
     rt._step();
-    t.equal(rt.screenRefreshTime, 33);
-    t.end();
+    assert.strictEqual(rt.screenRefreshTime, 33);
 });
 
-test('framerates above 250 run several steps per timer tick and draw once', t => {
+test('framerates above 250 run several steps per timer tick and draw once', () => {
     const rt = makeRuntime();
     rt.setFramerate(1000);
     rt.start();
@@ -59,20 +55,18 @@ test('framerates above 250 run several steps per timer tick and draw once', t =>
     };
     rt.frameLoop._lastStepTime -= 4;
     rt.frameLoop.fastStepCallback();
-    t.ok(steps >= 4);
-    t.equal(rt.draws, 1);
+    assert.ok(steps >= 4);
+    assert.strictEqual(rt.draws, 1);
     rt.quit();
-    t.end();
 });
 
-test('screen refresh rate mode never gives the sequencer more than a 60 FPS budget', t => {
+test('screen refresh rate mode never gives the sequencer more than a 60 FPS budget', () => {
     const rt = makeRuntime();
     rt.setFramerate(0);
     rt.start();
     rt.frameLoop._lastRefreshTime = 1;
     rt.frameLoop.refreshStepCallback();
-    t.ok(rt.currentStepTime <= 1000 / 60);
-    t.ok(rt.currentStepTime >= 4);
+    assert.ok(rt.currentStepTime <= 1000 / 60);
+    assert.ok(rt.currentStepTime >= 4);
     rt.quit();
-    t.end();
 });

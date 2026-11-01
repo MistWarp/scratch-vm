@@ -1,4 +1,5 @@
-const test = require('tap').test;
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const JSGenerator = require('../../src/compiler/jsgen');
 
@@ -65,7 +66,7 @@ const scratchMod = (n, modulus) => {
     return result;
 };
 
-test('modulo by a constant keeps floored-division semantics', async t => {
+test('modulo by a constant keeps floored-division semantics', async () => {
     let generated = '';
     JSGenerator.testingApparatus = {
         report (jsgen, factorySource) {
@@ -87,13 +88,13 @@ test('modulo by a constant keeps floored-division semantics', async t => {
         for (let i = 0; i < 3; i++) vm.runtime._step();
         for (const testCase of CASES) {
             const expected = scratchMod(dividend, Number(testCase.modulus));
-            t.equal(readVariable(testCase.variable), expected, `${dividend} mod ${testCase.modulus} === ${expected}`);
+            assert.strictEqual(readVariable(testCase.variable), expected,
+                `${dividend} mod ${testCase.modulus} === ${expected}`);
         }
     }
 
-    t.ok(generated.includes('modP2('), 'power-of-two modulus uses the multiply-free helper');
-    t.notOk(/mod\(toNotNaN/.test(generated), 'constant moduli avoid the generic runtime helper');
+    assert.ok(generated.includes('modP2('), 'power-of-two modulus uses the multiply-free helper');
+    assert.ok(!/mod\(toNotNaN/.test(generated), 'constant moduli avoid the generic runtime helper');
 
     JSGenerator.testingApparatus = null;
-    t.end();
 });

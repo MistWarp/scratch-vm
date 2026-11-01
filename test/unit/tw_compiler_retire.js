@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 
 const project = (blocks, extensions = []) => ({
@@ -101,7 +102,7 @@ const run = async (blocks, {extensions, setup} = {}) => {
     return {log, errors};
 };
 
-test('stop all inside the array input of set list to array stops the script', async t => {
+test('stop all inside the array input of set list to array stops the script', async () => {
     const {log, errors} = await run({
         flag: flag('setList'),
         setList: {
@@ -116,11 +117,11 @@ test('stop all inside the array input of set list to array stops the script', as
         after: setLog('setList', 'ran after stop all'),
         ...stopAllProcedure
     });
-    t.same(errors, []);
-    t.equal(log, '');
+    assert.deepStrictEqual(errors, []);
+    assert.strictEqual(log, '');
 });
 
-test('raw JavaScript that yields makes its script a generator', async t => {
+test('raw JavaScript that yields makes its script a generator', async () => {
     const {log, errors} = await run({
         flag: flag('js'),
         js: {
@@ -133,8 +134,8 @@ test('raw JavaScript that yields makes its script a generator', async t => {
         },
         after: setLog('js', 'resumed')
     }, {extensions: ['patching']});
-    t.same(errors, []);
-    t.equal(log, 'resumed');
+    assert.deepStrictEqual(errors, []);
+    assert.strictEqual(log, 'resumed');
 });
 
 const TryExtension = class {
@@ -156,7 +157,7 @@ const TryExtension = class {
     attempt () {}
 };
 
-test('a compiled C block can let stop all through its own catch', async t => {
+test('a compiled C block can let stop all through its own catch', async () => {
     const {log, errors} = await run({
         flag: flag('attempt'),
         attempt: {
@@ -171,6 +172,6 @@ test('a compiled C block can let stop all through its own catch', async t => {
         after: setLog('attempt', 'ran after stop all'),
         ...stopAllProcedure
     }, {setup: vm => vm.extensionManager.addBuiltinExtension('tryTest', TryExtension)});
-    t.same(errors, []);
-    t.equal(log, '');
+    assert.deepStrictEqual(errors, []);
+    assert.strictEqual(log, '');
 });

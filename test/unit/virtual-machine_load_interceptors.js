@@ -1,7 +1,6 @@
-const tap = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
-
-const test = tap.test;
 
 const makeVM = () => {
     const vm = new VirtualMachine();
@@ -13,14 +12,13 @@ const makeVM = () => {
     return {vm, loads};
 };
 
-test('loadProject without interceptors loads directly', async t => {
+test('loadProject without interceptors loads directly', async () => {
     const {vm, loads} = makeVM();
-    t.equal(await vm.loadProject('a'), 'loaded');
-    t.same(loads, [['a', {}]]);
-    t.end();
+    assert.strictEqual(await vm.loadProject('a'), 'loaded');
+    assert.deepStrictEqual(loads, [['a', {}]]);
 });
 
-test('interceptors wrap the load, the last added outermost', async t => {
+test('interceptors wrap the load, the last added outermost', async () => {
     const {vm, loads} = makeVM();
     const calls = [];
     vm.addLoadProjectInterceptor(async (input, options, next) => {
@@ -33,27 +31,25 @@ test('interceptors wrap the load, the last added outermost', async t => {
         calls.push(`outer ${input} ${options.flag}`);
         return next('b', {flag: 2});
     });
-    t.equal(await vm.loadProject('a', {flag: 1}), 'loaded');
-    t.same(calls, ['outer a 1', 'inner b', 'inner done']);
-    t.same(loads, [['b', {flag: 2}]]);
-    t.end();
+    assert.strictEqual(await vm.loadProject('a', {flag: 1}), 'loaded');
+    assert.deepStrictEqual(calls, ['outer a 1', 'inner b', 'inner done']);
+    assert.deepStrictEqual(loads, [['b', {flag: 2}]]);
 });
 
-test('an interceptor can refuse a load by throwing', async t => {
+test('an interceptor can refuse a load by throwing', async () => {
     const {vm, loads} = makeVM();
     vm.addLoadProjectInterceptor(() => {
         throw new Error('no');
     });
     let returned = null;
-    t.doesNotThrow(() => {
+    assert.doesNotThrow(() => {
         returned = vm.loadProject('a');
     });
-    await t.rejects(returned, /no/);
-    t.same(loads, []);
-    t.end();
+    await assert.rejects(returned, /no/);
+    assert.deepStrictEqual(loads, []);
 });
 
-test('removing an interceptor leaves the others in any order', async t => {
+test('removing an interceptor leaves the others in any order', async () => {
     const {vm} = makeVM();
     const calls = [];
     const removeFirst = vm.addLoadProjectInterceptor((input, options, next) => {
@@ -67,12 +63,11 @@ test('removing an interceptor leaves the others in any order', async t => {
     removeFirst();
     removeFirst();
     await vm.loadProject('a');
-    t.same(calls, ['second']);
-    t.throws(() => vm.addLoadProjectInterceptor(null), TypeError);
-    t.end();
+    assert.deepStrictEqual(calls, ['second']);
+    assert.throws(() => vm.addLoadProjectInterceptor(null), TypeError);
 });
 
-test('patches of loadProject still wrap the interceptors', async t => {
+test('patches of loadProject still wrap the interceptors', async () => {
     const {vm} = makeVM();
     const calls = [];
     vm.addLoadProjectInterceptor((input, options, next) => {
@@ -85,6 +80,5 @@ test('patches of loadProject still wrap the interceptors', async t => {
         return original.apply(this, args);
     };
     await vm.loadProject('a');
-    t.same(calls, ['patch', 'interceptor']);
-    t.end();
+    assert.deepStrictEqual(calls, ['patch', 'interceptor']);
 });

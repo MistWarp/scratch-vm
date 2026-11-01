@@ -1,4 +1,5 @@
-const {test} = require('tap');
+const {test} = require('node:test');
+const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const VirtualMachine = require('../../src/virtual-machine');
@@ -33,89 +34,83 @@ const setup = async () => {
     return {vm, moves, draws};
 };
 
-test('blockToLocation is stable and per-sprite', t => {
+test('blockToLocation is stable and per-sprite', () => {
     const sampler = new Sampler(null);
     const a = sampler.blockToLocation('sprite1', 'block1');
     const b = sampler.blockToLocation('sprite1', 'block2');
     const c = sampler.blockToLocation('sprite2', 'block1');
-    t.not(a, b);
-    t.not(a, c);
-    t.ok(a >= 0 && b >= 0 && c >= 0);
-    t.equal(sampler.blockToLocation('sprite1', 'block1'), a);
-    t.same(sampler.locationToBlock(c), {
+    assert.notStrictEqual(a, b);
+    assert.notStrictEqual(a, c);
+    assert.ok(a >= 0 && b >= 0 && c >= 0);
+    assert.strictEqual(sampler.blockToLocation('sprite1', 'block1'), a);
+    assert.deepStrictEqual(sampler.locationToBlock(c), {
         spriteId: 'sprite2',
         blockId: 'block1'
     });
-    t.throws(() => sampler.locationToBlock(Sampler.IDLE));
-    t.end();
+    assert.throws(() => sampler.locationToBlock(Sampler.IDLE));
 });
 
-test('disabled by default', async t => {
+test('disabled by default', async () => {
     const {vm, moves, draws} = await setup();
     vm.greenFlag();
     vm.runtime._step();
-    t.equal(vm.runtime.sampler.pc, null);
-    t.same(moves, [null, null]);
-    t.same(draws, [null]);
-    t.equal(vm.runtime.sampler.locations.length, 0);
-    t.end();
+    assert.strictEqual(vm.runtime.sampler.pc, null);
+    assert.deepStrictEqual(moves, [null, null]);
+    assert.deepStrictEqual(draws, [null]);
+    assert.strictEqual(vm.runtime.sampler.locations.length, 0);
 });
 
-test('basic level attributes compiled scripts to RUNTIME', async t => {
+test('basic level attributes compiled scripts to RUNTIME', async () => {
     const {vm, moves, draws} = await setup();
     vm.runtime.sampler.setEnabled(Sampler.LEVEL_BASIC);
     vm.greenFlag();
     vm.runtime._step();
-    t.ok(vm.runtime.threads[0].isCompiled);
-    t.same(moves, [Sampler.RUNTIME, Sampler.RUNTIME]);
-    t.same(draws, [Sampler.RENDERER]);
-    t.equal(vm.runtime.sampler.pc[0], Sampler.IDLE);
-    t.equal(vm.runtime.sampler.locations.length, 0);
-    t.end();
+    assert.ok(vm.runtime.threads[0].isCompiled);
+    assert.deepStrictEqual(moves, [Sampler.RUNTIME, Sampler.RUNTIME]);
+    assert.deepStrictEqual(draws, [Sampler.RENDERER]);
+    assert.strictEqual(vm.runtime.sampler.pc[0], Sampler.IDLE);
+    assert.strictEqual(vm.runtime.sampler.locations.length, 0);
 });
 
-test('commands level attributes compiled scripts to blocks', async t => {
+test('commands level attributes compiled scripts to blocks', async () => {
     const {vm, moves, draws} = await setup();
     const sampler = vm.runtime.sampler;
     sampler.setEnabled(Sampler.LEVEL_COMMANDS);
     vm.greenFlag();
 
     vm.runtime._step();
-    t.ok(vm.runtime.threads[0].isCompiled);
+    assert.ok(vm.runtime.threads[0].isCompiled);
     const spriteId = vm.runtime.getSpriteTargetByName('Sprite1').id;
     const changeOnce = sampler.blockToLocation(spriteId, 'b');
     const changeInLoop = sampler.blockToLocation(spriteId, 'f');
-    t.same(moves, [changeOnce, changeInLoop]);
-    t.same(draws, [Sampler.RENDERER]);
-    t.equal(sampler.pc[0], Sampler.IDLE);
+    assert.deepStrictEqual(moves, [changeOnce, changeInLoop]);
+    assert.deepStrictEqual(draws, [Sampler.RENDERER]);
+    assert.strictEqual(sampler.pc[0], Sampler.IDLE);
 
     vm.runtime._step();
-    t.same(moves, [changeOnce, changeInLoop, changeInLoop]);
-    t.same(draws, [Sampler.RENDERER, Sampler.RENDERER]);
-    t.equal(sampler.pc[0], Sampler.IDLE);
-    t.end();
+    assert.deepStrictEqual(moves, [changeOnce, changeInLoop, changeInLoop]);
+    assert.deepStrictEqual(draws, [Sampler.RENDERER, Sampler.RENDERER]);
+    assert.strictEqual(sampler.pc[0], Sampler.IDLE);
 });
 
-test('setEnabled(0) turns sampling back off', async t => {
+test('setEnabled(0) turns sampling back off', async () => {
     const {vm, moves, draws} = await setup();
     vm.runtime.sampler.setEnabled(Sampler.LEVEL_COMMANDS);
     vm.runtime.sampler.setEnabled(0);
-    t.equal(vm.runtime.sampler.enableBasic, false);
-    t.equal(vm.runtime.sampler.enableCommands, false);
+    assert.strictEqual(vm.runtime.sampler.enableBasic, false);
+    assert.strictEqual(vm.runtime.sampler.enableCommands, false);
 
     vm.runtime.sampler.pc[0] = 1234;
     vm.greenFlag();
     vm.runtime._step();
-    t.same(moves, [1234, 1234]);
-    t.same(draws, [1234]);
-    t.equal(vm.runtime.sampler.locations.length, 0);
-    t.end();
+    assert.deepStrictEqual(moves, [1234, 1234]);
+    assert.deepStrictEqual(draws, [1234]);
+    assert.strictEqual(vm.runtime.sampler.locations.length, 0);
 });
 
-test('Sampler is exported', t => {
+test('Sampler is exported', () => {
     const vm = new VirtualMachine();
-    t.equal(vm.exports.Sampler, Sampler);
-    t.end();
+    assert.strictEqual(vm.exports.Sampler, Sampler);
 });
 
 const RepeatExtension = class {
@@ -141,7 +136,7 @@ const RepeatExtension = class {
     repeatTimes () {}
 };
 
-test('commands level attributes compiled extension loops to the loop block', async t => {
+test('commands level attributes compiled extension loops to the loop block', async () => {
     const vm = new VirtualMachine();
     vm.extensionManager.addBuiltinExtension('samplerLoop', RepeatExtension);
     await vm.loadProject({
@@ -191,8 +186,8 @@ test('commands level attributes compiled extension loops to the loop block', asy
     const stageId = vm.runtime.getTargetForStage().id;
     const loop = sampler.blockToLocation(stageId, 'loop');
     const say = sampler.blockToLocation(stageId, 'say');
-    t.ok(source.includes('const pc = runtime.sampler.pc;'), 'the script reads the sampler buffer');
-    t.ok(source.includes(`pc[0] = ${say};`), 'the branch body is attributed to its own block');
-    t.ok(source.includes(`yield; pc[0] = ${loop};`), 'resuming after the loop yield is attributed to the loop block');
-    t.end();
+    assert.ok(source.includes('const pc = runtime.sampler.pc;'), 'the script reads the sampler buffer');
+    assert.ok(source.includes(`pc[0] = ${say};`), 'the branch body is attributed to its own block');
+    assert.ok(source.includes(`yield; pc[0] = ${loop};`),
+        'resuming after the loop yield is attributed to the loop block');
 });
