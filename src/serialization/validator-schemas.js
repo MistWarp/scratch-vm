@@ -7,6 +7,8 @@ const SCHEMAS = {
     sprite2: {schema: () => require('scratch-parser/lib/sprite2_schema.json'), sb2: true}
 };
 
+const SOUND_FORMATS_BEYOND_SCRATCH = ['ogg'];
+
 let sb3Definitions = null;
 const getSb3Definitions = () => {
     if (!sb3Definitions) {
@@ -15,6 +17,10 @@ const getSb3Definitions = () => {
         const list = sb3Definitions.definitions && sb3Definitions.definitions.list;
         if (list && Array.isArray(list.items) && list.items[1]) {
             delete list.items[1].items;
+        }
+        const soundFormats = sb3Definitions.definitions.sound.properties.dataFormat.enum;
+        for (const format of SOUND_FORMATS_BEYOND_SCRATCH) {
+            if (!soundFormats.includes(format)) soundFormats.push(format);
         }
     }
     return sb3Definitions;

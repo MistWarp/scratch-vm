@@ -33,6 +33,17 @@ const createAssetOnce = function (file, storage, assetType, dataFormat, assetId,
     return promise;
 };
 
+const extensionOf = fileName => fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
+
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const findSoundStoredWithAnotherExtension = function (zip, fileName) {
+    const dot = fileName.lastIndexOf('.');
+    if (dot === -1) return null;
+    const assetId = escapeRegExp(fileName.slice(0, dot));
+    return zip.file(new RegExp(`^([^/]*/)?${assetId}\\.(wav|mp3|ogg)$`, 'i'))[0] || null;
+};
+
 /**
  * Deserializes sound from file into storage cache so that it can
  * be loaded into the runtime.
@@ -65,6 +76,12 @@ const deserializeSound = function (sound, runtime, zip, assetFileName) {
         soundFile = zip.file(fileMatch)[0]; // use first matching file
     }
 
+    let storedFormat = null;
+    if (!soundFile) {
+        soundFile = findSoundStoredWithAnotherExtension(zip, fileName);
+        if (soundFile) storedFormat = extensionOf(soundFile.name);
+    }
+
     if (!soundFile) {
         log.error(`Could not find sound file associated with the ${sound.name} sound.`);
         return Promise.resolve(null);
@@ -75,7 +92,7 @@ const deserializeSound = function (sound, runtime, zip, assetFileName) {
         return Promise.resolve(null);
     }
 
-    const requestedFormat = sound.dataFormat.toLowerCase();
+    const requestedFormat = storedFormat || sound.dataFormat.toLowerCase();
     let dataFormat = storage.DataFormat.WAV;
     if (requestedFormat === 'mp3') {
         dataFormat = storage.DataFormat.MP3;

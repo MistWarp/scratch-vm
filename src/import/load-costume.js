@@ -484,6 +484,8 @@ const loadCostume = function (md5ext, costume, runtime, optVersion, assetPromise
         .then(assetArray => {
             if (assetArray[0]) {
                 costume.asset = assetArray[0];
+                costume.dataFormat = costume.asset.dataFormat;
+                costume.md5 = `${costume.asset.assetId}.${costume.asset.dataFormat}`;
             } else {
                 return handleCostumeLoadError(costume, runtime, assetLoad);
             }
