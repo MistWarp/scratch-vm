@@ -2356,6 +2356,8 @@ class Runtime extends EventEmitter {
      * @param {string[]} [options.arguments] Names of the arguments accepted. Optional if no arguments.
      * @param {boolean} [options.hidden] True to not include this block in the block palette
      * @param {1|2} [options.return] 1 for round reporter, 2 for boolean reported, leave empty for statement.
+     * @param {boolean} [options.yields] False if the callback never yields, waits or returns a promise. The compiler
+     * then calls it directly, so a custom block that uses it does not have to be able to pause.
      */
     addAddonBlock (options) {
         const procedureCode = options.procedureCode;

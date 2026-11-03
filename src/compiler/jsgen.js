@@ -407,7 +407,9 @@ class JSGenerator {
             return primary(`p${node.index}`);
 
         case InputOpcode.ADDON_CALL:
-            return expression(this.descendAddonCall(node), Precedence.YIELD);
+            return node.yields ?
+                expression(this.descendAddonCall(node), Precedence.YIELD) :
+                primary(this.descendAddonCall(node));
 
         case InputOpcode.CAST_BOOLEAN:
             return primary(`toBoolean(${argument(node.target)})`);
@@ -1445,6 +1447,9 @@ class JSGenerator {
         const inputs = this.descendInputRecord(node.arguments);
         const blockFunction = `runtime.getAddonBlock("${sanitize(node.code)}").callback`;
         const blockId = `"${sanitize(node.blockId)}"`;
+        if (!node.yields) {
+            return `executeAddonBlock(${inputs}, ${blockFunction}, ${blockId})`;
+        }
         return `yield* executeInCompatibilityLayer(${inputs}, ${blockFunction}, ${this.isWarp}, false, ${blockId})`;
     }
 

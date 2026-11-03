@@ -1236,9 +1236,10 @@ class ScriptTreeGenerator {
                 inputs: {
                     code: procedureCode,
                     arguments: args,
-                    blockId: block.id
+                    blockId: block.id,
+                    yields: addonBlock.yields !== false
                 },
-                yields: true
+                yields: addonBlock.yields !== false
             };
         }
 

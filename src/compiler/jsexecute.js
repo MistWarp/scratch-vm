@@ -207,6 +207,19 @@ const executeInCompatibilityLayer = function*(inputs, blockFunction, isWarp, use
 }`;
 
 /**
+ * executeAddonBlock: Call an addon block that never yields (see Runtime#addAddonBlock), without a generator.
+ * @param {*} inputs The inputs to pass to the block.
+ * @param {function} blockFunction The addon block's callback.
+ * @param {string} blockId Block ID to set on the emulated block utility.
+ * @returns {*} the value returned by the block, if any.
+ */
+runtimeFunctions.executeAddonBlock = `const executeAddonBlock = (inputs, blockFunction, blockId) => {
+    const blockUtility = globalState.blockUtility;
+    blockUtility.init(globalState.thread, blockId, {});
+    return blockFunction(inputs, blockUtility);
+}`;
+
+/**
  * @param {boolean} isLoop True if the block is a LOOP by default (can be overridden by startBranch() call)
  * @returns {unknown} Branch info object for compatibility layer.
  */

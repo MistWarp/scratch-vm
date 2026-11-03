@@ -85,6 +85,44 @@ const runExecutionTests = compilerEnabled => async parent => {
         t.assert.strictEqual(getVar(vm, 'block 2'), 'false');
     });
 
+    await parent.test('statement blocks that never yield', async t => {
+        const vm = await load();
+        t.plan(6);
+
+        let calledBlock1 = false;
+        let calledBlock2 = false;
+
+        vm.addAddonBlock({
+            procedureCode: 'block 1',
+            yields: false,
+            callback: (args, util) => {
+                calledBlock1 = true;
+                t.assert.ok(util.thread instanceof Thread);
+                // may have to update when project changes
+                t.assert.strictEqual(util.thread.peekStack(), 'd');
+            }
+        });
+
+        vm.addAddonBlock({
+            procedureCode: 'block 2 %s',
+            arguments: ['number or text'],
+            yields: false,
+            callback: args => {
+                calledBlock2 = true;
+                t.assert.deepEqual(args, {
+                    'number or text': 'banana'
+                });
+            }
+        });
+
+        vm.greenFlag();
+        vm.runtime._step();
+
+        t.assert.ok(calledBlock1);
+        t.assert.ok(calledBlock2);
+        t.assert.strictEqual(getVar(vm, 'block 4'), 'block 4 ran');
+    });
+
     await parent.test('yield with thread.status = STATUS_PROMISE_WAIT', async () => {
         const vm = await load();
         let threadToResume;
@@ -323,4 +361,50 @@ test('argument defaults', () => {
         ['arg0', 'arg1', 'arg2', 'arg3'],
         ['a < b', '5', 'true', '']
     ]);
+});
+
+test('a custom block calling an addon block that never yields stays a plain function', async () => {
+    const JSGenerator = require('../../src/compiler/jsgen');
+    // "p" is a custom block whose only block calls the addon block "log %s"; the green flag script calls "p".
+    const prototype = {opcode: 'procedures_prototype', next: null, parent: 'def', inputs: {}, fields: {}, shadow: true,
+        topLevel: false, mutation: {tagName: 'mutation', children: [], proccode: 'p', argumentids: '[]',
+            argumentnames: '[]', argumentdefaults: '[]', warp: 'false'}};
+    const blocks = {
+        def: {opcode: 'procedures_definition', next: 'log', parent: null, inputs: {custom_block: [1, 'proto']},
+            fields: {}, shadow: false, topLevel: true, x: 0, y: 0},
+        proto: prototype,
+        log: {opcode: 'procedures_call', next: null, parent: 'def', inputs: {arg0: [1, [10, 'hi']]}, fields: {},
+            shadow: false, topLevel: false, mutation: {tagName: 'mutation', children: [], proccode: 'log %s',
+                argumentids: '["arg0"]', warp: 'false'}},
+        hat: {opcode: 'event_whenflagclicked', next: 'call', parent: null, inputs: {}, fields: {}, shadow: false,
+            topLevel: true, x: 0, y: 200},
+        call: {opcode: 'procedures_call', next: null, parent: 'hat', inputs: {}, fields: {}, shadow: false,
+            topLevel: false, mutation: {tagName: 'mutation', children: [], proccode: 'p', argumentids: '[]',
+                warp: 'false'}}
+    };
+    const compile = async yields => {
+        const vm = new VirtualMachine();
+        const logged = [];
+        vm.addAddonBlock({procedureCode: 'log %s', arguments: ['content'], yields,
+            callback: ({content}) => logged.push(content)});
+        await vm.loadProject({targets: [{isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {},
+            blocks, comments: {}, currentCostume: 0, costumes: [], sounds: [], volume: 100, layerOrder: 0}],
+        monitors: [], extensions: [], meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}});
+        const sources = [];
+        JSGenerator.testingApparatus = {report: (generator, source) => sources.push(source)};
+        vm.greenFlag();
+        vm.runtime._step();
+        JSGenerator.testingApparatus = null;
+        const procedure = sources.find(source => source.includes('log %s'));
+        return {procedure, logged};
+    };
+
+    const plain = await compile(false);
+    assert.match(plain.procedure, /return function /);
+    assert.doesNotMatch(plain.procedure, /yield/);
+    assert.deepStrictEqual(plain.logged, ['hi']);
+
+    const yielding = await compile(undefined);
+    assert.match(yielding.procedure, /return function\* /);
+    assert.deepStrictEqual(yielding.logged, ['hi']);
 });
