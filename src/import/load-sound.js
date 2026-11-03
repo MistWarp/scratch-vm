@@ -120,6 +120,8 @@ const loadSound = function (sound, runtime, soundBank, assetPromise, assetLoad) 
                 log.warn('Failed to find sound data: ', sound.md5);
                 return handleSoundLoadError(sound, runtime, soundBank, assetLoad);
             }
+            sound.dataFormat = soundAsset.dataFormat;
+            sound.md5 = `${soundAsset.assetId}.${soundAsset.dataFormat}`;
 
             return loadSoundFromAsset(sound, soundAsset, runtime, soundBank, assetLoad);
         })
