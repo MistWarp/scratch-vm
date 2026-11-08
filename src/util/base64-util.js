@@ -1,6 +1,3 @@
-const atob = require('atob');
-const btoa = require('btoa');
-
 class Base64Util {
 
     /**
@@ -27,7 +24,7 @@ class Base64Util {
         let binary = '';
         const len = array.length;
         for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(array[i]);
+            binary += String.fromCharCode(array[i] & 0xFF);
         }
         return btoa(binary);
     }

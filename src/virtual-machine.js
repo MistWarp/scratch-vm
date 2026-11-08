@@ -630,6 +630,9 @@ class VirtualMachine extends EventEmitter {
             // TODO not sure if we need to check that it also isn't a data view
             input = JSON.stringify(input);
         }
+        if ((input instanceof ArrayBuffer || ArrayBuffer.isView(input)) && input.byteLength === 0) {
+            return Promise.reject(new Error('The project file is empty.'));
+        }
         const validationPromise = new Promise((resolve, reject) => {
             const validate = require('./serialization/validate-project');
             // The second argument of false below indicates to the validator that the

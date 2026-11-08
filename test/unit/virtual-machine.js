@@ -1137,3 +1137,12 @@ test('renameSprite updates block references to the deduplicated name', () => {
     assert.strictEqual(target2.sprite.name, 'foo2');
     assert.deepStrictEqual(renames, [['bar', 'foo2', 'sprite']]);
 });
+
+test('loadProject says an empty or detached project buffer is empty', async () => {
+    const vm = new VirtualMachine();
+    const detached = new ArrayBuffer(16);
+    structuredClone(detached, {transfer: [detached]});
+    for (const input of [detached, new ArrayBuffer(0), new Uint8Array(0)]) {
+        await assert.rejects(vm.loadProject(input), {message: 'The project file is empty.'});
+    }
+});

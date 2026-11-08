@@ -36,3 +36,7 @@ test('round trips', () => {
         assert.deepEqual(uint8array, decoded);
     }
 });
+
+test('uint8ArrayToBase64 keeps the low byte of negative numbers in plain arrays', () => {
+    assert.strictEqual(Base64Util.uint8ArrayToBase64([8, 0, 0x81, 0, 0x11, 0x51, 0, -50]), 'CACBABFRAM4=');
+});
