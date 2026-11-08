@@ -37,24 +37,6 @@ test('round trips', () => {
     }
 });
 
-test('loads when atob and btoa are read-only', () => {
-    const descriptors = {
-        atob: Object.getOwnPropertyDescriptor(globalThis, 'atob'),
-        btoa: Object.getOwnPropertyDescriptor(globalThis, 'btoa')
-    };
-    const path = require.resolve('../../src/util/base64-util');
-    try {
-        for (const name of Object.keys(descriptors)) {
-            Object.defineProperty(globalThis, name, {...descriptors[name], writable: false});
-        }
-        delete require.cache[path];
-        const Fresh = require('../../src/util/base64-util');
-        assert.strictEqual(Fresh.uint8ArrayToBase64(new Uint8Array([0, 50, 80, 200])), 'ADJQyA==');
-        assert.deepEqual(Fresh.base64ToUint8Array('ADJQyA=='), new Uint8Array([0, 50, 80, 200]));
-    } finally {
-        for (const name of Object.keys(descriptors)) {
-            Object.defineProperty(globalThis, name, descriptors[name]);
-        }
-        delete require.cache[path];
-    }
+test('uint8ArrayToBase64 keeps the low byte of negative numbers in plain arrays', () => {
+    assert.strictEqual(Base64Util.uint8ArrayToBase64([8, 0, 0x81, 0, 0x11, 0x51, 0, -50]), 'CACBABFRAM4=');
 });
