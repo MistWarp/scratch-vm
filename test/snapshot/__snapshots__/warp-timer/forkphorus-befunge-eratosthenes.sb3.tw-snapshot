@@ -21,7 +21,7 @@ b1.value = 0;
 for (var a0 = b2.value.length; a0 > 0; a0--) {
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
 b0.value.push(b2.value[(b1.value | 0) - 1] ?? "");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (isStuck()) yield;
 }
 return "";
@@ -176,7 +176,7 @@ yield* thread.procedures["Zpop %n"](1);
 if (("" + b0.value).toLowerCase() === ".") {
 yield* thread.procedures["Zpop %n"](1);
 b13.value.push(b10.value[1 - 1] ?? "");
-b13._monitorUpToDate = false;
+b13._monitorUpToDate = b13._monitorUpToDate > 1 ? 2 : false;
 }
 if (("" + b0.value).toLowerCase() === ",") {
 yield* thread.procedures["Zpop %n"](1);
@@ -197,7 +197,7 @@ listReplace(b10, 2, ((a15 = +(b10.value[2 - 1] ?? "")) === a15 ? a15 : 0) + 1);
 if (compareLessThan(b1.value.length, b10.value[1 - 1] ?? "")) {
 while (!compareEqual(b1.value.length, b10.value[1 - 1] ?? "")) {
 b1.value.push("");
-b1._monitorUpToDate = false;
+b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 yield;
 }
 }
@@ -253,12 +253,12 @@ b0.value = [];
 for (var a0 = (a1 = +p0) === a1 ? a1 : 0; a0 >= 0.5; a0--) {
 if (b1.value.length > 0) {
 b0.value.push(b1.value[b1.value.length - 1] ?? "");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value.pop();
 b1._monitorUpToDate = false;
 } else {
 b0.value.push(0);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 }
 yield;
 }
@@ -270,7 +270,7 @@ return "";
 const b0 = stage.variables["o4+OyKx[M=quu6p{=kRl-mem-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-mem-list", "mem");
 return function funXYZ_push_ (p0) {
 b0.value.push(p0);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 return "";
 }; })
 

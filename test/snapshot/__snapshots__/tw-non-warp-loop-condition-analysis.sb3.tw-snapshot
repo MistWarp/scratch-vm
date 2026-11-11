@@ -11,9 +11,9 @@ var a0, a1;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
 b0.value.push(3);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push("eof");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value = 0;
 b2.value = "bwah";
 while (!(("" + b2.value).toLowerCase() === "eof")) {

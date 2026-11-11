@@ -177,7 +177,7 @@ b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
 b1.value.push(("" + p0)[(b2.value | 0) - 1] || "");
-b1._monitorUpToDate = false;
+b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (b1.value.length > ("" + p1).length) {
 b1.value.shift();
 b1._monitorUpToDate = false;
@@ -203,7 +203,7 @@ b1.value = 0;
 for (var a0 = ("" + p1).length; a0 > 0; a0--) {
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
 b0.value.push(("" + p0)[(b1.value | 0) - 1] || "");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (isStuck()) yield;
 }
 b2.value = compareEqual(listContents(b0), p1);
@@ -223,7 +223,7 @@ b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
 b0.value.push(("" + p0)[(b2.value | 0) - 1] || "");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (b0.value.length > ("" + p1).length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
@@ -252,13 +252,13 @@ b3.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b3.value = ((a1 = +b3.value) === a1 ? a1 : 0) + 1;
 b0.value.push(("" + p0)[(b3.value | 0) - 1] || "");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (b0.value.length > ("" + p1).length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
 }
 b1.value.push(("" + p0)[(b3.value | 0) - 1] || "");
-b1._monitorUpToDate = false;
+b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (compareEqual(listContents(b0), p1)) {
 for (var a2 = ("" + p1).length; a2 > 0; a2--) {
 b1.value.pop();

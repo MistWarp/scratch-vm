@@ -57,7 +57,7 @@ return "";
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
 return function funXYZ () {
 b0.value.push(1);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 retire(); return;
 }; })
 
@@ -66,7 +66,7 @@ retire(); return;
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
 return function funXYZ () {
 b0.value.push(2);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 retire(); return;
 }; })
 
@@ -75,6 +75,6 @@ retire(); return;
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
 return function funXYZ () {
 b0.value.push(3);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 retire(); return;
 }; })

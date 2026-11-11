@@ -98,10 +98,11 @@ class Scratch3DataBlocks {
         // If block is running for monitors, return copy of list as an array if changed.
         if (util.thread.updateMonitor) {
             // Return original list value if up-to-date, which doesn't trigger monitor update.
-            if (list._monitorUpToDate) return list.value;
+            const state = list._monitorUpToDate;
+            if (state === true || state === 3) return list.value;
             // If value changed, reset the flag and return a copy to trigger monitor update.
             // MonitorState only detects updates when the object changes.
-            list._monitorUpToDate = true;
+            list._monitorUpToDate = state === 2 ? 3 : true;
             return list.value.slice();
         }
 
