@@ -70,6 +70,8 @@ const PLAIN_OPCODES = new Set([
 
 const WHOLE_NUMBER = /^-?\d+$/;
 
+const ANYTHING = '*';
+
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
 const variableKeyOf = id => `i:${id}`;
@@ -127,6 +129,8 @@ const addSources = (target, stage, block, procedureCode, out) => {
     case 'sensing_of':
         if (block.fields.PROPERTY) out.push(nameKeyOf(block.fields.PROPERTY.value));
         break;
+    default:
+        if (!block.shadow && !PLAIN_OPCODES.has(block.opcode) && !NAME_INPUTS.has(block.opcode)) out.push(ANYTHING);
     }
 };
 
@@ -166,7 +170,9 @@ const summarize = (runtime, target, stage) => {
     const sinkEverything = block => {
         for (const inputName in block.inputs) {
             if (!hasOwn(block.inputs, inputName)) continue;
-            for (const source of sourcesOf(block, inputName)) sinks.push(source);
+            for (const source of sourcesOf(block, inputName)) {
+                if (source !== ANYTHING) sinks.push(source);
+            }
             const child = blocks[block.inputs[inputName].block];
             const constantField = child && CONSTANT_FIELDS.get(child.opcode);
             if (constantField && child.fields[constantField]) {
@@ -258,7 +264,7 @@ const summarize = (runtime, target, stage) => {
         if (hasOwn(blocks, id)) walk(id);
     }
 
-    return {sinks, flows};
+    return {sinks, flows, declarations: target.declRevision, stageDeclarations: stage ? stage.declRevision : 0};
 };
 
 const solve = summaries => {
@@ -302,17 +308,25 @@ const states = new WeakMap();
 const namesReachingLookups = runtime => {
     runtime.nameFlowStale = false;
     const stage = runtime.getTargetForStage();
+    const stageDeclarations = stage ? stage.declRevision : 0;
     const previous = states.get(runtime);
     const summaries = [];
     let unchanged = !!previous;
     for (const target of runtime.targets) {
         if (!target.isOriginal) continue;
         const cache = target.blocks._cache;
-        if (!cache.nameFlow) cache.nameFlow = summarize(runtime, target, stage);
+        const cached = cache.nameFlow;
+        if (
+            !cached ||
+            cached.declarations !== target.declRevision ||
+            cached.stageDeclarations !== stageDeclarations
+        ) {
+            cache.nameFlow = summarize(runtime, target, stage);
+        }
         if (unchanged && previous.summaries[summaries.length] !== cache.nameFlow) unchanged = false;
         summaries.push(cache.nameFlow);
     }
-    if (unchanged && previous.summaries.length === summaries.length) return previous.reached;
+    if (unchanged && previous.summaries.length === summaries.length) return previous.usable;
 
     const reached = solve(summaries);
     if (previous && !sameKeys(previous.reached, reached)) {
@@ -320,8 +334,9 @@ const namesReachingLookups = runtime => {
             if (target.isOriginal) target.blocks.forgetCompiledScripts();
         }
     }
-    states.set(runtime, {summaries, reached});
-    return reached;
+    const usable = reached.has(ANYTHING) ? null : reached;
+    states.set(runtime, {summaries, reached, usable});
+    return usable;
 };
 
 const refreshNameFlow = runtime => {

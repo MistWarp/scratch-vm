@@ -566,3 +566,117 @@ for (const readerFirst of [false, true]) {
         assert.strictEqual(targetNamed(vm, 'Added').currentCostume, 0);
     });
 }
+
+const createBlock = (target, id, opcode, parent, inputs = {}, fields = {}, extra = {}) => {
+    const createdInputs = {};
+    for (const name of Object.keys(inputs)) createdInputs[name] = {name, block: inputs[name], shadow: null};
+    const createdFields = {};
+    for (const name of Object.keys(fields)) createdFields[name] = Object.assign({name}, fields[name]);
+    target.blocks.createBlock(Object.assign({
+        id,
+        opcode,
+        next: null,
+        parent,
+        topLevel: false,
+        shadow: false,
+        inputs: createdInputs,
+        fields: createdFields
+    }, extra));
+};
+
+test('a block the analysis does not know feeding a lookup keeps every name', async () => {
+    const vm = await load(makeProject({variables: ['hidden', 'other']}, {
+        name: 'Sprite',
+        costumes: NUMBERED,
+        currentCostume: 2,
+        blocks: stack({
+            hat: block('event_whenflagclicked'),
+            setHidden: setTo('hidden', text(2)),
+            setOther: setTo('other', text(2)),
+            wait: block('control_wait', {DURATION: [1, [5, '0']]})
+        }, 'hat', 'setHidden', 'setOther', 'wait')
+    }));
+    run(vm);
+    assert.strictEqual(valueOf(vm, 'Stage', 'hidden'), 2);
+
+    const sprite = targetNamed(vm, 'Sprite');
+    vm.runtime._primitives.unknown_read = args => valueOf(vm, 'Stage', String(args.NAME));
+    createBlock(sprite, 'addedSwitch', 'looks_switchcostumeto', 'wait', {COSTUME: 'addedRead'});
+    createBlock(sprite, 'addedRead', 'unknown_read', 'addedSwitch', {NAME: 'addedJoin'});
+    createBlock(sprite, 'addedJoin', 'operator_join', 'addedRead', {STRING1: 'addedHead', STRING2: 'addedTail'});
+    createBlock(sprite, 'addedHead', 'text', 'addedJoin', {}, {TEXT: {value: 'hid'}}, {shadow: true});
+    createBlock(sprite, 'addedTail', 'text', 'addedJoin', {}, {TEXT: {value: 'den'}}, {shadow: true});
+    sprite.blocks.getBlock('wait').next = 'addedSwitch';
+    sprite.blocks.resetCache();
+    run(vm);
+
+    assert.strictEqual(valueOf(vm, 'Stage', 'hidden'), '2');
+    assert.strictEqual(valueOf(vm, 'Stage', 'other'), '2');
+    assert.strictEqual(sprite.currentCostume, 0, 'costume picked by name, not by index');
+    assert.strictEqual(namesReachingLookups(vm.runtime), null);
+});
+
+test('a variable made after its old namesake was deleted keeps the lookups that find it by name', async () => {
+    const vm = await load(makeProject({variables: [['first', 'shared']]}, {
+        name: 'Sprite',
+        costumes: NUMBERED,
+        currentCostume: 2,
+        blocks: stack({
+            hat: block('event_whenflagclicked'),
+            wait: block('control_wait', {DURATION: [1, [5, '0']]}),
+            switchShared: switchCostume(readById('left over', 'shared'))
+        }, 'hat', 'wait', 'switchShared')
+    }));
+    run(vm);
+
+    const stage = vm.runtime.getTargetForStage();
+    stage.deleteVariable('first');
+    stage.createVariable('second', 'shared', '');
+    createBlock(stage, 'addedHat', 'event_whenflagclicked', null, {}, {}, {
+        topLevel: true,
+        x: 0,
+        y: 0,
+        next: 'addedSet'
+    });
+    createBlock(stage, 'addedSet', 'data_setvariableto', 'addedHat', {VALUE: 'addedValue'}, {
+        VARIABLE: {value: 'shared', id: 'second', variableType: ''}
+    });
+    createBlock(stage, 'addedValue', 'text', 'addedSet', {}, {TEXT: {value: '2'}}, {shadow: true});
+    targetNamed(vm, 'Sprite').setCostume(2);
+    run(vm);
+
+    assert.strictEqual(stage.variables.second.value, '2');
+    assert.strictEqual(targetNamed(vm, 'Sprite').currentCostume, 0, 'costume picked by name, not by index');
+});
+
+test('clones follow the analysis of the sprite they came from', async () => {
+    const vm = await load(makeProject({}, {
+        name: 'Sprite',
+        costumes: NUMBERED,
+        currentCostume: 2,
+        variables: ['looked up', 'free'],
+        blocks: Object.assign(
+            stack({
+                hat: block('event_whenflagclicked'),
+                makeClone: block('control_create_clone_of', {CLONE_OPTION: [1, 'cloneMenu']}),
+                cloneMenu: block('control_create_clone_of_menu', {}, {CLONE_OPTION: ['_myself_', null]}, {
+                    shadow: true,
+                    parent: 'makeClone'
+                })
+            }, 'hat', 'makeClone'),
+            stack({
+                cloneHat: block('control_start_as_clone'),
+                setLookedUp: setTo('looked up', text(2)),
+                setFree: setTo('free', text(2)),
+                switchLookedUp: switchCostume(variable('looked up'))
+            }, 'cloneHat', 'setLookedUp', 'setFree', 'switchLookedUp')
+        )
+    }));
+    run(vm);
+
+    const clone = vm.runtime.targets.find(target => !target.isOriginal);
+    const cloneValue = name => Object.values(clone.variables).find(candidate => candidate.name === name).value;
+    assert.strictEqual(cloneValue('looked up'), '2');
+    assert.strictEqual(cloneValue('free'), 2);
+    assert.strictEqual(clone.currentCostume, 0, 'costume picked by name, not by index');
+});
