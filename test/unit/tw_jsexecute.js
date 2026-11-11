@@ -75,7 +75,7 @@ test('comparison functions are equivalent to Cast.compare', () => {
 });
 
 test('list search functions are equivalent to Cast.compare', t => {
-    const listFind = evaluateRuntimeFunction('listFind');
+    const {listFind} = require('../../src/compiler/list-search');
     const listContains = evaluateRuntimeFunction('listContains');
     const listIndexOf = evaluateRuntimeFunction('listIndexOf');
     const globalState = jsexecute.scopedEval('globalState');

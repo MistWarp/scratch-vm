@@ -9,6 +9,7 @@ return function* genXYZ () {
 var a0;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
+b0._searchIndex = null;
 b0.value.push(3);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push(7);

@@ -17,6 +17,7 @@ const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCr
 const b1 = stage.variables["rQq!wAuU2T9DV9,S[/s."] || stage.lookupOrCreateList("rQq!wAuU2T9DV9,S[/s.", "original");
 return function funXYZ_run () {
 b0.value = [];
+b0._searchIndex = null;
 for (var a0 = 100; a0 > 0; a0--) {
 b0.value.push(b1.value[b0.value.length + 1 - 1] ?? "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;

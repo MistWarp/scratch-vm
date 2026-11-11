@@ -150,6 +150,7 @@ class Scratch3DataBlocks {
         const list = util.target.lookupOrCreateList(
             args.LIST.id, args.LIST.name);
         list.value = [];
+        list._searchIndex = null;
         return;
     }
 

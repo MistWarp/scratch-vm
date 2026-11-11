@@ -13,6 +13,7 @@ if (b0.value === 2) {
 runtime.ext_scratch3_looks._say("pass variable", target);
 }
 b1.value = [];
+b1._searchIndex = null;
 b1.value.push(3);
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (((a0 = +(b1.value[1 - 1] ?? "")) === a0 ? a0 : 0) === 3) {

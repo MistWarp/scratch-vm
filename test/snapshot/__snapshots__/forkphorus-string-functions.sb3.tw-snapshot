@@ -139,6 +139,7 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.loo
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return");
 return function funXYZ___endsWith____ (p0,p1) {
 b0.value = [];
+b0._searchIndex = null;
 b1.value = ("" + p0).length;
 {
 let a0 = b1.value;
@@ -173,6 +174,7 @@ b0.value = "true";
 return "";
 }
 b1.value = [];
+b1._searchIndex = null;
 b0.value = "false";
 b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
@@ -198,6 +200,7 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.loo
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return");
 return function funXYZ___startsWith____ (p0,p1) {
 b0.value = [];
+b0._searchIndex = null;
 b1.value = 0;
 {
 let a0 = b1.value;
@@ -219,6 +222,7 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator");
 return function funXYZ___indexOf____ (p0,p1) {
 b0.value = [];
+b0._searchIndex = null;
 b1.value = -1;
 b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
@@ -245,7 +249,9 @@ const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 const b3 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator");
 return function funXYZ___replace___with___ (p0,p1,p2) {
 b0.value = [];
+b0._searchIndex = null;
 b1.value = [];
+b1._searchIndex = null;
 b2.value = "";
 b3.value = 0;
 {
@@ -269,6 +275,7 @@ b1._monitorUpToDate = false;
 a1 = a1 + listContents(b1);
 a1 = a1 + p2;
 b1.value = [];
+b1._searchIndex = null;
 }
 b3.value = a0;
 b2.value = a1;

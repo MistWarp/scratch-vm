@@ -5,7 +5,7 @@ const Variable = require('../../src/engine/variable');
 const Scratch3DataBlocks = require('../../src/blocks/scratch3_data');
 const {stringify} = require('@turbowarp/json');
 
-const {listFind, listScan, listScanGeneric} = jsexecute.scopedEval('({listFind, listScan, listScanGeneric})');
+const {listFind, listScan, listScanGeneric} = require('../../src/compiler/list-search');
 
 const makeRandom = seed => {
     let state = seed >>> 0;
@@ -202,4 +202,37 @@ test('a list shortened in place without the flag drops the index', () => {
     list.value.length = 50;
     expectFind(list, 99, 'after truncation');
     expectFind(list, 49, 'after truncation');
+});
+
+test('contains matches the plain scan for short and long lists', () => {
+    const {listContains, globalState} = jsexecute.scopedEval('({listContains, globalState})');
+    const previousThread = globalState.thread;
+    globalState.thread = {target: {runtime: {runtimeOptions: {caseSensitiveLists: false}}}};
+    const random = makeRandom(21);
+    let contained = 0;
+    for (let round = 0; round < 600; round++) {
+        const list = Variable.create(null, 'list', Variable.LIST_TYPE, false);
+        const length = round % 3 === 0 ? 40 + Math.floor(random() * 30) : Math.floor(random() * 31);
+        for (let i = 0; i < length; i++) list.value.push(randomValue(random, true));
+        for (let query = 0; query < 30; query++) {
+            const item = randomValue(random, true);
+            const expected = listScanGeneric(list.value, item, 0) !== -1;
+            assert.strictEqual(listContains(list, item), expected, `contains ${stringify(item)}`);
+            if (expected) contained++;
+        }
+    }
+    globalState.thread = previousThread;
+    assert.ok(contained > 1000);
+});
+
+test('delete all drops the index', () => {
+    const blocks = new Scratch3DataBlocks({});
+    const list = Variable.create('id', 'list', Variable.LIST_TYPE, false);
+    for (let i = 0; i < 100; i++) list.value.push(i);
+    for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
+    assert.ok(list._searchIndex.numbers);
+    blocks.deleteAllOfList({LIST: {id: 'id', name: 'list'}}, {target: {lookupOrCreateList: () => list}});
+    assert.strictEqual(list._searchIndex, null);
+    assert.deepStrictEqual(list.value, []);
+    expectFind(list, 99, 'after delete all');
 });

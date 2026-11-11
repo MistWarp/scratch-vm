@@ -8,7 +8,9 @@ const b1 = stage.variables[",VHjOaLurDh*^;8kZ~I?"] || stage.lookupOrCreateList("
 return function funXYZ () {
 var a0;
 b0.value = [];
+b0._searchIndex = null;
 b1.value = [];
+b1._searchIndex = null;
 b0.value.push(3);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push(2);
@@ -20,6 +22,7 @@ b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value.push(listContents(b0));
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 b0.value = [];
+b0._searchIndex = null;
 thread.procedures["ZassertTrue %b %s"](b1.value.length === 1, "output length = 1");
 thread.procedures["ZassertTrue %b %s"](b0.value.length === 0, "data length = 0");
 thread.procedures["ZassertTrue %b %s"](((a0 = +(b1.value[1 - 1] ?? "")) === a0 ? a0 : 0) === 3284, "output item 1");

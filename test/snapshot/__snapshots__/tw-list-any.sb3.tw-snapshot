@@ -7,6 +7,7 @@ const b0 = stage.variables["eFlmP1{XC+I1:h0Yln.K"] || stage.lookupOrCreateList("
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 7", target);
 b0.value = [];
+b0._searchIndex = null;
 listInsert(b0, "any", "a");
 listInsert(b0, "any", "b");
 listInsert(b0, "any", "c");

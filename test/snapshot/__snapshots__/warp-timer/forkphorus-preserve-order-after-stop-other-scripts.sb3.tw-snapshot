@@ -11,6 +11,7 @@ startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "1" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "2" });
 runtime.stopForTarget(target, thread);
 b0.value = [];
+b0._searchIndex = null;
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "1" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "2" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "3" });

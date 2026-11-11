@@ -8,6 +8,7 @@ const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariab
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
+b0._searchIndex = null;
 b0.value.push(3);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push(7);
