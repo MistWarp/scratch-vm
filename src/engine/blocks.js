@@ -101,7 +101,9 @@ class Blocks {
             /**
              * tw: Whether populateProcedureCache has been run
              */
-            proceduresPopulated: false
+            proceduresPopulated: false,
+
+            nameFlow: null
         };
 
         /**
@@ -720,6 +722,13 @@ class Blocks {
         this._cache.compiledScripts = {};
         this._cache.compiledProcedures = {};
         this._cache.proceduresPopulated = false;
+        this._cache.nameFlow = null;
+        if (this.runtime) this.runtime.nameFlowStale = true;
+    }
+
+    forgetCompiledScripts () {
+        this._cache.compiledScripts = {};
+        this._cache.compiledProcedures = {};
     }
 
     /**

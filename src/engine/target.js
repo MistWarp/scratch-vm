@@ -414,6 +414,10 @@ class Target extends EventEmitter {
                 this.declRevision++;
 
                 if (this.runtime) {
+                    for (const target of this.runtime.targets) {
+                        if (target.isOriginal) target.blocks.resetCache();
+                    }
+
                     if (variable.isCloud && this.isStage) {
                         this.runtime.ioDevices.cloud.requestRenameVariable(oldName, newName);
                     }

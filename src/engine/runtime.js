@@ -204,6 +204,8 @@ class Runtime extends EventEmitter {
         /** @type {!Sequencer} */
         this.sequencer = new Sequencer(this);
 
+        this.nameFlowStale = false;
+
         /**
          * Storage container for flyout blocks.
          * These will execute on `_editingTarget.`
@@ -1700,6 +1702,7 @@ class Runtime extends EventEmitter {
      */
     addTarget (target) {
         this.targets.push(target);
+        if (target.isOriginal) this.nameFlowStale = true;
         this.executableTargets.push(target);
         if (target.isStage && !this._stageTarget) {
             this._stageTarget = target;
@@ -1795,6 +1798,7 @@ class Runtime extends EventEmitter {
             return;
         }
         this.targets.splice(index, 1);
+        if (disposingTarget.isOriginal) this.nameFlowStale = true;
         // Allow target to do dispose actions.
         disposingTarget.dispose();
         if (!this._targetCachesDirty) {
