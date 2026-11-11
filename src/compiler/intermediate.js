@@ -189,8 +189,7 @@ class IntermediateInput {
                     this.inputs.value = 0; // Convert NaN to 0
                 }
                 if (castOpcode === InputOpcode.CAST_NUMBER_INDEX) {
-                    // Round numberValue to an integer
-                    this.inputs.value |= 0;
+                    this.inputs.value = Math.floor(this.inputs.value);
                 }
                 this.type = IntermediateInput.getNumberInputType(this.inputs.value);
                 break;

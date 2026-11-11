@@ -34,7 +34,7 @@ if (("" + (b0.value[b1.value - 1] ?? "")).toLowerCase() === "banana") {
 runtime.ext_scratch3_looks._say("pass item of string index", target);
 }
 b1.value = 2.9;
-if (("" + (b0.value[(b1.value | 0) - 1] ?? "")).toLowerCase() === "banana") {
+if (("" + (b0.value[Math.floor(b1.value) - 1] ?? "")).toLowerCase() === "banana") {
 runtime.ext_scratch3_looks._say("pass item of fractional index", target);
 }
 b1.value = 0;

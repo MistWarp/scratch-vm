@@ -19,7 +19,7 @@ b1.value = 0;
 b2.value = "bwah";
 while (!(("" + b2.value).toLowerCase() === "eof")) {
 b1.value = ((a0 = +b1.value) === a0 ? a0 : 0) + 1;
-b2.value = b0.value[(b1.value | 0) - 1] ?? "";
+b2.value = b0.value[Math.floor(b1.value) - 1] ?? "";
 yield;
 }
 if (((a1 = +b1.value) === a1 ? a1 : 0) === 2) {

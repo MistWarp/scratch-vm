@@ -28,16 +28,16 @@ b3.value = 0;
 for (var a2 = b2.value.length; a2 > 0; a2--) {
 b3.value = ((a3 = +b3.value) === a3 ? a3 : 0) + 1;
 b0.value = ((a4 = +b0.value) === a4 ? a4 : 0) + 1;
-if (!compareEqual(compareGreaterThan(listGet(b2.value, b1.value), b2.value[(b3.value | 0) - 1] ?? ""), b4.value[(b0.value | 0) - 1] ?? "")) {
-runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be > " + (b2.value[(b3.value | 0) - 1] ?? ""))), target);
+if (!compareEqual(compareGreaterThan(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be > " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
 b0.value = b0.value + 1;
-if (!compareEqual(compareEqual(listGet(b2.value, b1.value), b2.value[(b3.value | 0) - 1] ?? ""), b4.value[(b0.value | 0) - 1] ?? "")) {
-runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be = " + (b2.value[(b3.value | 0) - 1] ?? ""))), target);
+if (!compareEqual(compareEqual(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be = " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
 b0.value = b0.value + 1;
-if (!compareEqual(compareLessThan(listGet(b2.value, b1.value), b2.value[(b3.value | 0) - 1] ?? ""), b4.value[(b0.value | 0) - 1] ?? "")) {
-runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be < " + (b2.value[(b3.value | 0) - 1] ?? ""))), target);
+if (!compareEqual(compareLessThan(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be < " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
 if (isStuck()) yield;
 }

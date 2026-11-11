@@ -184,8 +184,7 @@ class IROptimizer {
         }
 
         case InputOpcode.CAST_NUMBER_INDEX:
-            // (+x) | 0 wraps to a 32-bit integer, so anything may become any integer.
-            return InputType.NUMBER_POS_INT | InputType.NUMBER_ZERO | InputType.NUMBER_NEG_INT;
+            return InputType.NUMBER_INDEX;
 
         case InputOpcode.CAST_NUMBER_OR_NAN: {
             // +x

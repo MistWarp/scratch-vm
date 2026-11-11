@@ -426,18 +426,14 @@ baseRuntime += `const listIndexSlow = (index, length) => {
         }
         return -1;
     }
-    index = (+index || 0) | 0;
-    if (index < 1 || index > length) {
-        return -1;
-    }
-    return index - 1;
+    index = +index || 0;
+    return index >= 1 && index < length + 1 ? (index | 0) - 1 : -1;
 };
 const listIndex = (index, length) => {
     if (typeof index !== 'number') {
       return listIndexSlow(index, length);
     }
-    index = index | 0;
-    return index < 1 || index > length ? -1 : index - 1;
+    return index >= 1 && index < length + 1 ? (index | 0) - 1 : -1;
 };`;
 
 /**
@@ -455,7 +451,7 @@ runtimeFunctions.listGet = `const listGetSlow = (list, idx) => {
 };
 const listGet = (list, idx) => {
     if (typeof idx === 'number' && idx >= 1) {
-        const item = list[(idx | 0) - 1];
+        const item = list[Math.floor(idx) - 1];
         return item === undefined ? '' : item;
     }
     return listGetSlow(list, idx);
@@ -609,7 +605,7 @@ runtimeFunctions.tan = `const tan = (angle) => {
     case -270: case 90: return Infinity;
     case -90: case 270: return -Infinity;
     }
-    return Math.round(Math.tan((Math.PI * angle) / 180) * 1e10) / 1e10;
+    return Math.round((Math.tan((Math.PI * angle) / 180) + 0) * 1e10) / 1e10;
 }`;
 
 runtimeFunctions.tfBase = `const tfBaseChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

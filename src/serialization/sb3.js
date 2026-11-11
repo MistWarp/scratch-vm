@@ -120,7 +120,7 @@ const VANILLA_CONSTANTS = {
     operator_newline: {name: 'mistwarp.newline', value: '\n'}
 };
 
-const CONSTANT_OPCODE_BY_NAME = {};
+const CONSTANT_OPCODE_BY_NAME = Object.create(null);
 for (const opcode in VANILLA_CONSTANTS) {
     CONSTANT_OPCODE_BY_NAME[VANILLA_CONSTANTS[opcode].name] = opcode;
 }
