@@ -2,15 +2,16 @@
 // Input SHA-256: a8576b7695ad77f7d5a7ac9fb76d31f026c0869f16f55d16fa40b85972b43e30
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("sound_setvolumeto");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (runtime.getOpcodeFunction("sound_setvolumeto")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
 yield* executeInCompatibilityLayer({"VOLUME":0,}, b0, false, false, "d", null);
 b1.value = 0;
 runtime.ext_scratch3_looks._say("plan 1", target);
-yield* thread.procedures["Wno refresh"]();
-yield* thread.procedures["Wruns below with no refresh"]();
+yield* procedures["Wno refresh"]();
+yield* procedures["Wruns below with no refresh"]();
 if (compareEqual(b1.value, 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
@@ -21,10 +22,12 @@ retire(); return;
 }; })
 
 // Sprite1 Wno refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
+checks.push(() => b0 === (runtime.getOpcodeFunction("music_restForBeats")) && b1 === (runtime.getOpcodeFunction("music_playDrumForBeats")));
 return function* genXYZ_no_refresh () {
+const thread = globalState.thread;
 for (var a0 = 30; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = Math.max(0, 1000 * 0);
@@ -41,17 +44,19 @@ return "";
 }; })
 
 // Sprite1 Wruns below with no refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ_runs_below_with_no_r () {
-yield* thread.procedures["Whas refresh"]();
+yield* procedures["Whas refresh"]();
 return "";
 }; })
 
 // Sprite1 Whas refresh
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = runtime.getOpcodeFunction("music_restForBeats");
 const b1 = runtime.getOpcodeFunction("music_playDrumForBeats");
+checks.push(() => b0 === (runtime.getOpcodeFunction("music_restForBeats")) && b1 === (runtime.getOpcodeFunction("music_playDrumForBeats")));
 return function* genXYZ_has_refresh () {
+const thread = globalState.thread;
 for (var a0 = 30; a0 > 0; a0--) {
 thread.timer = timer();
 var a1 = Math.max(0, 1000 * 0);
@@ -68,8 +73,9 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
 var a0;
 while (true) {

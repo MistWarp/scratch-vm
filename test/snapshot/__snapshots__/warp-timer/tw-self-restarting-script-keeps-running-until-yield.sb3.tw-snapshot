@@ -2,9 +2,10 @@
 // Input SHA-256: dc029abbf128cea0830f4578e89619949837ec26dfa76f110ca599a9ee12e66e
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state");
+checks.push(() => b0 === (stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
@@ -14,9 +15,10 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state");
 const b1 = stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "state")) && b1 === (stage.variables["G{NQ*NXG*qzywe1Q3?FM"] || stage.lookupOrCreateVariable("G{NQ*NXG*qzywe1Q3?FM", "ran after?")));
 return function* genXYZ () {
 var a1;
 if (compareEqual(b0.value, 0)) {

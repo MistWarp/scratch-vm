@@ -15,6 +15,8 @@ const {
 const {resolveCompilerType} = require('../compiler/extension-compiler');
 const TargetType = require('../extension-support/target-type');
 const Thread = require('./thread');
+const STATUS_DONE = Thread.STATUS_DONE;
+const ArrayUtil = require('../util/array-util');
 const log = require('../util/log');
 const maybeFormatMessage = require('../util/maybe-format-message');
 const StageLayering = require('./stage-layering');
@@ -184,7 +186,9 @@ class Runtime extends EventEmitter {
          */
         this.threads = [];
 
-        this.threadMap = new Map();
+        this._threadMap = new Map();
+
+        this._threadMapStale = false;
 
         this._threadsKilled = false;
 
@@ -1344,27 +1348,31 @@ class Runtime extends EventEmitter {
      * @return {!Thread} The newly created thread.
      */
     _pushThread (id, target, opts) {
-        const thread = new Thread(id);
+        const stackClick = Boolean(opts && opts.stackClick);
+        const updateMonitor = Boolean(opts && opts.updateMonitor);
+        const thread = new Thread(id, true);
         thread.target = target;
-        thread.stackClick = Boolean(opts && opts.stackClick);
-        thread.updateMonitor = Boolean(opts && opts.updateMonitor);
-        thread.blockContainer = thread.updateMonitor ?
+        thread.stackClick = stackClick;
+        thread.updateMonitor = updateMonitor;
+        thread.blockContainer = updateMonitor ?
             this.monitorBlocks :
             target.blocks;
 
-        thread.startStack(id);
         thread.threadIndex = this.threads.push(thread) - 1;
         thread.inThreadList = true;
-        if (!thread.stackClick && !thread.updateMonitor) {
-            this.threadMap.set(thread.getId(), thread);
+        if (!stackClick && !updateMonitor) {
+            const state = Thread.scriptStateFor(target, id);
+            state.thread = thread;
+            thread.scriptState = state;
+            this._threadMapStale = true;
         }
 
         // tw: compile new threads. Do not attempt to compile monitor threads.
-        if (!(opts && opts.updateMonitor) && this.compilerOptions.enabled) {
+        if (!updateMonitor && this.compilerOptions.enabled) {
             thread.tryCompile();
         }
 
-        if (!thread.updateMonitor && this.listenerCount(RuntimeEvents.THREAD_STARTED)) {
+        if (!updateMonitor && this.listenerCount(RuntimeEvents.THREAD_STARTED)) {
             this.emit(RuntimeEvents.THREAD_STARTED, thread);
         }
         return thread;
@@ -1390,18 +1398,20 @@ class Runtime extends EventEmitter {
      * @return {Thread} The restarted thread.
      */
     _restartThread (thread) {
-        const newThread = new Thread(thread.topBlock);
+        const newThread = new Thread(thread.topBlock, true);
         newThread.target = thread.target;
         newThread.stackClick = thread.stackClick;
         newThread.updateMonitor = thread.updateMonitor;
         newThread.blockContainer = thread.blockContainer;
-        newThread.startStack(thread.topBlock);
+        if (!newThread.stackClick && !newThread.updateMonitor) {
+            const state = thread.scriptState || Thread.scriptStateFor(thread.target, thread.topBlock);
+            state.thread = newThread;
+            newThread.scriptState = state;
+            this._threadMapStale = true;
+        }
         // tw: when a thread is restarted, we have to check whether the previous script was attempted to be compiled.
         if (thread.triedToCompile && this.compilerOptions.enabled) {
             newThread.tryCompile();
-        }
-        if (!newThread.stackClick && !newThread.updateMonitor) {
-            this.threadMap.set(newThread.getId(), newThread);
         }
         if (!newThread.updateMonitor && this.listenerCount(RuntimeEvents.THREAD_STARTED)) {
             this.emit(RuntimeEvents.THREAD_STARTED, newThread);
@@ -1562,58 +1572,78 @@ class Runtime extends EventEmitter {
             return newThreads;
         }
 
-        let matchFields = null;
+        let fieldName = null;
+        let fieldValue = null;
+        let moreFields = null;
         if (optMatchFields) {
-            matchFields = {};
             for (const field in optMatchFields) {
                 if (!Object.prototype.hasOwnProperty.call(optMatchFields, field)) continue;
-                matchFields[field] = String(optMatchFields[field]).toUpperCase();
+                const value = BlocksRuntimeCache.upperCase(optMatchFields[field]);
+                if (fieldName === null) {
+                    fieldName = field;
+                    fieldValue = value;
+                } else {
+                    if (moreFields === null) moreFields = {};
+                    moreFields[field] = value;
+                }
             }
         }
 
-        // Consider all scripts, looking for hats with opcode `requestedHatOpcode`.
-        this.allScriptsByOpcodeDo(requestedHatOpcode, (script, target) => {
-            const {
-                blockId: topBlockId,
-                fieldsOfInputs: hatFields
-            } = script;
-
-            // Match any requested fields.
-            // For example: ensures that broadcasts match.
-            // This needs to happen before the block is evaluated
-            // (i.e., before the predicate can be run) because "broadcast and wait"
-            // needs to have a precise collection of started threads.
-            for (const matchField in matchFields) {
-                if (hatFields[matchField].value !== matchFields[matchField]) {
-                    // Field mismatch.
-                    return;
-                }
+        const restartExistingThreads = hatMeta.restartExistingThreads;
+        const threads = this.threads;
+        const targets = this.executableTargets;
+        for (let t = optTarget ? 0 : targets.length - 1; t >= 0; t--) {
+            const target = optTarget || targets[t];
+            let scripts = BlocksRuntimeCache.getScripts(target.blocks, requestedHatOpcode);
+            if (fieldName !== null && scripts.length > BlocksRuntimeCache.MIN_SCRIPTS_TO_INDEX) {
+                scripts = BlocksRuntimeCache.getScriptsWithField(scripts, fieldName, fieldValue);
             }
+            const states = target.scriptStates;
+            for (let j = 0; j < scripts.length; j++) {
+                const script = scripts[j];
+                // Match any requested fields.
+                // For example: ensures that broadcasts match.
+                // This needs to happen before the block is evaluated
+                // (i.e., before the predicate can be run) because "broadcast and wait"
+                // needs to have a precise collection of started threads.
+                if (fieldName !== null) {
+                    const hatFields = script.fieldsOfInputs;
+                    const hatField = hatFields[fieldName];
+                    if (!hatField || hatField.value !== fieldValue) continue;
+                    if (moreFields !== null && !BlocksRuntimeCache.fieldsMatch(hatFields, moreFields)) continue;
+                }
+                const topBlockId = script.blockId;
 
-            if (hatMeta.restartExistingThreads) {
-                // If `restartExistingThreads` is true, we should stop
-                // any existing threads starting with the top block.
-                const existingThread = this.threadMap.get(Thread.getIdFromTargetAndBlock(target, topBlockId));
-                if (existingThread) {
-                    newThreads.push(this._restartThread(existingThread));
-                    return;
+                let listedHatThread = null;
+                if (states !== null) {
+                    const state = states.get(topBlockId);
+                    if (typeof state !== 'undefined') {
+                        const stateThread = state.thread;
+                        if (stateThread !== null && stateThread.inThreadList && (
+                            threads[stateThread.threadIndex] === stateThread ||
+                            threads.indexOf(stateThread) !== -1
+                        )) {
+                            listedHatThread = stateThread;
+                        }
+                    }
                 }
-            } else {
-                // If `restartExistingThreads` is false, we should
-                // give up if any threads with the top block are running.
-                // stack click threads and hat threads can coexist; the thread map
-                // never contains stack click threads.
-                const existingThread = this.threadMap.get(Thread.getIdFromTargetAndBlock(target, topBlockId));
-                if (existingThread &&
-                    existingThread.inThreadList &&
-                    existingThread.status !== Thread.STATUS_DONE) {
-                    // Some thread is already running.
-                    return;
+
+                if (restartExistingThreads) {
+                    // If `restartExistingThreads` is true, we should stop
+                    // any existing threads starting with the top block.
+                    if (listedHatThread !== null) {
+                        newThreads.push(this._restartThread(listedHatThread));
+                        continue;
+                    }
+                } else if (listedHatThread !== null && listedHatThread.status !== STATUS_DONE) {
+                    // If `restartExistingThreads` is false, we should
+                    // give up if any threads with the top block are running.
+                    continue;
                 }
+                // Start the thread with this top block.
+                newThreads.push(this._pushThread(topBlockId, target));
             }
-            // Start the thread with this top block.
-            newThreads.push(this._pushThread(topBlockId, target));
-        }, optTarget);
+        }
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
         for (let i = 0; i < newThreads.length; i++) {
@@ -1757,8 +1787,12 @@ class Runtime extends EventEmitter {
         if (newIndex === oldIndex) {
             return newIndex;
         }
-        executableTargets.splice(oldIndex, 1);
-        executableTargets.splice(newIndex, 0, executableTarget);
+        if (executableTargets[oldIndex] === executableTarget) {
+            ArrayUtil.move(executableTargets, oldIndex, newIndex);
+        } else {
+            executableTargets.splice(oldIndex, 1);
+            executableTargets.splice(newIndex, 0, executableTarget);
+        }
         return newIndex;
     }
 
@@ -1784,7 +1818,7 @@ class Runtime extends EventEmitter {
     removeExecutable (executableTarget) {
         const oldIndex = this.executableTargets.indexOf(executableTarget);
         if (oldIndex > -1) {
-            this.executableTargets.splice(oldIndex, 1);
+            ArrayUtil.removeAt(this.executableTargets, oldIndex);
         }
     }
 
@@ -1797,7 +1831,7 @@ class Runtime extends EventEmitter {
         if (index === -1) {
             return;
         }
-        this.targets.splice(index, 1);
+        ArrayUtil.removeAt(this.targets, index);
         if (disposingTarget.isOriginal) this.nameFlowStale = true;
         // Allow target to do dispose actions.
         disposingTarget.dispose();
@@ -1895,7 +1929,7 @@ class Runtime extends EventEmitter {
             this.threads[i].inThreadList = false;
         }
         this.threads = [];
-        this.threadMap.clear();
+        this._threadMapStale = true;
         this._monitorThreads.clear();
 
         this.resetRunId();
@@ -1969,11 +2003,34 @@ class Runtime extends EventEmitter {
         }
     }
 
-    updateThreadMap () {
-        this.threadMap.clear();
+    get threadMap () {
+        if (this._threadMapStale) this._rebuildThreadMap();
+        return this._threadMap;
+    }
+
+    set threadMap (threadMap) {
+        this._threadMap = threadMap;
+        this._threadMapStale = false;
+    }
+
+    _rebuildThreadMap () {
+        this._threadMapStale = false;
+        this._threadMap.clear();
         for (const thread of this.threads) {
             if (!thread.stackClick && !thread.updateMonitor) {
-                this.threadMap.set(thread.getId(), thread);
+                this._threadMap.set(thread.getId(), thread);
+            }
+        }
+    }
+
+    updateThreadMap () {
+        this._rebuildThreadMap();
+        for (const thread of this.threads) {
+            if (!thread.stackClick && !thread.updateMonitor) {
+                const state = Thread.scriptStateFor(thread.target, thread.topBlock);
+                state.thread = thread;
+                thread.scriptState = state;
+                thread.inThreadList = true;
             }
         }
     }
@@ -2015,7 +2072,7 @@ class Runtime extends EventEmitter {
             }
             if (nextThreadIndex !== this.threads.length) {
                 this.threads.length = nextThreadIndex;
-                this.updateThreadMap();
+                this._threadMapStale = true;
             }
         }
 
@@ -2048,7 +2105,7 @@ class Runtime extends EventEmitter {
         // Add done threads so that even if a thread finishes within 1 frame, the green
         // flag will still indicate that a script ran.
         this._emitProjectRunStatus(
-            this.threads.length + doneThreads.length -
+            this.threads.length + doneThreads.length + this.sequencer.doneThreadsNotKept -
                 this._getMonitorThreadCount(this.threads) -
                 this._getMonitorThreadCount(doneThreads));
         // Store threads that completed this iteration for testing and other

@@ -2,8 +2,9 @@
 // Input SHA-256: b1e62179f7a495c46c7e9c64a03d405924f6011b66aa71f6ec0f1781b936d38c
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = runtime.getSpriteTargetByName("Sprite1");
+checks.push(() => b0 === (runtime.getSpriteTargetByName("Sprite1")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 6", target);
 target.setXY(1e-9, target.y);

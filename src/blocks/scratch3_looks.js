@@ -125,8 +125,8 @@ class Scratch3LooksBlocks {
      * @private
      */
     _onTargetWillExit (target) {
-        const bubbleState = this._getBubbleState(target);
-        if (bubbleState.drawableId && bubbleState.skinId) {
+        const bubbleState = target.getCustomState(Scratch3LooksBlocks.STATE_KEY);
+        if (bubbleState && bubbleState.drawableId && bubbleState.skinId) {
             this.runtime.renderer.destroyDrawable(bubbleState.drawableId, StageLayering.SPRITE_LAYER);
             this.runtime.renderer.destroySkin(bubbleState.skinId);
             bubbleState.drawableId = null;

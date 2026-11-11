@@ -2,9 +2,10 @@
 // Input SHA-256: 7d3b421806b70889174ed7454bedd065adf050092da975c836ebe8655f709d4a
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["listid"] || stage.lookupOrCreateList("listid", "my list");
 const b1 = stage.variables["indexvar"] || stage.lookupOrCreateVariable("indexvar", "index");
+checks.push(() => b0 === (stage.variables["listid"] || stage.lookupOrCreateList("listid", "my list")) && b1 === (stage.variables["indexvar"] || stage.lookupOrCreateVariable("indexvar", "index")));
 return function funXYZ () {
 var a0;
 runtime.ext_scratch3_looks._say("plan 13", target);

@@ -2,13 +2,14 @@
 // Input SHA-256: 2086fa5dfdd5f98dcafc01064231a018edb5698b3b4cc403a9cfaeabb5125c06
 
 // Sprite2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage && stage.lookupVariableByNameAndType("Stage variable", "", true);
 const b1 = runtime.getSpriteTargetByName("Test sprite");
 const b2 = b1 && b1.lookupVariableByNameAndType("Private variable", "", true);
 const b3 = stage && stage.lookupVariableByNameAndType("This variable used to exist", "", true);
 const b4 = stage.variables["GTmK+*w8mNQP,z`4WG8#"] || stage.lookupOrCreateVariable("GTmK+*w8mNQP,z`4WG8#", "Dynamic non-existent sprite name");
 const b5 = runtime.getSpriteTargetByName("Sprite that doesn't exist");
+checks.push(() => b0 === (stage && stage.lookupVariableByNameAndType("Stage variable", "", true)) && b1 === (runtime.getSpriteTargetByName("Test sprite")) && b2 === (b1 && b1.lookupVariableByNameAndType("Private variable", "", true)) && b3 === (stage && stage.lookupVariableByNameAndType("This variable used to exist", "", true)) && b4 === (stage.variables["GTmK+*w8mNQP,z`4WG8#"] || stage.lookupOrCreateVariable("GTmK+*w8mNQP,z`4WG8#", "Dynamic non-existent sprite name")) && b5 === (runtime.getSpriteTargetByName("Sprite that doesn't exist")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 32", target);
 if (stage.currentCostume + 1 === 2) {

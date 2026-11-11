@@ -3,6 +3,7 @@ const Blocks = require('../engine/blocks');
 const {loadSoundFromAsset} = require('../import/load-sound');
 const {loadCostumeFromAsset} = require('../import/load-costume');
 const newBlockIds = require('../util/new-block-ids');
+const ArrayUtil = require('../util/array-util');
 const StringUtil = require('../util/string-util');
 const StageLayering = require('../engine/stage-layering');
 
@@ -254,7 +255,7 @@ class Sprite {
         this.runtime.fireTargetWasRemoved(clone);
         const cloneIndex = this.clones.indexOf(clone);
         if (cloneIndex >= 0) {
-            this.clones.splice(cloneIndex, 1);
+            ArrayUtil.removeAt(this.clones, cloneIndex);
             this.invalidateTouchingCandidates();
         }
         if (this.clones.length === 0) {

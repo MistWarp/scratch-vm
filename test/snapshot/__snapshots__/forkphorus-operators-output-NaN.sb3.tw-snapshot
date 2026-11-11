@@ -2,9 +2,10 @@
 // Input SHA-256: 289d73b9be2b60f501e57768410029798d2dec7d971e5935e5f19fb2a9988169
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["k|@-`:^^Mo+E}$({|2/P"] || stage.lookupOrCreateVariable("k|@-`:^^Mo+E}$({|2/P", "Infinity");
 const b1 = stage.variables["t2m05.oW;5f0=GL30@pV"] || stage.lookupOrCreateVariable("t2m05.oW;5f0=GL30@pV", "-Infinity");
+checks.push(() => b0 === (stage.variables["k|@-`:^^Mo+E}$({|2/P"] || stage.lookupOrCreateVariable("k|@-`:^^Mo+E}$({|2/P", "Infinity")) && b1 === (stage.variables["t2m05.oW;5f0=GL30@pV"] || stage.lookupOrCreateVariable("t2m05.oW;5f0=GL30@pV", "-Infinity")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 4", target);
 b0.value = Infinity;

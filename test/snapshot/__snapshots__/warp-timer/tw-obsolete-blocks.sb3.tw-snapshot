@@ -2,7 +2,7 @@
 // Input SHA-256: 58dd6f369897907ea46fffbb8210d8bc15db59f26ce117ff4211035afff17f23
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 const b1 = runtime.getOpcodeFunction("sensing_userid");
 const b2 = runtime.getOpcodeFunction("motion_xscroll");
@@ -13,6 +13,7 @@ const b6 = runtime.getOpcodeFunction("motion_align_scene");
 const b7 = runtime.getOpcodeFunction("looks_setstretchto");
 const b8 = runtime.getOpcodeFunction("looks_changestretchby");
 const b9 = runtime.getOpcodeFunction("looks_hideallsprites");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")) && b1 === (runtime.getOpcodeFunction("sensing_userid")) && b2 === (runtime.getOpcodeFunction("motion_xscroll")) && b3 === (runtime.getOpcodeFunction("motion_yscroll")) && b4 === (runtime.getOpcodeFunction("motion_scroll_right")) && b5 === (runtime.getOpcodeFunction("motion_scroll_up")) && b6 === (runtime.getOpcodeFunction("motion_align_scene")) && b7 === (runtime.getOpcodeFunction("looks_setstretchto")) && b8 === (runtime.getOpcodeFunction("looks_changestretchby")) && b9 === (runtime.getOpcodeFunction("looks_hideallsprites")));
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = yield* executeInCompatibilityLayer({}, b1, false, false, "X[|X;C.(v[|^i|@0Eqy4", null);

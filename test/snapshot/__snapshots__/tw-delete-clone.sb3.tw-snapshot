@@ -2,16 +2,16 @@
 // Input SHA-256: db3634cfd2648762fc1a8761cfa6dde596070b53961309cecc36e30977a01811
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("pass", target);
-thread.procedures["Zdelete me"]();
+procedures["Zdelete me"]();
 runtime.ext_scratch3_looks._say("fail", target);
 retire(); return;
 }; })
 
 // Sprite1 Zdelete me
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_delete_me () {
 if (!target.isOriginal) {
   runtime.disposeTarget(target);
@@ -22,8 +22,9 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
+const thread = globalState.thread;
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_control._createClone("_myself_", target);
 thread.timer = timer();

@@ -2,8 +2,9 @@
 // Input SHA-256: 082b59a5b772f80c84bc6a846d9ea5023863d8f90c5b85e599b53fed7a9d6a46
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "Infinity");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "Infinity")));
 return function funXYZ () {
 var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 8", target);

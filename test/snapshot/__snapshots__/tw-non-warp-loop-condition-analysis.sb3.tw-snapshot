@@ -2,10 +2,11 @@
 // Input SHA-256: be149d21cc69628647000cc698ebd60949252730a0ea7b19f71cc85fe927b294
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["%ehs:~!Y0l-5=!mnd-B?"] || stage.lookupOrCreateList("%ehs:~!Y0l-5=!mnd-B?", "items");
 const b1 = stage.variables["=3aHfv[mKa)v,Wfpy:y?"] || stage.lookupOrCreateVariable("=3aHfv[mKa)v,Wfpy:y?", "idx");
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (stage.variables["%ehs:~!Y0l-5=!mnd-B?"] || stage.lookupOrCreateList("%ehs:~!Y0l-5=!mnd-B?", "items")) && b1 === (stage.variables["=3aHfv[mKa)v,Wfpy:y?"] || stage.lookupOrCreateVariable("=3aHfv[mKa)v,Wfpy:y?", "idx")) && b2 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
 var a0, a1;
 runtime.ext_scratch3_looks._say("plan 1", target);

@@ -2,10 +2,12 @@
 // Input SHA-256: b677669506b60e3ba350be8ae545db93d7bcbb5f368ba21d86b0d4e966e7e09c
 
 // Sprite2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
 const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
+checks.push(() => b0 === (stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order")) && b1 === (stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait")));
 return function* genXYZ () {
+const thread = globalState.thread;
 var a1, a2;
 b0.value = 0;
 thread.timer = timer();
@@ -26,9 +28,11 @@ retire(); return;
 }; })
 
 // Sprite3 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
+checks.push(() => b0 === (stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait")));
 return function* genXYZ () {
+const thread = globalState.thread;
 var a1, a3, a5;
 runtime.ext_scratch3_looks._say("plan 2", target);
 thread.timer = timer();
@@ -60,10 +64,12 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order");
 const b1 = stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait");
+checks.push(() => b0 === (stage.variables["p]KODv+)+:l=%NT~j3/d-order"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-order", "order")) && b1 === (stage.variables["p]KODv+)+:l=%NT~j3/d-wait"] || stage.lookupOrCreateVariable("p]KODv+)+:l=%NT~j3/d-wait", "wait")));
 return function* genXYZ () {
+const thread = globalState.thread;
 var a1, a2;
 b0.value = 0;
 thread.timer = timer();

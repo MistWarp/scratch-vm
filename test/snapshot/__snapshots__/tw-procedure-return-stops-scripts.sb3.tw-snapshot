@@ -2,17 +2,21 @@
 // Input SHA-256: 27368530b97e0ab5053bf4faf8fd116aa30cea34adcbd95fc6ddcf0a9d6d4976
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
+checks.push(() => b0 === (stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i")));
 return function* genXYZ () {
-var a0;
+var a1;
 runtime.ext_scratch3_looks._say("plan 2", target);
-thread.procedures["Wreturn stops the script immediately"]();
+procedures["Wreturn stops the script immediately"]();
 if (b0.value === 25) {
 runtime.ext_scratch3_looks._say("pass return stopped the script immediately", target);
 }
-yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "Test return outside of custom block" }));
-if (((a0 = +b0.value) === a0 ? a0 : 0) === 18) {
+var a0 = startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "Test return outside of custom block" });
+while (threadsRunning(a0)) {
+yield;
+}
+if (((a1 = +b0.value) === a1 ? a1 : 0) === 18) {
 runtime.ext_scratch3_looks._say("pass return worked to stop outside of custom block", target);
 }
 runtime.ext_scratch3_looks._say("end", target);
@@ -20,8 +24,9 @@ retire(); return;
 }; })
 
 // Sprite1 Wreturn stops the script immediately
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
+checks.push(() => b0 === (stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i")));
 return function funXYZ_return_stops_the_scr () {
 b0.value = 0;
 for (var a0 = 100; a0 > 0; a0--) {
@@ -35,8 +40,9 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i");
+checks.push(() => b0 === (stage.variables["PsAI*C{QHI3*4?O8p#TM"] || stage.lookupOrCreateVariable("PsAI*C{QHI3*4?O8p#TM", "i")));
 return function* genXYZ () {
 var a0;
 b0.value = 0;

@@ -53,6 +53,14 @@ const copyPlain = (value, depth) => {
  * @type {object}
  */
 class Clone {
+    static isPlainNumber (value) {
+        return typeof value === 'number' && value - value === 0 && (value !== 0 || 1 / value > 0);
+    }
+
+    static isRecordOf (value, keyCount) {
+        return Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === keyCount;
+    }
+
     /**
      * Deep-clone a "simple" object: one which can be fully expressed with JSON.
      * Non-JSON values, such as functions, will be stripped from the clone.

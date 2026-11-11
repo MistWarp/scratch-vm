@@ -2,10 +2,11 @@
 // Input SHA-256: f8c5c7c3ba1afbd140646e67d9987964cdcdf0cb30b53a0f6276b11f460e7d25
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch");
 const b1 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch");
 const b2 = runtime.getOpcodeFunction("sound_seteffectto");
+checks.push(() => b0 === (stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch")) && b1 === (stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch")) && b2 === (runtime.getOpcodeFunction("sound_seteffectto")));
 return function* genXYZ () {
 while (true) {
 if (!compareEqual(b0.value, b1.value)) {
@@ -20,10 +21,12 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch");
 const b1 = stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch");
+checks.push(() => b0 === (stage.variables["[G/@.KGc-4y[(GZ(bt7o"] || stage.lookupOrCreateVariable("[G/@.KGc-4y[(GZ(bt7o", "Old Pitch")) && b1 === (stage.variables["JbF5exWEi*m?-UEmkASS"] || stage.lookupOrCreateVariable("JbF5exWEi*m?-UEmkASS", "New Pitch")));
 return function* genXYZ () {
+const thread = globalState.thread;
 var a1;
 b0.value = 0;
 runtime.ext_scratch3_looks._say("plan 15", target);

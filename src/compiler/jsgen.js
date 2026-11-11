@@ -715,7 +715,7 @@ class JSGenerator {
             //  - We need to yield *between* each call in the same command block
             //  - We need to evaluate arguments *before* that yield happens
 
-            const procedureReference = `thread.procedures["${sanitize(procedureVariant)}"]`;
+            const procedureReference = `procedures["${sanitize(procedureVariant)}"]`;
             const args = [];
             for (const input of node.arguments) {
                 args.push(argument(input));
@@ -1028,10 +1028,13 @@ class JSGenerator {
         case StackOpcode.EVENT_BROADCAST:
             this.source += `startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInputAt(node.broadcast, Precedence.LOWEST)} });\n`;
             break;
-        case StackOpcode.EVENT_BROADCAST_AND_WAIT:
-            this.source += `yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInputAt(node.broadcast, Precedence.LOWEST)} }));\n`;
+        case StackOpcode.EVENT_BROADCAST_AND_WAIT: {
+            const started = this.localVariables.next();
+            this.source += `var ${started} = startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: ${this.descendInputAt(node.broadcast, Precedence.LOWEST)} });\n`;
+            this.source += `while (threadsRunning(${started})) {\nyield;\n}\n`;
             this.yielded();
             break;
+        }
 
         case StackOpcode.LIST_ADD: {
             const list = this.referenceVariable(node.list);
@@ -1254,7 +1257,7 @@ class JSGenerator {
                     throw new Error('Script uses yielding procedure but is not marked as yielding.');
                 }
             }
-            this.source += `thread.procedures["${sanitize(procedureVariant)}"](`;
+            this.source += `procedures["${sanitize(procedureVariant)}"](`;
             const args = [];
             for (const input of node.arguments) {
                 args.push(this.descendInputAt(input, Precedence.LOWEST));
@@ -1871,16 +1874,20 @@ class JSGenerator {
         let script = '';
 
         // Setup the factory
-        script += `(function ${this.getScriptFactoryName()}(thread) { `;
-        script += 'const target = thread.target; ';
+        script += `(function ${this.getScriptFactoryName()}(target, procedures, checks) { `;
         script += 'const runtime = target.runtime; ';
         script += 'const stage = runtime.getTargetForStage();\n';
         if (this.sampler) {
             script += 'const pc = runtime.sampler.pc;\n';
         }
-        for (const varValue of Object.keys(this._setupVariables)) {
+        const setupValues = Object.keys(this._setupVariables);
+        for (const varValue of setupValues) {
             const varName = this._setupVariables[varValue];
             script += `const ${varName} = ${varValue};\n`;
+        }
+        if (setupValues.length) {
+            const unchanged = setupValues.map(varValue => `${this._setupVariables[varValue]} === (${varValue})`);
+            script += `checks.push(() => ${unchanged.join(' && ')});\n`;
         }
 
         // Generated script
@@ -1900,6 +1907,10 @@ class JSGenerator {
             script += args.join(',');
         }
         script += ') {\n';
+
+        if (/\bthread\b/.test(this.source)) {
+            script += 'const thread = globalState.thread;\n';
+        }
 
         if (this.expressionTempVariables.length) {
             script += `var ${this.expressionTempVariables.join(', ')};\n`;

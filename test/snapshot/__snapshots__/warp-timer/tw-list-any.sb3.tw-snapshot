@@ -2,8 +2,9 @@
 // Input SHA-256: a4ae71d2c1b70f29a667c2d582b24702068f1d128512b7aee53b2feddd274527
 
 // Sprite2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["eFlmP1{XC+I1:h0Yln.K"] || stage.lookupOrCreateList("eFlmP1{XC+I1:h0Yln.K", "list");
+checks.push(() => b0 === (stage.variables["eFlmP1{XC+I1:h0Yln.K"] || stage.lookupOrCreateList("eFlmP1{XC+I1:h0Yln.K", "list")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 7", target);
 b0.value = [];

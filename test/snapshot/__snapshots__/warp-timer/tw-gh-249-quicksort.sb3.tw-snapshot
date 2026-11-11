@@ -2,19 +2,20 @@
 // Input SHA-256: ce657aa0f3e55d0c2166813c9fa3dd076c3f0c81df2e527f44d0ad31856a448d
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-yield* thread.procedures["Wrun"]();
-yield* thread.procedures["Wvalidate"]();
+yield* procedures["Wrun"]();
+yield* procedures["Wvalidate"]();
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
 // Sprite1 Wrun
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
 const b1 = stage.variables["rQq!wAuU2T9DV9,S[/s."] || stage.lookupOrCreateList("rQq!wAuU2T9DV9,S[/s.", "original");
+checks.push(() => b0 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b1 === (stage.variables["rQq!wAuU2T9DV9,S[/s."] || stage.lookupOrCreateList("rQq!wAuU2T9DV9,S[/s.", "original")));
 return function* genXYZ_run () {
 b0.value = [];
 b0._searchIndex = null;
@@ -23,16 +24,17 @@ b0.value.push(b1.value[b0.value.length + 1 - 1] ?? "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (isStuck()) yield;
 }
-yield* thread.procedures["Wqsort %s %s"](1, b0.value.length);
+yield* procedures["Wqsort %s %s"](1, b0.value.length);
 return "";
 }; })
 
 // Sprite1 Wvalidate
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["7AH{dO^X;}C[{[l~g-7m"] || stage.lookupOrCreateVariable("7AH{dO^X;}C[{[l~g-7m", "passed");
 const b1 = stage.variables["gPJ}c-PZz?Y+_L][iMU_"] || stage.lookupOrCreateVariable("gPJ}c-PZz?Y+_L][iMU_", "@");
 const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
 const b3 = stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected");
+checks.push(() => b0 === (stage.variables["7AH{dO^X;}C[{[l~g-7m"] || stage.lookupOrCreateVariable("7AH{dO^X;}C[{[l~g-7m", "passed")) && b1 === (stage.variables["gPJ}c-PZz?Y+_L][iMU_"] || stage.lookupOrCreateVariable("gPJ}c-PZz?Y+_L][iMU_", "@")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b3 === (stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected")));
 return function* genXYZ_validate () {
 var a1, a2;
 b0.value = 1;
@@ -52,7 +54,7 @@ return "";
 }; })
 
 // Sprite1 Wqsort %s %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-pivot-", "z_pivot");
 const b1 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list");
 const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-low-", "z_low");
@@ -62,6 +64,7 @@ const b5 = target.variables["JIHtr29*ug5G;5*`f2.K-i-"] || target.lookupOrCreateV
 const b6 = target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min pos-", "z_min pos");
 const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min");
 const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i");
+checks.push(() => b0 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-pivot-", "z_pivot")) && b1 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-low-", "z_low")) && b3 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-high-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-high-", "z_high")) && b4 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-tmp-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-tmp-", "tmp")) && b5 === (target.variables["JIHtr29*ug5G;5*`f2.K-i-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-i-", "i")) && b6 === (target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min pos-", "z_min pos")) && b7 === (target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min")) && b8 === (target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i")));
 return function* genXYZ_qsort__ (p0,p1) {
 var a0, a1, a2, a3, a4, a5, a6, a7, a8, a10, a11, a12, a13, a15, a16, a17, a18, a19;
 if (compareLessThan(p0, p1)) {
@@ -79,8 +82,8 @@ b3.value = ((a6 = +b3.value) === a6 ? a6 : 0) - 1;
 if (isStuck()) yield;
 }
 if (compareGreaterThan(b2.value, b3.value)) {
-yield* thread.procedures["Wqsort %s %s"](p0, b3.value);
-yield* thread.procedures["Wqsort %s %s"](b2.value, p1);
+yield* procedures["Wqsort %s %s"](p0, b3.value);
+yield* procedures["Wqsort %s %s"](b2.value, p1);
 return "";
 } else {
 b4.value = listGet(b1.value, b2.value);
