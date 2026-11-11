@@ -102,6 +102,7 @@ const primitiveOpcodeInfoMap = {
 const UPSTREAM_MAX_COMMENT_LENGTH = 8000;
 
 const EXTENDABLE_OPERATORS = {
+    __proto__: null,
     operator_add: 'NUM',
     operator_subtract: 'NUM',
     operator_multiply: 'NUM',
@@ -116,6 +117,7 @@ const EXTENDABLE_OPERATORS = {
 // stage variable holding the value. Vanilla runs them as an ordinary variable reporter; MistWarp
 // turns them back into blocks on load. The id is the name so the same variable is reused forever.
 const VANILLA_CONSTANTS = {
+    __proto__: null,
     operator_pi: {name: 'mistwarp.pi', value: Math.PI},
     operator_newline: {name: 'mistwarp.newline', value: '\n'}
 };
@@ -126,6 +128,7 @@ for (const opcode in VANILLA_CONSTANTS) {
 }
 
 const MIST_PATCHING_OPCODES = {
+    __proto__: null,
     mistsutils_patchreporter: ['patching_jsreporter', 1],
     mistsutils_patchreporter2: ['patching_jsreporter', 2],
     mistsutils_patchreporter3: ['patching_jsreporter', 3],

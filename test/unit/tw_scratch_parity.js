@@ -316,3 +316,14 @@ test('variables named after Object.prototype members load, run and save', async 
         }
     }
 });
+
+test('blocks with an opcode named after an Object.prototype member load', async () => {
+    const build = stack => {
+        for (const name of PROTOTYPE_NAMES) stack(name);
+    };
+    const vm = new VirtualMachine();
+    await vm.loadProject(makeProject(build, {}, {}));
+    const blocks = vm.runtime.getTargetForStage().blocks._blocks;
+    const opcodes = Object.keys(blocks).map(id => blocks[id].opcode);
+    assert.deepStrictEqual(opcodes, ['event_whenflagclicked', ...PROTOTYPE_NAMES]);
+});
