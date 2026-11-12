@@ -6,9 +6,10 @@
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function funXYZ () {
+var a0, a1;
 runtime.ext_scratch3_looks._say("plan 6", target);
-b0.value = runtime.ext_scratch3_operators._random("an invalid number.", 1);
-if (!(b0.value <= 0)) {
+b0.value = a0 = runtime.ext_scratch3_operators._random("an invalid number.", 1);
+if (!(a0 <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (b0.value < 1) {
@@ -17,8 +18,8 @@ runtime.ext_scratch3_looks._say("pass", target);
 if (("" + b0.value).toLowerCase().indexOf(".") !== -1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-b0.value = runtime.ext_scratch3_operators._random(1, "an invalid number.");
-if (!(b0.value <= 0)) {
+b0.value = a1 = runtime.ext_scratch3_operators._random(1, "an invalid number.");
+if (!(a1 <= 0)) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (b0.value < 1) {

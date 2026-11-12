@@ -102,9 +102,9 @@ const b15 = stage.variables["o4+OyKx[M=quu6p{=kRl-ascii2-list"] || stage.lookupO
 const b16 = stage.variables["o4+OyKx[M=quu6p{=kRl-numbers-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-numbers-list", "numbers");
 checks.push(() => b0 === (stage.variables["o4+OyKx[M=quu6p{=kRl-char-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-char-", "char")) && b1 === (stage.variables["o4+OyKx[M=quu6p{=kRl-P-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-P-list", "P")) && b2 === (stage.variables["o4+OyKx[M=quu6p{=kRl-py-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-py-", "py")) && b3 === (stage.variables["o4+OyKx[M=quu6p{=kRl-px-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-px-", "px")) && b4 === (stage.variables["o4+OyKx[M=quu6p{=kRl-direction-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-direction-", "direction")) && b5 === (runtime.getSpriteTargetByName("directions")) && b6 === (b5 && b5.lookupVariableByNameAndType("RIGHT", "", true)) && b7 === (b5 && b5.lookupVariableByNameAndType("LEFT", "", true)) && b8 === (b5 && b5.lookupVariableByNameAndType("UP", "", true)) && b9 === (b5 && b5.lookupVariableByNameAndType("DOWN", "", true)) && b10 === (stage.variables["o4+OyKx[M=quu6p{=kRl-pop-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-pop-list", "pop")) && b11 === (stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-result-", "result")) && b12 === (stage.variables["o4+OyKx[M=quu6p{=kRl-mem-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-mem-list", "mem")) && b13 === (stage.variables["4s|,s}H*n$XE+1ez}%eC"] || stage.lookupOrCreateList("4s|,s}H*n$XE+1ez}%eC", "int output")) && b14 === (stage.variables["o4+OyKx[M=quu6p{=kRl-ascii-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii-list", "ascii")) && b15 === (stage.variables["o4+OyKx[M=quu6p{=kRl-ascii2-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii2-list", "ascii2")) && b16 === (stage.variables["o4+OyKx[M=quu6p{=kRl-numbers-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-numbers-list", "numbers")));
 return function* genXYZ_step () {
-var a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16;
-b0.value = ("" + listGet(b1.value, b2.value))[Math.floor(+b3.value) - 1] || "";
-if (b0.value.toLowerCase() === ">") {
+var a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19;
+b0.value = a0 = ("" + listGet(b1.value, b2.value))[Math.floor(+b3.value) - 1] || "";
+if (a0.toLowerCase() === ">") {
 b4.value = b6 ? b6.value : 0;
 }
 if (b0.value.toLowerCase() === "<") {
@@ -116,31 +116,32 @@ b4.value = b8 ? b8.value : 0;
 if (b0.value.toLowerCase() === "v") {
 b4.value = b9 ? b9.value : 0;
 }
-if (b0.value.toLowerCase() === "?") {
+a1 = b0.value;
+if (a1.toLowerCase() === "?") {
 b4.value = randomInt(1, 4);
 }
-if (b0.value.toLowerCase() === "@") {
+if (a1.toLowerCase() === "@") {
 yield* procedures["Zexit & verify"]();
 }
 if (("" + b0.value).toLowerCase() === "+") {
 yield* procedures["Zpop %n"](2);
-procedures["Zpush %n"](((a0 = +(b10.value[1 - 1] ?? "")) === a0 ? a0 : 0) + ((a1 = +(b10.value[2 - 1] ?? "")) === a1 ? a1 : 0));
+procedures["Zpush %n"](((a2 = +(b10.value[1 - 1] ?? "")) === a2 ? a2 : 0) + ((a3 = +(b10.value[2 - 1] ?? "")) === a3 ? a3 : 0));
 }
 if (("" + b0.value).toLowerCase() === "-") {
 yield* procedures["Zpop %n"](2);
-procedures["Zpush %n"](((a2 = +(b10.value[2 - 1] ?? "")) === a2 ? a2 : 0) - ((a3 = +(b10.value[1 - 1] ?? "")) === a3 ? a3 : 0));
+procedures["Zpush %n"](((a4 = +(b10.value[2 - 1] ?? "")) === a4 ? a4 : 0) - ((a5 = +(b10.value[1 - 1] ?? "")) === a5 ? a5 : 0));
 }
 if (("" + b0.value).toLowerCase() === "*") {
 yield* procedures["Zpop %n"](2);
-procedures["Zpush %n"](((a4 = +(b10.value[2 - 1] ?? "")) === a4 ? a4 : 0) * ((a5 = +(b10.value[1 - 1] ?? "")) === a5 ? a5 : 0));
+procedures["Zpush %n"](((a6 = +(b10.value[2 - 1] ?? "")) === a6 ? a6 : 0) * ((a7 = +(b10.value[1 - 1] ?? "")) === a7 ? a7 : 0));
 }
 if (("" + b0.value).toLowerCase() === "/") {
 yield* procedures["Zpop %n"](2);
-procedures["Zpush %n"](Math.floor((a6 = ((a7 = +(b10.value[2 - 1] ?? "")) === a7 ? a7 : 0) / ((a8 = +(b10.value[1 - 1] ?? "")) === a8 ? a8 : 0)) === a6 ? a6 : 0));
+procedures["Zpush %n"](Math.floor((a8 = ((a9 = +(b10.value[2 - 1] ?? "")) === a9 ? a9 : 0) / ((a10 = +(b10.value[1 - 1] ?? "")) === a10 ? a10 : 0)) === a8 ? a8 : 0));
 }
 if (("" + b0.value).toLowerCase() === "%") {
 yield* procedures["Zpop %n"](2);
-procedures["Zpush %n"](mod((a9 = +(b10.value[2 - 1] ?? "")) === a9 ? a9 : 0, (a10 = +(b10.value[1 - 1] ?? "")) === a10 ? a10 : 0));
+procedures["Zpush %n"](mod((a11 = +(b10.value[2 - 1] ?? "")) === a11 ? a11 : 0, (a12 = +(b10.value[1 - 1] ?? "")) === a12 ? a12 : 0));
 }
 if (("" + b0.value).toLowerCase() === "!") {
 yield* procedures["Zpop %n"](1);
@@ -193,20 +194,20 @@ b13._monitorUpToDate = b13._monitorUpToDate > 1 ? 2 : false;
 }
 if (("" + b0.value).toLowerCase() === ",") {
 yield* procedures["Zpop %n"](1);
-procedures["ZFAIL %s"]("did not expect ascii output: " + (b14.value[Math.floor(((a11 = +(b10.value[1 - 1] ?? "")) === a11 ? a11 : 0) + 1) - 1] ?? ""));
+procedures["ZFAIL %s"]("did not expect ascii output: " + (b14.value[Math.floor(((a13 = +(b10.value[1 - 1] ?? "")) === a13 ? a13 : 0) + 1) - 1] ?? ""));
 }
 if (("" + b0.value).toLowerCase() === "#") {
 yield* procedures["Znext char"]();
 }
 if (("" + b0.value).toLowerCase() === "g") {
 yield* procedures["Zpop %n"](2);
-yield* procedures["Zascii to number but it lies %s"](("" + (b1.value[Math.floor(((a12 = +(b10.value[1 - 1] ?? "")) === a12 ? a12 : 0) + 1) - 1] ?? ""))[Math.floor(((a13 = +(b10.value[2 - 1] ?? "")) === a13 ? a13 : 0) + 1) - 1] || "");
+yield* procedures["Zascii to number but it lies %s"](("" + (b1.value[Math.floor(((a14 = +(b10.value[1 - 1] ?? "")) === a14 ? a14 : 0) + 1) - 1] ?? ""))[Math.floor(((a15 = +(b10.value[2 - 1] ?? "")) === a15 ? a15 : 0) + 1) - 1] || "");
 procedures["Zpush %n"](b11.value);
 }
 if (("" + b0.value).toLowerCase() === "p") {
 yield* procedures["Zpop %n"](3);
-listReplace(b10, 1, ((a14 = +(b10.value[1 - 1] ?? "")) === a14 ? a14 : 0) + 1);
-listReplace(b10, 2, ((a15 = +(b10.value[2 - 1] ?? "")) === a15 ? a15 : 0) + 1);
+listReplace(b10, 1, ((a16 = +(b10.value[1 - 1] ?? "")) === a16 ? a16 : 0) + 1);
+listReplace(b10, 2, ((a17 = +(b10.value[2 - 1] ?? "")) === a17 ? a17 : 0) + 1);
 if (compareLessThan(b1.value.length, b10.value[1 - 1] ?? "")) {
 while (!compareEqual(b1.value.length, b10.value[1 - 1] ?? "")) {
 b1.value.push("");
@@ -220,7 +221,7 @@ listReplace(b1, b10.value[1 - 1] ?? "", "" + listGet(b1.value, b10.value[1 - 1] 
 yield;
 }
 }
-procedures["Winsert %s %n %s"](listGet(b1.value, b10.value[1 - 1] ?? ""), b10.value[2 - 1] ?? "", b15.value[Math.floor(((a16 = +(b10.value[3 - 1] ?? "")) === a16 ? a16 : 0) + 1) - 1] ?? "");
+procedures["Winsert %s %n %s"](listGet(b1.value, b10.value[1 - 1] ?? ""), b10.value[2 - 1] ?? "", b15.value[Math.floor(((a18 = +(b10.value[3 - 1] ?? "")) === a18 ? a18 : 0) + 1) - 1] ?? "");
 listReplace(b1, b10.value[1 - 1] ?? "", b11.value);
 }
 if (("" + b0.value).toLowerCase() === "&") {
@@ -229,8 +230,9 @@ procedures["ZFAIL %s"]("unexpected ask for integer input");
 if (("" + b0.value).toLowerCase() === "~") {
 procedures["ZFAIL %s"]("unexpected ask for ascii input");
 }
-if (listContains(b16, b0.value)) {
-procedures["Zpush %n"](b0.value);
+a19 = b0.value;
+if (listContains(b16, a19)) {
+procedures["Zpush %n"](a19);
 }
 yield* procedures["Znext char"]();
 return "";
@@ -243,12 +245,12 @@ const b1 = stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVar
 const b2 = stage.variables["f]9Ph]^v5P2CT7ju($Qb"] || stage.lookupOrCreateList("f]9Ph]^v5P2CT7ju($Qb", "expected int output");
 checks.push(() => b0 === (stage.variables["4s|,s}H*n$XE+1ez}%eC"] || stage.lookupOrCreateList("4s|,s}H*n$XE+1ez}%eC", "int output")) && b1 === (stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i")) && b2 === (stage.variables["f]9Ph]^v5P2CT7ju($Qb"] || stage.lookupOrCreateList("f]9Ph]^v5P2CT7ju($Qb", "expected int output")));
 return function* genXYZ_exit___verify () {
-var a1;
+var a1, a2;
 procedures["ZassertTrue %b %s"](b0.value.length === 22, "should output 22 items");
 b1.value = 0;
 for (var a0 = b0.value.length; a0 > 0; a0--) {
-b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
-procedures["ZassertTrue %b %s"](compareEqual(listGet(b0.value, b1.value), listGet(b2.value, b1.value)), "item " + ("" + b1.value + " should match expected output"));
+b1.value = a1 = ((a2 = +b1.value) === a2 ? a2 : 0) + 1;
+procedures["ZassertTrue %b %s"](compareEqual(listGet(b0.value, a1), listGet(b2.value, a1)), "item " + ("" + a1 + " should match expected output"));
 yield;
 }
 procedures["ZOKAY %s"]("" + runtime.ioDevices.clock.projectTimer() + " seconds");
@@ -317,7 +319,7 @@ const b9 = stage.variables["o4+OyKx[M=quu6p{=kRl-P-list"] || stage.lookupOrCreat
 const b10 = stage.variables["o4+OyKx[M=quu6p{=kRl-max length-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-max length-", "max length");
 checks.push(() => b0 === (stage.variables["o4+OyKx[M=quu6p{=kRl-direction-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-direction-", "direction")) && b1 === (runtime.getSpriteTargetByName("directions")) && b2 === (b1 && b1.lookupVariableByNameAndType("RIGHT", "", true)) && b3 === (stage.variables["o4+OyKx[M=quu6p{=kRl-px-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-px-", "px")) && b4 === (b1 && b1.lookupVariableByNameAndType("LEFT", "", true)) && b5 === (b1 && b1.lookupVariableByNameAndType("UP", "", true)) && b6 === (stage.variables["o4+OyKx[M=quu6p{=kRl-py-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-py-", "py")) && b7 === (b1 && b1.lookupVariableByNameAndType("DOWN", "", true)) && b8 === (runtime.getOpcodeFunction("sensing_askandwait")) && b9 === (stage.variables["o4+OyKx[M=quu6p{=kRl-P-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-P-list", "P")) && b10 === (stage.variables["o4+OyKx[M=quu6p{=kRl-max length-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-max length-", "max length")));
 return function* genXYZ_next_char () {
-var a0, a1, a2, a3;
+var a0, a1, a2, a3, a4, a5, a6;
 if (compareEqual(b0.value, b2 ? b2.value : 0)) {
 b3.value = ((a0 = +b3.value) === a0 ? a0 : 0) + 1;
 } else {
@@ -337,17 +339,20 @@ retire(); throw 1;
 }
 }
 }
-if (compareGreaterThan(b6.value, b9.value.length)) {
-b6.value = 1;
+a4 = b6.value;
+if (compareGreaterThan(a4, b9.value.length)) {
+b6.value = a4 = 1;
 }
-if (compareLessThan(b6.value, 0)) {
-b6.value = b9.value.length;
+if (compareLessThan(a4, 0)) {
+b6.value = a4 = b9.value.length;
 }
-if (compareGreaterThan(b3.value, b10.value)) {
-b3.value = 1;
+a5 = b3.value;
+a6 = b10.value;
+if (compareGreaterThan(a5, a6)) {
+b3.value = a5 = 1;
 }
-if (compareLessThan(b3.value, 0)) {
-b3.value = b10.value;
+if (compareLessThan(a5, 0)) {
+b3.value = a5 = a6;
 }
 return "";
 }; })
@@ -360,6 +365,7 @@ const b2 = stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVar
 const b3 = stage.variables["o4+OyKx[M=quu6p{=kRl-ascii-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii-list", "ascii");
 checks.push(() => b0 === (stage.variables["o4+OyKx[M=quu6p{=kRl-costumes-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-costumes-list", "costumes")) && b1 === (stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-result-", "result")) && b2 === (stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i")) && b3 === (stage.variables["o4+OyKx[M=quu6p{=kRl-ascii-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii-list", "ascii")));
 return function funXYZ_ascii_to_number_ (p0) {
+var a1;
 if (listContains(b0, p0)) {
 runtime.ext_scratch3_looks._setCostume(target, p0);
 if (target.currentCostume + 1 > 26) {
@@ -370,9 +376,9 @@ b1.value = target.currentCostume + 1 + 96;
 } else {
 b2.value = 0;
 for (var a0 = b3.value.length; a0 > 0; a0--) {
-b2.value = b2.value + 1;
-if (compareEqual(b3.value[b2.value - 1] ?? "", p0)) {
-b1.value = b2.value - 1;
+b2.value = a1 = b2.value + 1;
+if (compareEqual(b3.value[a1 - 1] ?? "", p0)) {
+b1.value = a1 - 1;
 return "";
 }
 }
@@ -400,7 +406,7 @@ const b2 = stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVar
 const b3 = stage.variables["o4+OyKx[M=quu6p{=kRl-ascii2-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii2-list", "ascii2");
 checks.push(() => b0 === (stage.variables["o4+OyKx[M=quu6p{=kRl-costumes-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-costumes-list", "costumes")) && b1 === (stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-result-", "result")) && b2 === (stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i")) && b3 === (stage.variables["o4+OyKx[M=quu6p{=kRl-ascii2-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-ascii2-list", "ascii2")));
 return function* genXYZ_ascii_to_number_but_ (p0) {
-var a1;
+var a1, a2;
 if (listContains(b0, p0)) {
 runtime.ext_scratch3_looks._setCostume(target, p0);
 if (target.currentCostume + 1 > 26) {
@@ -411,9 +417,9 @@ b1.value = target.currentCostume + 1 + 96;
 } else {
 b2.value = 0;
 for (var a0 = b3.value.length; a0 > 0; a0--) {
-b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-if (compareEqual(b3.value[Math.floor(b2.value) - 1] ?? "", p0)) {
-b1.value = b2.value - 1;
+b2.value = a1 = ((a2 = +b2.value) === a2 ? a2 : 0) + 1;
+if (compareEqual(b3.value[Math.floor(a1) - 1] ?? "", p0)) {
+b1.value = a1 - 1;
 return "";
 }
 yield;
@@ -429,29 +435,30 @@ const b0 = stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCrea
 const b1 = stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i");
 checks.push(() => b0 === (stage.variables["o4+OyKx[M=quu6p{=kRl-result-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-result-", "result")) && b1 === (stage.variables["o4+OyKx[M=quu6p{=kRl-i-"] || stage.lookupOrCreateVariable("o4+OyKx[M=quu6p{=kRl-i-", "i")));
 return function funXYZ_insert___ (p0,p1,p2) {
-var a3;
+var a0, a4, a5;
 b0.value = "";
 b1.value = 0;
+a0 = "" + p0;
 {
-let a0 = b1.value;
-let a1 = b0.value;
-for (var a2 = ((a3 = +p1) === a3 ? a3 : 0) - 1; a2 >= 0.5; a2--) {
-a0 = a0 + 1;
-a1 = a1 + (("" + p0)[a0 - 1] || "");
-b1.value = a0;
-b0.value = a1;
+let a1 = b1.value;
+let a2 = b0.value;
+for (var a3 = ((a4 = +p1) === a4 ? a4 : 0) - 1; a3 >= 0.5; a3--) {
+a1 = a1 + 1;
+a2 = a2 + (a0[a1 - 1] || "");
+b1.value = a1;
+b0.value = a2;
 }
 }
 b0.value = b0.value + p2;
-b1.value = b1.value + 1;
+b1.value = a5 = b1.value + 1;
 {
-let a4 = b1.value;
-let a5 = b0.value;
-for (var a6 = ("" + p0).length - a4; a6 > 0; a6--) {
-a4 = a4 + 1;
-a5 = a5 + (("" + p0)[a4 - 1] || "");
-b1.value = a4;
-b0.value = a5;
+let a6 = b1.value;
+let a7 = b0.value;
+for (var a8 = a0.length - a6; a8 > 0; a8--) {
+a6 = a6 + 1;
+a7 = a7 + (a0[a6 - 1] || "");
+b1.value = a6;
+b0.value = a7;
 }
 }
 return "";

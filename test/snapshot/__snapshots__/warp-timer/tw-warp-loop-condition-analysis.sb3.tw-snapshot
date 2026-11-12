@@ -32,12 +32,13 @@ const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariab
 const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list");
 checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")) && b1 === (stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i")) && b2 === (stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list")));
 return function* genXYZ_test () {
-var a0;
+var a0, a1;
 b0.value = "";
 b1.value = 1;
 while (!(("" + b0.value).toLowerCase() === "final")) {
-b0.value = listGet(b2.value, b1.value);
-b1.value = ((a0 = +b1.value) === a0 ? a0 : 0) + 1;
+a0 = b1.value;
+b0.value = listGet(b2.value, a0);
+b1.value = ((a1 = +a0) === a1 ? a1 : 0) + 1;
 if (isStuck()) yield;
 }
 return "";

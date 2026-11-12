@@ -19,7 +19,7 @@ const b3 = stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariab
 const b4 = stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected");
 checks.push(() => b0 === (stage.variables["mfV;yS}9e:%h5UZ)QyiY"] || stage.lookupOrCreateVariable("mfV;yS}9e:%h5UZ)QyiY", "n")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i")) && b2 === (stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values")) && b3 === (stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariable("_]6^lq+-%H0{ov`tKt7$", "j")) && b4 === (stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected")));
 return function* genXYZ_run_test () {
-var a1, a3, a4;
+var a1, a3, a4, a5, a6, a7, a8;
 procedures["Wsetup values"]();
 b0.value = 0;
 b1.value = 0;
@@ -27,17 +27,17 @@ for (var a0 = b2.value.length; a0 > 0; a0--) {
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
 b3.value = 0;
 for (var a2 = b2.value.length; a2 > 0; a2--) {
-b3.value = ((a3 = +b3.value) === a3 ? a3 : 0) + 1;
-b0.value = ((a4 = +b0.value) === a4 ? a4 : 0) + 1;
-if (!compareEqual(compareGreaterThan(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+b3.value = a3 = ((a4 = +b3.value) === a4 ? a4 : 0) + 1;
+b0.value = a5 = ((a6 = +b0.value) === a6 ? a6 : 0) + 1;
+if (!compareEqual(compareGreaterThan(listGet(b2.value, b1.value), b2.value[Math.floor(a3) - 1] ?? ""), b4.value[Math.floor(a5) - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be > " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
-b0.value = b0.value + 1;
-if (!compareEqual(compareEqual(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+b0.value = a7 = b0.value + 1;
+if (!compareEqual(compareEqual(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(a7) - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be = " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
-b0.value = b0.value + 1;
-if (!compareEqual(compareLessThan(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(b0.value) - 1] ?? "")) {
+b0.value = a8 = b0.value + 1;
+if (!compareEqual(compareLessThan(listGet(b2.value, b1.value), b2.value[Math.floor(b3.value) - 1] ?? ""), b4.value[Math.floor(a8) - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + listGet(b2.value, b1.value) + (" should be < " + (b2.value[Math.floor(b3.value) - 1] ?? ""))), target);
 }
 if (isStuck()) yield;

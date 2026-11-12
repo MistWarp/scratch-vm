@@ -36,18 +36,19 @@ const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCr
 const b3 = stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected");
 checks.push(() => b0 === (stage.variables["7AH{dO^X;}C[{[l~g-7m"] || stage.lookupOrCreateVariable("7AH{dO^X;}C[{[l~g-7m", "passed")) && b1 === (stage.variables["gPJ}c-PZz?Y+_L][iMU_"] || stage.lookupOrCreateVariable("gPJ}c-PZz?Y+_L][iMU_", "@")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b3 === (stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected")));
 return function* genXYZ_validate () {
-var a1, a2;
+var a1, a2, a3;
 b0.value = 1;
 b1.value = 1;
 for (var a0 = b2.value.length; a0 > 0; a0--) {
-if (!compareEqual(listGet(b2.value, b1.value), listGet(b3.value, b1.value))) {
+a1 = b1.value;
+if (!compareEqual(listGet(b2.value, a1), listGet(b3.value, a1))) {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("fail mismatch at index " + b1.value, target);
 }
-b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
+b1.value = ((a2 = +b1.value) === a2 ? a2 : 0) + 1;
 if (isStuck()) yield;
 }
-if (((a2 = +b0.value) === a2 ? a2 : 0) === 1) {
+if (((a3 = +b0.value) === a3 ? a3 : 0) === 1) {
 runtime.ext_scratch3_looks._say("pass sorted", target);
 }
 return "";
@@ -66,10 +67,12 @@ const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreat
 const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i");
 checks.push(() => b0 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-pivot-", "z_pivot")) && b1 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-low-", "z_low")) && b3 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-high-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-high-", "z_high")) && b4 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-tmp-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-tmp-", "tmp")) && b5 === (target.variables["JIHtr29*ug5G;5*`f2.K-i-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-i-", "i")) && b6 === (target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min pos-", "z_min pos")) && b7 === (target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min")) && b8 === (target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i")));
 return function* genXYZ_qsort__ (p0,p1) {
-var a0, a1, a2, a3, a4, a5, a6, a7, a8, a10, a11, a12, a13, a15, a16, a17, a18, a19;
+var a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a12, a13, a14, a15, a17, a18, a19, a20, a21, a22;
 if (compareLessThan(p0, p1)) {
-if (!(((a0 = +p1) === a0 ? a0 : 0) - ((a1 = +p0) === a1 ? a1 : 0) <= 7)) {
-b0.value = b1.value[Math.floor(((a2 = ((a3 = +p1) === a3 ? a3 : 0) + ((a4 = +p0) === a4 ? a4 : 0)) === a2 ? a2 : 0) / 2) - 1] ?? "";
+a0 = (a1 = +p1) === a1 ? a1 : 0;
+a2 = (a3 = +p0) === a3 ? a3 : 0;
+if (!(a0 - a2 <= 7)) {
+b0.value = b1.value[Math.floor(((a4 = a0 + a2) === a4 ? a4 : 0) / 2) - 1] ?? "";
 b2.value = p0;
 b3.value = p1;
 while (true) {
@@ -81,39 +84,46 @@ while (compareGreaterThan(listGet(b1.value, b3.value), b0.value)) {
 b3.value = ((a6 = +b3.value) === a6 ? a6 : 0) - 1;
 if (isStuck()) yield;
 }
-if (compareGreaterThan(b2.value, b3.value)) {
-yield* procedures["Wqsort %s %s"](p0, b3.value);
+a7 = b2.value;
+a8 = b3.value;
+if (compareGreaterThan(a7, a8)) {
+yield* procedures["Wqsort %s %s"](p0, a8);
 yield* procedures["Wqsort %s %s"](b2.value, p1);
 return "";
 } else {
-b4.value = listGet(b1.value, b2.value);
-listReplace(b1, b2.value, listGet(b1.value, b3.value));
-listReplace(b1, b3.value, b4.value);
-b2.value = ((a7 = +b2.value) === a7 ? a7 : 0) + 1;
-b3.value = ((a8 = +b3.value) === a8 ? a8 : 0) - 1;
+b4.value = listGet(b1.value, a7);
+listReplace(b1, a7, listGet(b1.value, a8));
+listReplace(b1, a8, b4.value);
+b2.value = ((a9 = +a7) === a9 ? a9 : 0) + 1;
+b3.value = ((a10 = +a8) === a10 ? a10 : 0) - 1;
 }
 if (isStuck()) yield;
 }
 } else {
 b5.value = p0;
-for (var a9 = (a10 = ((a11 = +p1) === a11 ? a11 : 0) - ((a12 = +p0) === a12 ? a12 : 0)) === a10 ? a10 : 0; a9 >= 0.5; a9--) {
-b6.value = b5.value;
-b7.value = listGet(b1.value, b5.value);
-b8.value = ((a13 = +b5.value) === a13 ? a13 : 0) + 1;
-for (var a14 = (a15 = ((a16 = +p1) === a16 ? a16 : 0) - ((a17 = +b5.value) === a17 ? a17 : 0)) === a15 ? a15 : 0; a14 >= 0.5; a14--) {
-if (compareLessThan(listGet(b1.value, b8.value), b7.value)) {
-b7.value = listGet(b1.value, b8.value);
-b6.value = b8.value;
+for (var a11 = (a12 = a0 - a2) === a12 ? a12 : 0; a11 >= 0.5; a11--) {
+a13 = b5.value;
+b6.value = a13;
+b7.value = listGet(b1.value, a13);
+a14 = (a15 = +a13) === a15 ? a15 : 0;
+b8.value = a14 + 1;
+for (var a16 = (a17 = a0 - a14) === a17 ? a17 : 0; a16 >= 0.5; a16--) {
+a18 = b8.value;
+if (compareLessThan(listGet(b1.value, a18), b7.value)) {
+b7.value = listGet(b1.value, a18);
+b6.value = a18;
 }
-b8.value = ((a18 = +b8.value) === a18 ? a18 : 0) + 1;
+b8.value = ((a19 = +a18) === a19 ? a19 : 0) + 1;
 if (isStuck()) yield;
 }
-if (!compareEqual(b6.value, b5.value)) {
-b4.value = listGet(b1.value, b5.value);
-listReplace(b1, b5.value, b7.value);
-listReplace(b1, b6.value, b4.value);
+a20 = b6.value;
+a21 = b5.value;
+if (!compareEqual(a20, a21)) {
+b4.value = listGet(b1.value, a21);
+listReplace(b1, a21, b7.value);
+listReplace(b1, a20, b4.value);
 }
-b5.value = ((a19 = +b5.value) === a19 ? a19 : 0) + 1;
+b5.value = ((a22 = +a21) === a22 ? a22 : 0) + 1;
 if (isStuck()) yield;
 }
 }

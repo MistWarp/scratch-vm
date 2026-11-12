@@ -22,22 +22,23 @@ const b1 = stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariab
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "index");
 checks.push(() => b0 === (stage.variables["uEt-Ix{%|r3`}-W%+kdm"] || stage.lookupOrCreateVariable("uEt-Ix{%|r3`}-W%+kdm", "input")) && b1 === (stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariable("PJl9-2GypE.OstQk*B_*", "result")) && b2 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "index")));
 return function funXYZ_a () {
-b0.value = "ababa";
+var a0;
+b0.value = a0 = "ababa";
 b1.value = "";
 b2.value = 1;
 {
-let a0 = b0.value;
-let a1 = b2.value;
-let a2 = b1.value;
-for (var a3 = a0.length; a3 > 0; a3--) {
-if ((a0[a1 - 1] || "").toLowerCase() === "a") {
-a2 = a2 + "b";
+let a1 = b0.value;
+let a2 = b2.value;
+let a3 = b1.value;
+for (var a4 = a1.length; a4 > 0; a4--) {
+if ((a1[a2 - 1] || "").toLowerCase() === "a") {
+a3 = a3 + "b";
 } else {
-a2 = a2 + "a";
+a3 = a3 + "a";
 }
-a1 = a1 + 1;
-b2.value = a1;
-b1.value = a2;
+a2 = a2 + 1;
+b2.value = a2;
+b1.value = a3;
 }
 }
 return "";

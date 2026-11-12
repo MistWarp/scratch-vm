@@ -8,7 +8,7 @@ const b1 = stage.variables["=3aHfv[mKa)v,Wfpy:y?"] || stage.lookupOrCreateVariab
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 checks.push(() => b0 === (stage.variables["%ehs:~!Y0l-5=!mnd-B?"] || stage.lookupOrCreateList("%ehs:~!Y0l-5=!mnd-B?", "items")) && b1 === (stage.variables["=3aHfv[mKa)v,Wfpy:y?"] || stage.lookupOrCreateVariable("=3aHfv[mKa)v,Wfpy:y?", "idx")) && b2 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
-var a0, a1;
+var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
 b0._searchIndex = null;
@@ -19,11 +19,11 @@ b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value = 0;
 b2.value = "bwah";
 while (!(("" + b2.value).toLowerCase() === "eof")) {
-b1.value = ((a0 = +b1.value) === a0 ? a0 : 0) + 1;
-b2.value = b0.value[Math.floor(b1.value) - 1] ?? "";
+b1.value = a0 = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
+b2.value = b0.value[Math.floor(a0) - 1] ?? "";
 yield;
 }
-if (((a1 = +b1.value) === a1 ? a1 : 0) === 2) {
+if (((a2 = +b1.value) === a2 ? a2 : 0) === 2) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

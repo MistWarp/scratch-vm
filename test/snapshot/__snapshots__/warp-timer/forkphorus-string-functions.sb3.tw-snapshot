@@ -144,14 +144,16 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.loo
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return");
 checks.push(() => b0 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list", "sutils:bufferl")) && b1 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator")) && b2 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return")));
 return function* genXYZ___endsWith____ (p0,p1) {
-var a1;
+var a0, a2, a3;
 b0.value = [];
 b0._searchIndex = null;
-b1.value = ("" + p0).length;
-for (var a0 = ("" + p1).length; a0 > 0; a0--) {
-b0.value.unshift(("" + p0)[Math.floor(+b1.value) - 1] || "");
+a0 = "" + p0;
+b1.value = a0.length;
+for (var a1 = ("" + p1).length; a1 > 0; a1--) {
+a2 = b1.value;
+b0.value.unshift(a0[Math.floor(+a2) - 1] || "");
 b0._monitorUpToDate = false;
-b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) - 1;
+b1.value = ((a3 = +a2) === a3 ? a3 : 0) - 1;
 if (isStuck()) yield;
 }
 b2.value = compareEqual(listContents(b0), p1);
@@ -174,8 +176,9 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator");
 checks.push(() => b0 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return")) && b1 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list", "sutils:bufferl")) && b2 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator")));
 return function* genXYZ___includes____ (p0,p1) {
-var a1;
-if (("" + p1).length === 0) {
+var a0, a1, a3, a4;
+a0 = "" + p1;
+if (a0.length === 0) {
 b0.value = "true";
 return "";
 }
@@ -183,11 +186,12 @@ b1.value = [];
 b1._searchIndex = null;
 b0.value = "false";
 b2.value = 0;
-for (var a0 = ("" + p0).length; a0 > 0; a0--) {
-b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-b1.value.push(("" + p0)[Math.floor(b2.value) - 1] || "");
+a1 = "" + p0;
+for (var a2 = a1.length; a2 > 0; a2--) {
+b2.value = a3 = ((a4 = +b2.value) === a4 ? a4 : 0) + 1;
+b1.value.push(a1[Math.floor(a3) - 1] || "");
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
-if (b1.value.length > ("" + p1).length) {
+if (b1.value.length > a0.length) {
 b1.value.shift();
 b1._monitorUpToDate = false;
 }
@@ -207,13 +211,14 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.loo
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return");
 checks.push(() => b0 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list", "sutils:bufferl")) && b1 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator")) && b2 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return")));
 return function* genXYZ___startsWith____ (p0,p1) {
-var a1;
+var a0, a2, a3;
 b0.value = [];
 b0._searchIndex = null;
 b1.value = 0;
-for (var a0 = ("" + p1).length; a0 > 0; a0--) {
-b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[Math.floor(b1.value) - 1] || "");
+a0 = "" + p0;
+for (var a1 = ("" + p1).length; a1 > 0; a1--) {
+b1.value = a2 = ((a3 = +b1.value) === a3 ? a3 : 0) + 1;
+b0.value.push(a0[Math.floor(a2) - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (isStuck()) yield;
 }
@@ -228,21 +233,23 @@ const b1 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator");
 checks.push(() => b0 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list", "sutils:bufferl")) && b1 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return")) && b2 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator")));
 return function* genXYZ___indexOf____ (p0,p1) {
-var a1;
+var a0, a1, a3, a4;
 b0.value = [];
 b0._searchIndex = null;
 b1.value = -1;
 b2.value = 0;
-for (var a0 = ("" + p0).length; a0 > 0; a0--) {
-b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[Math.floor(b2.value) - 1] || "");
+a0 = "" + p0;
+a1 = "" + p1;
+for (var a2 = a0.length; a2 > 0; a2--) {
+b2.value = a3 = ((a4 = +b2.value) === a4 ? a4 : 0) + 1;
+b0.value.push(a0[Math.floor(a3) - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
-if (b0.value.length > ("" + p1).length) {
+if (b0.value.length > a1.length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
 }
 if (compareEqual(listContents(b0), p1)) {
-b1.value = b2.value - (("" + p1).length - 1);
+b1.value = a3 - (a1.length - 1);
 return "";
 }
 if (isStuck()) yield;
@@ -258,31 +265,35 @@ const b2 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCre
 const b3 = stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator");
 checks.push(() => b0 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:bufferl-list", "sutils:bufferl")) && b1 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:templ-list"] || stage.lookupOrCreateList("aBQ}o|vZt_fHtB~ZyHPZ-sutils:templ-list", "sutils:templ")) && b2 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-@return-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-@return-", "@return")) && b3 === (stage.variables["aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-"] || stage.lookupOrCreateVariable("aBQ}o|vZt_fHtB~ZyHPZ-sutils:iterator-", "sutils:iterator")));
 return function* genXYZ___replace___with___ (p0,p1,p2) {
-var a1;
+var a0, a1, a2, a4, a5, a6, a8;
 b0.value = [];
 b0._searchIndex = null;
 b1.value = [];
 b1._searchIndex = null;
 b2.value = "";
 b3.value = 0;
-for (var a0 = ("" + p0).length; a0 > 0; a0--) {
-b3.value = ((a1 = +b3.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[Math.floor(b3.value) - 1] || "");
+a0 = "" + p0;
+a1 = "" + p1;
+a2 = "" + p2;
+for (var a3 = a0.length; a3 > 0; a3--) {
+b3.value = a4 = ((a5 = +b3.value) === a5 ? a5 : 0) + 1;
+a6 = Math.floor(a4);
+b0.value.push(a0[a6 - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
-if (b0.value.length > ("" + p1).length) {
+if (b0.value.length > a1.length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
 }
-b1.value.push(("" + p0)[Math.floor(b3.value) - 1] || "");
+b1.value.push(a0[a6 - 1] || "");
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (compareEqual(listContents(b0), p1)) {
-for (var a2 = ("" + p1).length; a2 > 0; a2--) {
+for (var a7 = a1.length; a7 > 0; a7--) {
 b1.value.pop();
 b1._monitorUpToDate = false;
 if (isStuck()) yield;
 }
-b2.value = "" + b2.value + listContents(b1);
-b2.value = b2.value + p2;
+b2.value = a8 = "" + b2.value + listContents(b1);
+b2.value = a8 + p2;
 b1.value = [];
 b1._searchIndex = null;
 }

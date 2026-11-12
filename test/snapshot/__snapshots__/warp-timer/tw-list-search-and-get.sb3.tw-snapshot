@@ -7,7 +7,7 @@ const b0 = stage.variables["listid"] || stage.lookupOrCreateList("listid", "my l
 const b1 = stage.variables["indexvar"] || stage.lookupOrCreateVariable("indexvar", "index");
 checks.push(() => b0 === (stage.variables["listid"] || stage.lookupOrCreateList("listid", "my list")) && b1 === (stage.variables["indexvar"] || stage.lookupOrCreateVariable("indexvar", "index")));
 return function funXYZ () {
-var a0;
+var a0, a1, a2, a3, a4, a5;
 runtime.ext_scratch3_looks._say("plan 13", target);
 if (listIndexOf(b0, "banana") === 2) {
 runtime.ext_scratch3_looks._say("pass item # of is case insensitive", target);
@@ -30,27 +30,27 @@ runtime.ext_scratch3_looks._say("pass contains APPLE", target);
 if (listContains(b0, "3.00")) {
 runtime.ext_scratch3_looks._say("pass contains 3.00", target);
 }
-b1.value = 2;
-if (("" + (b0.value[b1.value - 1] ?? "")).toLowerCase() === "banana") {
+b1.value = a0 = 2;
+if (("" + (b0.value[a0 - 1] ?? "")).toLowerCase() === "banana") {
 runtime.ext_scratch3_looks._say("pass item of string index", target);
 }
-b1.value = 2.9;
-if (("" + (b0.value[Math.floor(b1.value) - 1] ?? "")).toLowerCase() === "banana") {
+b1.value = a1 = 2.9;
+if (("" + (b0.value[Math.floor(a1) - 1] ?? "")).toLowerCase() === "banana") {
 runtime.ext_scratch3_looks._say("pass item of fractional index", target);
 }
-b1.value = 0;
-if (("" + (b0.value[b1.value - 1] ?? "")).toLowerCase() === "") {
+b1.value = a2 = 0;
+if (("" + (b0.value[a2 - 1] ?? "")).toLowerCase() === "") {
 runtime.ext_scratch3_looks._say("pass item of index 0", target);
 }
-b1.value = 7;
-if (("" + (b0.value[b1.value - 1] ?? "")).toLowerCase() === "") {
+b1.value = a3 = 7;
+if (("" + (b0.value[a3 - 1] ?? "")).toLowerCase() === "") {
 runtime.ext_scratch3_looks._say("pass item of index past end", target);
 }
-b1.value = "last";
-if (("" + listGet(b0.value, b1.value)).toLowerCase() === "last") {
+b1.value = a4 = "last";
+if (("" + listGet(b0.value, a4)).toLowerCase() === "last") {
 runtime.ext_scratch3_looks._say("pass item of last", target);
 }
-if (((a0 = +listGet(b0.value, b0.value[3 - 1] ?? "")) === a0 ? a0 : 0) === 3) {
+if (((a5 = +listGet(b0.value, b0.value[3 - 1] ?? "")) === a5 ? a5 : 0) === 3) {
 runtime.ext_scratch3_looks._say("pass item of unknown number index", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

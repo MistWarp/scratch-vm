@@ -3,6 +3,7 @@
 const {IRGenerator} = require('./irgen');
 const {IROptimizer} = require('./iroptimizer');
 const JSGenerator = require('./jsgen');
+const reuseValues = require('./irreuse');
 
 const compile = (/** @type {import("../engine/thread")} */ thread) => {
     const irGenerator = new IRGenerator(thread);
@@ -19,6 +20,7 @@ const compile = (/** @type {import("../engine/thread")} */ thread) => {
             return script.cachedCompileResult;
         }
 
+        reuseValues(script);
         const compiler = new JSGenerator(script, ir, target);
         const result = compiler.compile();
         script.cachedCompileResult = result;
