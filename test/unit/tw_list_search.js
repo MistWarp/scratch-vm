@@ -5,7 +5,8 @@ const Variable = require('../../src/engine/variable');
 const Scratch3DataBlocks = require('../../src/blocks/scratch3_data');
 const {stringify} = require('@turbowarp/json');
 
-const {listFind, listScan, listScanGeneric} = require('../../src/compiler/list-search');
+const VirtualMachine = require('../../src/virtual-machine');
+const {listFind, listScan, listScanGeneric, listsMayHaveChanged} = require('../../src/compiler/list-search');
 
 const makeRandom = seed => {
     let state = seed >>> 0;
@@ -207,7 +208,7 @@ test('a list shortened in place without the flag drops the index', () => {
 test('contains matches the plain scan for short and long lists', () => {
     const {listContains, globalState} = jsexecute.scopedEval('({listContains, globalState})');
     const previousThread = globalState.thread;
-    globalState.thread = {target: {runtime: {runtimeOptions: {caseSensitiveLists: false}}}};
+    globalState.thread = {target: {runtime: {runtimeOptions: {caseSensitiveLists: false}, targets: []}}};
     const random = makeRandom(21);
     let contained = 0;
     for (let round = 0; round < 600; round++) {
@@ -236,3 +237,140 @@ test('delete all drops the index', () => {
     assert.deepStrictEqual(list.value, []);
     expectFind(list, 99, 'after delete all');
 });
+
+const numbered = count => {
+    const list = Variable.create(null, 'list', Variable.LIST_TYPE, false);
+    for (let i = 0; i < count; i++) list.value.push(i);
+    return list;
+};
+
+test('a list edited in place by other code is searched again', () => {
+    const list = numbered(100);
+    for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
+    assert.ok(list._searchIndex.numbers);
+    list.value[5] = 'zzz';
+    listsMayHaveChanged();
+    assert.strictEqual(listFind(list, 'zzz'), 5);
+    assert.strictEqual(listFind(list, 5), -1);
+    list.value.splice(0, 0, 'first');
+    listsMayHaveChanged();
+    assert.strictEqual(listFind(list, 'first'), 0);
+    assert.strictEqual(listFind(list, 'zzz'), 6);
+    list.value[7] = NaN;
+    listsMayHaveChanged();
+    assert.strictEqual(listFind(list, 'NaN'), 7);
+});
+
+test('an unchanged list keeps its index after other code has run', () => {
+    const list = numbered(100);
+    list.value[3] = NaN;
+    for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
+    const numbers = list._searchIndex.numbers;
+    assert.ok(numbers);
+    for (let round = 0; round < 20; round++) {
+        listsMayHaveChanged();
+        expectFind(list, 98, 'after other code');
+    }
+    assert.strictEqual(list._searchIndex.numbers, numbers);
+});
+
+test('an index that costs more to check than it saves is dropped', () => {
+    const list = numbered(100);
+    for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
+    assert.ok(list._searchIndex.numbers);
+    let rounds = 0;
+    while (list._searchIndex.numbers && rounds < 5000) {
+        listsMayHaveChanged();
+        expectFind(list, 0, 'cheap search');
+        rounds++;
+    }
+    assert.ok(rounds < 5000, 'the index was never dropped');
+    expectFind(list, 0, 'after the index was dropped');
+});
+
+test('two lists that share one array are searched without an index', () => {
+    const first = numbered(100);
+    const second = Variable.create(null, 'other', Variable.LIST_TYPE, false);
+    const thread = {target: {runtime: {targets: [{variables: {first, second, plain: {type: '', value: 0}}}]}}};
+    for (let i = 0; i < 40; i++) assert.strictEqual(listFind(first, 99, thread), 99);
+    assert.ok(first._searchIndex.numbers);
+
+    second.value = first.value;
+    listsMayHaveChanged();
+    assert.strictEqual(listFind(first, 99, thread), 99);
+    assert.strictEqual(first._searchIndex.numbers, null);
+    second.value[5] = 'zzz';
+    second._monitorUpToDate = false;
+    assert.strictEqual(listFind(first, 'zzz', thread), 5);
+    assert.strictEqual(listFind(first, 5, thread), -1);
+    for (let i = 0; i < 200; i++) assert.strictEqual(listFind(first, 99, thread), 99);
+    assert.strictEqual(first._searchIndex.numbers, null);
+    second.value.splice(0, 0, 'front');
+    second._monitorUpToDate = false;
+    assert.strictEqual(listFind(first, 'front', thread), 0);
+    assert.strictEqual(listFind(first, 99, thread), 100);
+});
+
+const searchProject = () => {
+    const blocks = {};
+    const add = (id, block) => {
+        blocks[id] = Object.assign({next: null, parent: null, inputs: {}, fields: {}, shadow: false,
+            topLevel: false}, block);
+        return id;
+    };
+    const itemNumber = (id, item) => add(id, {opcode: 'data_itemnumoflist', inputs: {ITEM: [1, [10, item]]},
+        fields: {LIST: ['L', 'L']}});
+    const set = (id, name, reporter) => add(id, {opcode: 'data_setvariableto',
+        inputs: {VALUE: [3, reporter, [10, '']]}, fields: {VARIABLE: [name, name]}});
+    add('flag', {opcode: 'event_whenflagclicked', topLevel: true, x: 0, y: 0, next: 'warm'});
+    add('warm', {opcode: 'control_repeat', inputs: {TIMES: [1, [6, '40']], SUBSTACK: [2, 'warmSet']},
+        next: 'poke'});
+    set('warmSet', 'before', itemNumber('warmFind', 'zzz'));
+    add('poke', {opcode: 'sensing_testpoke', next: 'afterNew'});
+    set('afterNew', 'new', itemNumber('findNew', 'zzz'));
+    blocks.afterNew.next = 'afterOld';
+    set('afterOld', 'old', itemNumber('findOld', '5'));
+    const items = [];
+    for (let i = 0; i < 100; i++) items.push(i);
+    return {
+        targets: [
+            {isStage: true, name: 'Stage', broadcasts: {}, blocks: {}, comments: {}, currentCostume: 0,
+                costumes: [], sounds: [], volume: 100, layerOrder: 0,
+                variables: {before: ['before', 0], new: ['new', 0], old: ['old', 0]}, lists: {L: ['L', items]}},
+            {isStage: false, name: 'Sprite', broadcasts: {}, blocks, comments: {}, currentCostume: 0,
+                costumes: [], sounds: [], volume: 100, layerOrder: 1, visible: true, x: 0, y: 0, size: 100,
+                direction: 90, draggable: false, rotationStyle: 'all around', variables: {}, lists: {}}
+        ],
+        monitors: [],
+        extensions: [],
+        meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}
+    };
+};
+
+for (const compiler of [true, false]) {
+    test(`a block from an extension that edits a list in place is seen by the next search (${
+        compiler ? 'compiled' : 'interpreted'})`, async () => {
+        const vm = new VirtualMachine();
+        vm.setCompilerOptions({enabled: compiler});
+        await vm.loadProject(searchProject());
+        const stage = vm.runtime.getTargetForStage();
+        const list = stage.variables.L;
+        vm.runtime._primitives.sensing_testpoke = () => {
+            list.value[5] = 'zzz';
+        };
+        vm.setTurboMode(true);
+        vm.greenFlag();
+        for (let step = 0; step < 50 && vm.runtime.threads.length; step++) vm.runtime._step();
+        assert.strictEqual(vm.runtime.threads.length, 0);
+        assert.strictEqual(String(stage.variables.before.value), '0');
+        assert.strictEqual(String(stage.variables.new.value), '6');
+        assert.strictEqual(String(stage.variables.old.value), '0');
+        if (compiler) assert.ok(list._searchIndex, 'the search never used the index path');
+
+        list.value[9] = 'between';
+        assert.strictEqual(vm.setVariableValue(stage.id, 'L', list.value), true);
+        assert.strictEqual(list._searchIndex, null);
+        assert.strictEqual(list._monitorUpToDate, false);
+        vm.quit();
+    });
+}

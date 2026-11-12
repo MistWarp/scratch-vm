@@ -680,3 +680,71 @@ test('clones follow the analysis of the sprite they came from', async () => {
     assert.strictEqual(cloneValue('free'), 2);
     assert.strictEqual(clone.currentCostume, 0, 'costume picked by name, not by index');
 });
+
+test('a custom block the analysis cannot read does not stop other scripts from compiling', async () => {
+    const broken = stack({
+        hat: block('event_whenflagclicked'),
+        callBroken: call('broken', 'broken %s', text(1))
+    }, 'hat', 'callBroken');
+    procedure(broken, 'broken', 'broken %s', 'value');
+    broken.brokenDefinition.topLevel = true;
+    delete broken.brokenPrototype.mutation.argumentdefaults;
+    const vm = await load(makeProject({variables: ['free']}, {
+        name: 'Broken',
+        costumes: NUMBERED,
+        blocks: broken
+    }, {
+        name: 'Other',
+        costumes: NUMBERED,
+        blocks: stack({
+            hat: block('event_whenflagclicked'),
+            setFree: setTo('free', text(2))
+        }, 'hat', 'setFree')
+    }));
+    run(vm);
+
+    const other = targetNamed(vm, 'Other');
+    const result = other.blocks.getCachedCompileResult('hat');
+    assert.ok(result && result.success, 'the unrelated script was not compiled');
+    assert.strictEqual(valueOf(vm, 'Stage', 'free'), '2', 'every name is kept when the analysis fails');
+});
+
+test('a variable renamed without the editor is analysed again', async () => {
+    const vm = await load(makeProject({}, {
+        name: 'Owner',
+        costumes: NUMBERED,
+        variables: [['ownerValue', 'value']],
+        blocks: stack({
+            hat: block('event_whenflagclicked'),
+            setValue: setById('ownerValue', 'value', text(2))
+        }, 'hat', 'setValue')
+    }, {
+        name: 'Reader',
+        costumes: NUMBERED,
+        currentCostume: 2,
+        blocks: stack({
+            hat: block('event_whenflagclicked'),
+            wait: block('control_wait', {DURATION: [1, [5, '0']]}),
+            show: switchCostume(reporter('remoteOf')),
+            remoteOf: block('sensing_of', {OBJECT: [1, 'remoteMenu']}, {PROPERTY: ['remote', null]}, {
+                parent: 'show'
+            }),
+            remoteMenu: block('sensing_of_object_menu', {}, {OBJECT: ['Owner', null]}, {
+                parent: 'remoteOf',
+                shadow: true
+            })
+        }, 'hat', 'wait', 'show')
+    }));
+    run(vm);
+    assert.strictEqual(valueOf(vm, 'Owner', 'value'), 2);
+
+    const owner = targetNamed(vm, 'Owner');
+    owner.variables.ownerValue.name = 'remote';
+    owner.bumpDeclRevision();
+    vm.stopAll();
+    targetNamed(vm, 'Reader').setCostume(2);
+    run(vm);
+
+    assert.strictEqual(valueOf(vm, 'Owner', 'remote'), '2');
+    assert.strictEqual(targetNamed(vm, 'Reader').currentCostume, 0, 'costume picked by name, not by index');
+});

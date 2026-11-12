@@ -1251,7 +1251,17 @@ class Runtime extends EventEmitter {
      * @return {Function} The function which implements the opcode.
      */
     getOpcodeFunction (opcode) {
-        return this._primitives[opcode];
+        let found;
+        if (Object.prototype.hasOwnProperty.call(this._primitives, opcode)) found = this._primitives[opcode];
+        return found;
+    }
+
+    getHatInfo (opcode) {
+        return Object.prototype.hasOwnProperty.call(this._hats, opcode) ? this._hats[opcode] : null;
+    }
+
+    getFlowInfo (opcode) {
+        return Object.prototype.hasOwnProperty.call(this._flowing, opcode) ? this._flowing[opcode] : null;
     }
 
     /**
@@ -1566,7 +1576,7 @@ class Runtime extends EventEmitter {
         const instance = this;
         const newThreads = [];
         // Look up metadata for the relevant hat.
-        const hatMeta = instance._hats[requestedHatOpcode];
+        const hatMeta = instance.getHatInfo(requestedHatOpcode);
         if (this._paused && !hatMeta.edgeActivated && requestedHatOpcode !== 'event_whenbroadcastreceived' &&
             requestedHatOpcode !== 'control_start_as_clone') {
             return newThreads;

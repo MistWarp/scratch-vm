@@ -108,11 +108,65 @@ const listScan = (list, item, start) => {
     }
     return listScanGeneric(list, item, start);
 };
+const search = {
+    epoch: 0,
+    sharedEpoch: -1,
+    shared: null
+};
+const listsMayHaveChanged = () => {
+    search.epoch++;
+};
+const findSharedArrays = runtime => {
+    search.sharedEpoch = search.epoch;
+    search.shared = null;
+    const seen = new Set();
+    const targets = runtime.targets;
+    let visited = 0;
+    for (let i = 0; i < targets.length; i++) {
+        const variables = targets[i].variables;
+        for (const id in variables) {
+            const variable = variables[id];
+            if (variable.type !== 'list') continue;
+            visited++;
+            const value = variable.value;
+            if (seen.has(value)) {
+                if (search.shared === null) search.shared = new Set();
+                search.shared.add(value);
+            } else {
+                seen.add(value);
+            }
+        }
+    }
+    return visited;
+};
+const isShared = (index, array, thread) => {
+    if (!thread) return false;
+    if (search.sharedEpoch !== search.epoch) index.saved -= findSharedArrays(thread.target.runtime) * 2;
+    return search.shared !== null && search.shared.has(array);
+};
+const listIndexDrop = index => {
+    index.numbers = null;
+    index.strings = null;
+    index.snapshot = null;
+    index.scanned = -Infinity;
+};
+const listIndexUnchanged = (index, array) => {
+    const snapshot = index.snapshot;
+    const count = index.indexed;
+    for (let i = 0; i < count; i++) {
+        const now = array[i];
+        const then = snapshot[i];
+        if (now !== then && (now === now || then === then)) return false;
+    }
+    return true;
+};
 const listIndexExtend = (index, array) => {
     const numbers = index.numbers;
     const strings = index.strings;
+    const snapshot = index.snapshot;
     for (let i = index.indexed; i < array.length; i++) {
         const value = array[i];
+        snapshot.push(value);
         if (typeof value === 'number') {
             if (value - value === 0) {
                 if (numbers.get(value) === undefined) {
@@ -181,7 +235,7 @@ const listIndexLookup = (index, item) => {
     }
     return byString === undefined || byNumber < byString ? byNumber : byString;
 };
-const listFind = (list, item) => {
+const listFind = (list, item, thread) => {
     const array = list.value;
     const length = array.length;
     if (length < 32 || (typeof item !== 'number' && typeof item !== 'string')) {
@@ -198,10 +252,18 @@ const listFind = (list, item) => {
             patience: 16,
             hits: 0,
             numbers: null,
-            strings: null
+            strings: null,
+            snapshot: null,
+            saved: 0,
+            epoch: search.epoch
         };
     }
-    if (!(state > 1) || index.array !== array || index.length > length) {
+    let stale = !(state > 1) || index.array !== array || index.length > length;
+    if (!stale && index.numbers !== null && index.epoch !== search.epoch) {
+        index.saved = Math.min(index.saved, index.indexed * 64) - (index.indexed >> 3);
+        stale = index.saved < 0 || !listIndexUnchanged(index, array) || isShared(index, array, thread);
+    }
+    if (stale) {
         if (index.numbers !== null) {
             index.patience = index.hits < index.patience * 4 ? Math.min(index.patience * 4, 4096) : 16;
         }
@@ -211,17 +273,19 @@ const listFind = (list, item) => {
         index.hits = 0;
         index.numbers = null;
         index.strings = null;
+        index.snapshot = null;
         list._monitorUpToDate = state === true || state === 3 ? 3 : 2;
     }
     index.length = length;
+    index.epoch = search.epoch;
     if (index.numbers !== null) {
         if (index.indexed === length || listIndexExtend(index, array)) {
             index.hits++;
-            return listIndexLookup(index, item);
+            const position = listIndexLookup(index, item);
+            index.saved += position === -1 ? length : position + 1;
+            return position;
         }
-        index.numbers = null;
-        index.strings = null;
-        index.scanned = -Infinity;
+        listIndexDrop(index);
         return listScan(array, item, 0);
     }
     const found = listScan(array, item, 0);
@@ -229,11 +293,11 @@ const listFind = (list, item) => {
     if (index.scanned >= index.patience * length) {
         index.numbers = new Map();
         index.strings = new Map();
+        index.snapshot = [];
+        index.saved = length;
         index.indexed = 0;
-        if (!listIndexExtend(index, array)) {
-            index.numbers = null;
-            index.strings = null;
-            index.scanned = -Infinity;
+        if (isShared(index, array, thread) || !listIndexExtend(index, array)) {
+            listIndexDrop(index);
         }
     }
     return found;
@@ -241,6 +305,7 @@ const listFind = (list, item) => {
 
 module.exports = {
     listFind,
+    listsMayHaveChanged,
     listScan,
     listScanGeneric
 };

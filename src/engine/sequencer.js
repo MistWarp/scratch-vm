@@ -2,6 +2,7 @@ const Timer = require('../util/timer');
 const Thread = require('./thread');
 const execute = require('./execute.js');
 const compilerExecute = require('../compiler/jsexecute');
+const listSearch = require('../compiler/list-search');
 const Sampler = require('./tw-sampler');
 const RuntimeEvents = require('./runtime-events');
 
@@ -81,6 +82,7 @@ class Sequencer {
     stepThreads () {
         // Work time is 75% of the thread stepping interval.
         const WORK_TIME = 0.75 * this.runtime.currentStepTime;
+        listSearch.listsMayHaveChanged();
         // For compatibility with Scatch 2, update the millisecond clock
         // on the Runtime once per step (see Interpreter.as in Scratch 2
         // for original use of `currentMSecs`)
@@ -238,6 +240,7 @@ class Sequencer {
             if (this.runtime.sampler.enableBasic) this.runtime.sampler.pc[0] = Sampler.RUNTIME;
             return;
         }
+        listSearch.listsMayHaveChanged();
 
         let currentBlockId = thread.peekStack();
         if (!currentBlockId) {

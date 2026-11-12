@@ -101,6 +101,7 @@ class Target extends EventEmitter {
 
     bumpDeclRevision () {
         this.declRevision++;
+        if (this.isOriginal && this.runtime) this.runtime.nameFlowStale = true;
     }
 
     installVariable (variable, id = variable.id) {

@@ -464,3 +464,41 @@ test('blocks with an opcode named after an Object.prototype member load', async 
     const opcodes = Object.keys(blocks).map(id => blocks[id].opcode);
     assert.deepStrictEqual(opcodes, ['event_whenflagclicked', ...PROTOTYPE_NAMES]);
 });
+
+const unknownBlockProject = name => makeProject(stack => {
+    stack('data_setvariableto', {VALUE: 'before'}, variableField('v'));
+    stack(name);
+    stack('data_setvariableto', {VALUE: {opcode: name}}, variableField('w'));
+    stack('data_setvariableto', {VALUE: 'after'}, variableField('v'));
+}, {v: ['v', 0], w: ['w', 'unset']}, {});
+
+const runUnknownBlocks = async (name, compile) => {
+    const vm = new VirtualMachine();
+    vm.setCompilerOptions({enabled: compile});
+    let compileErrors = 0;
+    vm.on('COMPILE_ERROR', () => {
+        compileErrors++;
+    });
+    await vm.loadProject(unknownBlockProject(name));
+    vm.greenFlag();
+    for (let step = 0; step < 100 && vm.runtime.threads.length !== 0; step++) vm.runtime._step();
+    assert.strictEqual(vm.runtime.threads.length, 0, `${name}: the script did not finish`);
+    return {vm, compileErrors};
+};
+
+for (const compile of [true, false]) {
+    test(`blocks named after members of Object behave like any unknown block (${
+        compile ? 'compiled' : 'interpreted'})`, async () => {
+        const expected = await runUnknownBlocks('nothinghere', compile);
+        const expectedStage = expected.vm.runtime.getTargetForStage();
+        for (const name of ['valueOf', 'hasOwnProperty', 'toString', 'constructor', 'isPrototypeOf']) {
+            const {vm, compileErrors} = await runUnknownBlocks(name, compile);
+            assert.strictEqual(compileErrors, expected.compileErrors, `${name}: compile errors`);
+            const stage = vm.runtime.getTargetForStage();
+            assert.strictEqual(stage.variables.v.value, 'after', `${name}: the script stopped early`);
+            assert.strictEqual(show(stage.variables.w.value), show(expectedStage.variables.w.value), name);
+            assert.strictEqual(vm.runtime.getOpcodeFunction(name), undefined, name);
+            assert.strictEqual(vm.runtime.getIsHat(name), false, name);
+        }
+    });
+}

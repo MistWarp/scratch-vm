@@ -16,6 +16,7 @@ const globalState = {
     log: require('../util/log'),
     blockUtility: require('./compat-block-utility'),
     listFind: require('./list-search').listFind,
+    listsMayHaveChanged: require('./list-search').listsMayHaveChanged,
     /** @type{import("../engine/thread")?} */
     thread: null
 };
@@ -162,6 +163,7 @@ const executeInCompatibilityLayer = function*(inputs, blockFunction, isWarp, use
 
     const executeBlock = () => {
         blockUtility.init(thread, blockId, stackFrame);
+        globalState.listsMayHaveChanged();
         return typeof blockFunction === 'function' ? blockFunction(inputs, blockUtility) : '';
     };
 
@@ -220,6 +222,7 @@ const executeInCompatibilityLayer = function*(inputs, blockFunction, isWarp, use
 runtimeFunctions.executeAddonBlock = `const executeAddonBlock = (inputs, blockFunction, blockId) => {
     const blockUtility = globalState.blockUtility;
     blockUtility.init(globalState.thread, blockId, {});
+    globalState.listsMayHaveChanged();
     return blockFunction(inputs, blockUtility);
 }`;
 
@@ -506,6 +509,7 @@ runtimeFunctions.listInsert = `const listInsert = (list, idx, value) => {
 runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
     if (idx === 'all') {
         list.value = [];
+        list._searchIndex = null;
         return;
     }
     const index = listIndex(idx, list.value.length);
@@ -533,7 +537,7 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
         return list.value.indexOf(item) !== -1;
     }
     if (list.value.length < 32 && list.value.indexOf(item) !== -1) return true;
-    return globalState.listFind(list, item) !== -1;
+    return globalState.listFind(list, item, globalState.thread) !== -1;
 }`;
 
 /**
@@ -546,7 +550,7 @@ runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
     if (globalState.thread.target.runtime.runtimeOptions.caseSensitiveLists) {
         return list.value.indexOf(item) + 1;
     }
-    return globalState.listFind(list, item) + 1;
+    return globalState.listFind(list, item, globalState.thread) + 1;
 }`;
 
 /**
