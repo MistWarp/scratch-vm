@@ -8,10 +8,12 @@
  */
 
 const MAX_UPPER_CASE_STRINGS = 4096;
+const MAX_UPPER_CASE_LENGTH = 64;
 const upperCaseStrings = new Map();
 
 const upperCase = value => {
     if (typeof value !== 'string') return String(value).toUpperCase();
+    if (value.length > MAX_UPPER_CASE_LENGTH) return value.toUpperCase();
     let upper = upperCaseStrings.get(value);
     if (typeof upper === 'undefined') {
         upper = value.toUpperCase();

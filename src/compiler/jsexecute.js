@@ -55,7 +55,7 @@ runtimeFunctions.startHats = `const startHats = (requestedHat, optMatchFields) =
  * Implements "thread waiting", where scripts are halted until all the scripts have finished executing.
  * @param {Array} threads The list of threads.
  */
-runtimeFunctions.threadsRunning = `const threadsRunning = threads => {
+const threadsRunningSource = `threads => {
     let anyRunning = false;
     for (let i = 0; i < threads.length; i++) {
         if (threads[i].inThreadList) {
@@ -82,8 +82,11 @@ runtimeFunctions.threadsRunning = `const threadsRunning = threads => {
     return true;
 }`;
 
+runtimeFunctions.threadsRunning = `const threadsRunning = ${threadsRunningSource}`;
+
 runtimeFunctions.waitThreads = `const waitThreads = function*(threads) {
-    while (threadsRunning(threads)) {
+    const stillRunning = ${threadsRunningSource};
+    while (stillRunning(threads)) {
         yield;
     }
 }`;

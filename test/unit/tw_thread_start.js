@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const VirtualMachine = require('../../src/virtual-machine');
 const Thread = require('../../src/engine/thread');
 const Variable = require('../../src/engine/variable');
+const jsexecute = require('../../src/compiler/jsexecute');
 
 const ASSET = 'cd21514d0531fdffb22204e0ec5ed84a';
 
@@ -531,4 +532,122 @@ test('playground data lists a running hat thread', async () => {
     assert.strictEqual(threads.length, 1);
     assert.strictEqual(threads[0].topBlock, 'oneHat');
     assert.ok(!('scriptState' in threads[0]));
+});
+
+test('the waitThreads helper works in a script that uses nothing else', () => {
+    const script = jsexecute.scopedEval(`(function* () {
+        yield* waitThreads([]);
+        yield* waitThreads([{inThreadList: false}]);
+        return 'finished';
+    })`);
+    assert.deepStrictEqual(script().next(), {value: 'finished', done: true});
+});
+
+test('a long broadcast name matches whatever its case', async () => {
+    const long = `Message ${'x'.repeat(300)}`;
+    const vm = await load(makeProject({variables: ['count'], broadcasts: [long]}, {
+        name: 'Sprite',
+        blocks: stack({
+            hat: receive(long),
+            change: changeBy('count', 1)
+        }, 'hat', 'change')
+    }));
+
+    send(vm, long);
+    send(vm, long.toUpperCase());
+    send(vm, long.toLowerCase());
+    send(vm, `${long}x`);
+    assert.strictEqual(valueOf(vm, 'count'), 3);
+});
+
+const stopOthers = () => block('control_stop', {}, {STOP_OPTION: ['other scripts in sprite', null]}, {
+    mutation: {tagName: 'mutation', children: [], hasnext: 'true'}
+});
+
+test('a script stopped by stop other scripts in sprite starts again with the same instance', async () => {
+    const blocks = inside(stack({
+        hat: receive('go'),
+        forever: forever('change'),
+        change: changeBy('count', 1),
+        pause: wait(0)
+    }, 'hat', 'forever'), 'forever', 'change', 'pause');
+    Object.assign(blocks, stack({
+        haltHat: receive('halt'),
+        halt: stopOthers(),
+        mark: changeBy('halted', 1)
+    }, 'haltHat', 'halt', 'mark'));
+    const vm = await load(makeProject({variables: ['count', 'halted'], broadcasts: ['go', 'halt']}, {
+        name: 'Sprite',
+        blocks
+    }));
+    const sprite = targetNamed(vm, 'Sprite');
+
+    const [first] = send(vm, 'go');
+    const instance = linked(sprite, 'hat');
+    send(vm, 'halt');
+    assert.ok(!first.inThreadList);
+    assert.strictEqual(valueOf(vm, 'halted'), 1);
+    const stoppedAt = valueOf(vm, 'count');
+    vm.runtime._step();
+    assert.strictEqual(valueOf(vm, 'count'), stoppedAt);
+    assert.strictEqual(vm.runtime.threads.length, 0);
+
+    const [second] = send(vm, 'go');
+    assert.notStrictEqual(second, first);
+    assert.ok(second.inThreadList);
+    assert.strictEqual(linked(sprite, 'hat'), instance);
+    assert.ok(valueOf(vm, 'count') > stoppedAt);
+});
+
+const selfBroadcast = () => makeProject({variables: ['count', 'finished'], broadcasts: ['go']}, {
+    name: 'Sprite',
+    blocks: inside(stack({
+        hat: receive('go'),
+        change: changeBy('count', 1),
+        check: block('control_if', {CONDITION: [2, 'less'], SUBSTACK: [2, 'again']}),
+        less: block('operator_lt', {OPERAND1: [3, [12, 'count', 'count'], [10, '']], OPERAND2: text(3)}, {}, {
+            parent: 'check'
+        }),
+        again: block('event_broadcast', {BROADCAST_INPUT: [1, [11, 'go', 'go']]}),
+        finish: changeBy('finished', 1)
+    }, 'hat', 'change', 'check', 'finish'), 'check', 'again')
+});
+
+test('a script that broadcasts to itself restarts and each run still reaches its end', async () => {
+    const results = [];
+    for (const enabled of [true, false]) {
+        const vm = await load(selfBroadcast());
+        vm.setCompilerOptions({enabled});
+        broadcast(vm, 'go');
+        for (let i = 0; i < 6; i++) vm.runtime._step();
+        results.push({
+            count: valueOf(vm, 'count'),
+            finished: valueOf(vm, 'finished'),
+            threads: vm.runtime.threads.length
+        });
+    }
+
+    assert.deepStrictEqual(results[0], {count: 3, finished: 3, threads: 0});
+    assert.deepStrictEqual(results[1], results[0]);
+});
+
+test('broadcast and wait with a name read from a variable waits for that message', async () => {
+    const project = waiting();
+    project.targets[0].variables.which = ['which', 'WORK'];
+    project.targets[1].blocks.wait = block('event_broadcastandwait', {
+        BROADCAST_INPUT: [3, [12, 'which', 'which'], [11, 'start', 'start']]
+    }, {}, {next: 'set', parent: 'hat'});
+    const vm = await load(project);
+
+    broadcast(vm, 'start');
+    for (let i = 0; i < 2; i++) vm.runtime._step();
+    assert.strictEqual(valueOf(vm, 'finished'), 0);
+    for (let i = 0; i < 10; i++) vm.runtime._step();
+    assert.strictEqual(valueOf(vm, 'seen'), 3);
+    assert.strictEqual(valueOf(vm, 'finished'), 1);
+
+    targetNamed(vm, 'Stage').variables.which.value = 'nothing';
+    broadcast(vm, 'start');
+    vm.runtime._step();
+    assert.strictEqual(valueOf(vm, 'finished'), 2);
 });
