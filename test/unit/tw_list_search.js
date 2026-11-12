@@ -248,9 +248,11 @@ test('a list edited in place by other code is searched again', () => {
     const list = numbered(100);
     for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
     assert.ok(list._searchIndex.numbers);
+    list._monitorUpToDate = 3;
     list.value[5] = 'zzz';
     listsMayHaveChanged();
     assert.strictEqual(listFind(list, 'zzz'), 5);
+    assert.strictEqual(list._monitorUpToDate, 2, 'the monitor is told the list changed');
     assert.strictEqual(listFind(list, 5), -1);
     list.value.splice(0, 0, 'first');
     listsMayHaveChanged();
@@ -267,9 +269,9 @@ test('an unchanged list keeps its index after other code has run', () => {
     for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
     const numbers = list._searchIndex.numbers;
     assert.ok(numbers);
-    for (let round = 0; round < 20; round++) {
+    for (let round = 0; round < 200; round++) {
         listsMayHaveChanged();
-        expectFind(list, 98, 'after other code');
+        for (let i = 0; i < 5; i++) expectFind(list, 98 - i, 'after other code');
     }
     assert.strictEqual(list._searchIndex.numbers, numbers);
 });
@@ -311,7 +313,70 @@ test('two lists that share one array are searched without an index', () => {
     assert.strictEqual(listFind(first, 99, thread), 100);
 });
 
-const searchProject = () => {
+test('a search between calls to other code does not build an index it cannot keep', () => {
+    const list = numbered(2000);
+    for (let i = 0; i < 400; i++) {
+        listsMayHaveChanged();
+        assert.strictEqual(listFind(list, 1999), 1999);
+    }
+    assert.strictEqual(list._searchIndex.numbers, null);
+    for (let i = 0; i < 400; i++) assert.strictEqual(listFind(list, 1999), 1999);
+    assert.ok(list._searchIndex.numbers, 'searches without other code in between build the index');
+});
+
+test('compiled delete all drops the index', () => {
+    const listDelete = jsexecute.scopedEval('listDelete');
+    const list = numbered(100);
+    for (let i = 0; i < 40; i++) expectFind(list, 99, 'warm up');
+    assert.ok(list._searchIndex.numbers);
+    listDelete(list, 'all');
+    assert.strictEqual(list._searchIndex, null);
+    assert.deepStrictEqual(list.value, []);
+});
+
+const POKES = {
+    'a compatibility layer block': {
+        block: {opcode: 'sensing_testpoke'},
+        install: (vm, poke) => {
+            vm.runtime._primitives.sensing_testpoke = poke;
+        }
+    },
+    'an addon block': {
+        block: {opcode: 'procedures_call', mutation: {tagName: 'mutation', children: [], proccode: 'poke',
+            argumentids: '[]', warp: 'false'}},
+        install: (vm, poke) => {
+            vm.runtime.addAddonBlock({procedureCode: 'poke', arguments: [], callback: poke, hidden: true});
+        }
+    },
+    'an addon block that never yields': {
+        block: {opcode: 'procedures_call', mutation: {tagName: 'mutation', children: [], proccode: 'poke',
+            argumentids: '[]', warp: 'false'}},
+        install: (vm, poke) => {
+            vm.runtime.addAddonBlock({procedureCode: 'poke', arguments: [], callback: poke, hidden: true,
+                yields: false});
+        }
+    },
+    'a raw patch': {
+        block: {opcode: 'mistsutils_patchcommand', inputs: {A: [1, [10, 'stage.variables.L.value[5] = "zzz";']]}},
+        prepare: vm => {
+            vm.securityManager.canLoadExtensionFromProject = () => true;
+        },
+        install: () => {}
+    },
+    'a listener for an event a block fires': {
+        block: {opcode: 'looks_say', inputs: {MESSAGE: [1, [10, 'hi']]}},
+        install: (vm, poke) => {
+            vm.runtime.on('SAY', poke);
+        }
+    },
+    'code that runs between two rounds of stepping': {
+        block: {opcode: 'control_wait', inputs: {DURATION: [1, [5, '0']]}, next: 'again'},
+        install: () => {},
+        betweenSteps: true
+    }
+};
+
+const searchProject = pokeBlock => {
     const blocks = {};
     const add = (id, block) => {
         blocks[id] = Object.assign({next: null, parent: null, inputs: {}, fields: {}, shadow: false,
@@ -326,7 +391,10 @@ const searchProject = () => {
     add('warm', {opcode: 'control_repeat', inputs: {TIMES: [1, [6, '40']], SUBSTACK: [2, 'warmSet']},
         next: 'poke'});
     set('warmSet', 'before', itemNumber('warmFind', 'zzz'));
-    add('poke', {opcode: 'sensing_testpoke', next: 'afterNew'});
+    add('poke', Object.assign({next: 'afterNew'}, pokeBlock));
+    set('again', 'before', itemNumber('findAgain', 'zzz'));
+    blocks.again.next = 'pause';
+    add('pause', {opcode: 'control_wait', inputs: {DURATION: [1, [5, '0']]}, next: 'afterNew'});
     set('afterNew', 'new', itemNumber('findNew', 'zzz'));
     blocks.afterNew.next = 'afterOld';
     set('afterOld', 'old', itemNumber('findOld', '5'));
@@ -347,25 +415,39 @@ const searchProject = () => {
     };
 };
 
-for (const compiler of [true, false]) {
-    test(`a block from an extension that edits a list in place is seen by the next search (${
-        compiler ? 'compiled' : 'interpreted'})`, async () => {
+for (const [name, poke] of Object.entries(POKES)) {
+    test(`a list edited in place by ${name} is searched again`, async () => {
         const vm = new VirtualMachine();
-        vm.setCompilerOptions({enabled: compiler});
-        await vm.loadProject(searchProject());
+        vm.setCompilerOptions({enabled: true});
+        if (poke.prepare) poke.prepare(vm);
+        await vm.loadProject(searchProject(poke.block));
         const stage = vm.runtime.getTargetForStage();
         const list = stage.variables.L;
-        vm.runtime._primitives.sensing_testpoke = () => {
+        const edit = () => {
             list.value[5] = 'zzz';
         };
-        vm.setTurboMode(true);
+        poke.install(vm, edit);
+        vm.setTurboMode(!poke.betweenSteps);
         vm.greenFlag();
-        for (let step = 0; step < 50 && vm.runtime.threads.length; step++) vm.runtime._step();
+        if (poke.betweenSteps) {
+            const stepThreads = () => {
+                vm.runtime.redrawRequested = false;
+                vm.runtime.sequencer.stepThreads();
+            };
+            vm.runtime._step();
+            stepThreads();
+            assert.strictEqual(vm.runtime.threads.length, 1, 'the script is waiting');
+            assert.ok(list._searchIndex && list._searchIndex.numbers, 'the index was built before the edit');
+            edit();
+            for (let step = 0; step < 50 && vm.runtime.threads.length; step++) stepThreads();
+        } else {
+            for (let step = 0; step < 50 && vm.runtime.threads.length; step++) vm.runtime._step();
+        }
         assert.strictEqual(vm.runtime.threads.length, 0);
+        assert.ok(vm.runtime.threads.length === 0 && list._searchIndex, 'the search never used the index path');
         assert.strictEqual(String(stage.variables.before.value), '0');
         assert.strictEqual(String(stage.variables.new.value), '6');
         assert.strictEqual(String(stage.variables.old.value), '0');
-        if (compiler) assert.ok(list._searchIndex, 'the search never used the index path');
 
         list.value[9] = 'between';
         assert.strictEqual(vm.setVariableValue(stage.id, 'L', list.value), true);

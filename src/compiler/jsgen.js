@@ -446,10 +446,11 @@ class JSGenerator {
             return expression(this.generateCompatibilityLayerCall(node, false), Precedence.YIELD);
 
         case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
-            return foreign(this.oldCompilerStub.descendInputFromNewCompiler(block));
+            return foreign(`(globalState.listsMayHaveChanged(), ${
+                this.oldCompilerStub.descendInputFromNewCompiler(block)})`);
 
         case InputOpcode.EXTENSION:
-            return foreign(this.generateExtensionCompilerSource(node));
+            return foreign(`(globalState.listsMayHaveChanged(), ${this.generateExtensionCompilerSource(node)})`);
 
         case InputOpcode.RAW_SOURCE: {
             // Parenthesized so casts and operators cannot rebind the spliced expression.
@@ -831,11 +832,11 @@ class JSGenerator {
         }
 
         case StackOpcode.EXTENSION:
-            this.source += `{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
+            this.source += `globalState.listsMayHaveChanged();\n{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
             break;
 
         case StackOpcode.EXTENSION_CONTROL:
-            this.source += `{\n${this.generateExtensionControlSource(node)}\n}\n`;
+            this.source += `globalState.listsMayHaveChanged();\n{\n${this.generateExtensionControlSource(node)}\n}\n`;
             break;
 
         case StackOpcode.RAW_SOURCE:
@@ -876,6 +877,7 @@ class JSGenerator {
         }
 
         case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
+            this.source += 'globalState.listsMayHaveChanged();\n';
             return this.oldCompilerStub.descendStackedBlockFromNewCompiler(block);
 
         case StackOpcode.HAT_EDGE:
@@ -1858,6 +1860,7 @@ class JSGenerator {
      * @returns {string} JavaScript source.
      */
     generateRawSource (fragments) {
+        this.target.runtime.compiledRawSource = true;
         return fragments.map(fragment => {
             if (fragment.opcode === InputOpcode.CONSTANT) return `${fragment.inputs.value}`;
             if (fragment.opcode === InputOpcode.RAW_SOURCE) return this.generateRawSource(fragment.inputs.fragments);

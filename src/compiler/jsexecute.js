@@ -533,10 +533,12 @@ runtimeFunctions.listDelete = `const listDelete = (list, idx) => {
  * @returns {boolean} True if the list contains the item
  */
 runtimeFunctions.listContains = `const listContains = (list, item) => {
-    if (globalState.thread.target.runtime.runtimeOptions.caseSensitiveLists) {
+    const runtime = globalState.thread.target.runtime;
+    if (runtime.runtimeOptions.caseSensitiveLists) {
         return list.value.indexOf(item) !== -1;
     }
     if (list.value.length < 32 && list.value.indexOf(item) !== -1) return true;
+    if (runtime.compiledRawSource) globalState.listsMayHaveChanged();
     return globalState.listFind(list, item, globalState.thread) !== -1;
 }`;
 
@@ -547,9 +549,11 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
  * @returns {number} The 1-indexed index of the item in the list, otherwise 0
  */
 runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
-    if (globalState.thread.target.runtime.runtimeOptions.caseSensitiveLists) {
+    const runtime = globalState.thread.target.runtime;
+    if (runtime.runtimeOptions.caseSensitiveLists) {
         return list.value.indexOf(item) + 1;
     }
+    if (runtime.compiledRawSource) globalState.listsMayHaveChanged();
     return globalState.listFind(list, item, globalState.thread) + 1;
 }`;
 

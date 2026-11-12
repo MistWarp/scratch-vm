@@ -502,3 +502,30 @@ for (const compile of [true, false]) {
         }
     });
 }
+
+const runUnknownTopBlock = async (name, compile) => {
+    const project = unknownBlockProject('nothinghere');
+    const blocks = project.targets[0].blocks;
+    blocks.flag.opcode = name;
+    const vm = new VirtualMachine();
+    vm.setCompilerOptions({enabled: compile});
+    let compileErrors = 0;
+    vm.on('COMPILE_ERROR', () => {
+        compileErrors++;
+    });
+    await vm.loadProject(project);
+    vm.runtime.toggleScript('flag');
+    for (let step = 0; step < 100 && vm.runtime.threads.length !== 0; step++) vm.runtime._step();
+    assert.strictEqual(vm.runtime.threads.length, 0, `${name}: the script did not finish`);
+    return `${vm.runtime.getTargetForStage().variables.v.value} after ${compileErrors} compile errors`;
+};
+
+for (const compile of [true, false]) {
+    test(`a script that starts with a block named after a member of Object is not a hat (${
+        compile ? 'compiled' : 'interpreted'})`, async () => {
+        const expected = await runUnknownTopBlock('nothingeither', compile);
+        for (const name of ['valueOf', 'hasOwnProperty', 'toString', 'constructor']) {
+            assert.strictEqual(await runUnknownTopBlock(name, compile), expected, name);
+        }
+    });
+}
