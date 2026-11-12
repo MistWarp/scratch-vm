@@ -597,6 +597,15 @@ runtimeFunctions.mod = `const mod = (n, modulus) => {
 
 runtimeFunctions.modP2 = `const modP2 = (n, modulus) => n - (Math.floor(n / modulus) * modulus)`;
 
+const roundTrigBody = `const scaled = (value + 0) * 1e10;
+    const rounded = Math.round(scaled);
+    if (Math.abs(rounded - scaled) < 0.4999 && Math.abs(scaled) < 8e11) return rounded / 1e10;
+    return parseFloat(value.toFixed(10));`;
+
+runtimeFunctions.roundTrig = `const roundTrig = value => {
+    ${roundTrigBody}
+}`;
+
 /**
  * Implements Scratch tangent.
  * @param {number} angle Angle in degrees.
@@ -608,7 +617,8 @@ runtimeFunctions.tan = `const tan = (angle) => {
     case -270: case 90: return Infinity;
     case -90: case 270: return -Infinity;
     }
-    return Math.round((Math.tan((Math.PI * angle) / 180) + 0) * 1e10) / 1e10;
+    const value = Math.tan((Math.PI * angle) / 180);
+    ${roundTrigBody}
 }`;
 
 runtimeFunctions.tfBase = `const tfBaseChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

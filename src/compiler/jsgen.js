@@ -552,10 +552,7 @@ class JSGenerator {
                 Precedence.EQUALITY
             );
         case InputOpcode.OP_COS:
-            return expression(
-                `Math.round(Math.cos(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) * 1e10) / 1e10`,
-                Precedence.MULTIPLICATIVE
-            );
+            return primary(`roundTrig(Math.cos(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180))`);
         case InputOpcode.OP_DIVIDE:
             return binary(at(node.left, Precedence.MULTIPLICATIVE), '/', at(node.right, Precedence.EXPONENT), Precedence.MULTIPLICATIVE);
         case InputOpcode.OP_EQUALS: {
@@ -686,10 +683,7 @@ class JSGenerator {
         case InputOpcode.OP_ROUND:
             return primary(`Math.round(${argument(node.value)})`);
         case InputOpcode.OP_SIN:
-            return expression(
-                `Math.round((Math.sin(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) + 0) * 1e10) / 1e10`,
-                Precedence.MULTIPLICATIVE
-            );
+            return primary(`roundTrig(Math.sin(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180))`);
         case InputOpcode.OP_SQRT:
             return primary(`Math.sqrt(${argument(node.value)})`);
         case InputOpcode.OP_SUBTRACT:

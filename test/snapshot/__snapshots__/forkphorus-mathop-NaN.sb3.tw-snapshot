@@ -10,10 +10,10 @@ var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 8", target);
 b0.value = Infinity;
 runtime.ext_scratch3_looks._say("pass", target);
-if (10 + ((a0 = Math.round((Math.sin(Math.PI * b0.value / 180) + 0) * 1e10) / 1e10) === a0 ? a0 : 0) === 10) {
+if (10 + ((a0 = roundTrig(Math.sin(Math.PI * b0.value / 180))) === a0 ? a0 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-if (10 + ((a1 = Math.round(Math.cos(Math.PI * b0.value / 180) * 1e10) / 1e10) === a1 ? a1 : 0) === 10) {
+if (10 + ((a1 = roundTrig(Math.cos(Math.PI * b0.value / 180))) === a1 ? a1 : 0) === 10) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (10 + ((a2 = tan(b0.value)) === a2 ? a2 : 0) === 10) {

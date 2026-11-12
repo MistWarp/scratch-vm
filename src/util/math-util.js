@@ -44,6 +44,12 @@ class MathUtil {
         return n - (Math.floor((n - min) / range) * range);
     }
 
+    static roundTrig (value) {
+        const scaled = (value + 0) * 1e10;
+        const rounded = Math.round(scaled);
+        if (Math.abs(rounded - scaled) < 0.4999 && Math.abs(scaled) < 8e11) return rounded / 1e10;
+        return parseFloat(value.toFixed(10));
+    }
 
     /**
      * Convert a value from tan function in degrees.
@@ -60,7 +66,7 @@ class MathUtil {
         case 270:
             return -Infinity;
         default:
-            return Math.round((Math.tan((Math.PI * angle) / 180) + 0) * 1e10) / 1e10;
+            return MathUtil.roundTrig(Math.tan((Math.PI * angle) / 180));
         }
     }
 
