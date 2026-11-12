@@ -293,7 +293,7 @@ b1._monitorUpToDate = false;
 if (isStuck()) yield;
 }
 b2.value = a8 = "" + b2.value + listContents(b1);
-b2.value = a8 + p2;
+b2.value = a8 + a2;
 b1.value = [];
 b1._searchIndex = null;
 }

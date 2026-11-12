@@ -297,7 +297,7 @@ b1.value.pop();
 b1._monitorUpToDate = false;
 }
 a4 = a4 + listContents(b1);
-a4 = a4 + p2;
+a4 = a4 + a2;
 b1.value = [];
 b1._searchIndex = null;
 }

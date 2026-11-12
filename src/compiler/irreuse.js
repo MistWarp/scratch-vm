@@ -364,9 +364,23 @@ class ValueReuse {
         this.state = outer;
     }
 
+    walkSwitch (stack) {
+        const outer = this.state;
+        for (const block of stack.blocks) {
+            this.state = {variables: new Map(), arguments: new Map(outer.arguments), dead: false};
+            this.walkBlock(block);
+        }
+        this.state = outer;
+    }
+
     walkOpaque (block) {
         this.state.variables.clear();
-        this.visitValue(block.inputs, OPAQUE, 0);
+        if (block.opcode === StackOpcode.CONTROL_SWITCH && block.inputs.do instanceof IntermediateStack) {
+            this.visitValue(block.inputs.value, OPAQUE, 0);
+            this.walkSwitch(block.inputs.do);
+        } else {
+            this.visitValue(block.inputs, OPAQUE, 0);
+        }
         this.state.variables.clear();
         this.state.arguments.clear();
     }

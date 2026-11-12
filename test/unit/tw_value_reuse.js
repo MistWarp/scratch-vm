@@ -65,6 +65,7 @@ const builder = () => {
         deleteItem: index => add({opcode: 'data_deleteoflist', inputs: inputs({INDEX: index}), fields: list}),
         deleteAll: () => add({opcode: 'data_deletealloflist', fields: list}),
         resetTimer: () => add({opcode: 'sensing_resettimer'}),
+        wait: seconds => add({opcode: 'control_wait', inputs: inputs({DURATION: seconds})}),
         goTo: (x, y) => add({opcode: 'motion_gotoxy', inputs: inputs({X: x, Y: y})}),
         changeX: value => add({opcode: 'motion_changexby', inputs: inputs({DX: value})}),
         setY: value => add({opcode: 'motion_sety', inputs: inputs({Y: value})}),
@@ -87,7 +88,11 @@ const builder = () => {
         item: index => add({opcode: 'data_itemoflist', inputs: inputs({INDEX: index}), fields: list}),
         length: () => add({opcode: 'data_lengthoflist', fields: list}),
         x: () => add({opcode: 'motion_xposition'}),
-        argument: name => add({opcode: 'argument_reporter_string_number', fields: {VALUE: [name, null]}})
+        argument: name => add({opcode: 'argument_reporter_string_number', fields: {VALUE: [name, null]}}),
+        switchOn: (value, children) => add({opcode: 'control_switch', inputs: {VALUE: input(value),
+            SUBSTACK: substack(children)}}),
+        caseOf: (value, body) => add({opcode: 'control_case', inputs: {VALUE: input(value),
+            SUBSTACK: substack(body)}})
     };
     const define = (procedure, body) => {
         const prototype = add({opcode: 'procedures_prototype', shadow: true,
@@ -276,6 +281,19 @@ test('a loop that yields reloads variables another script changes', async () => 
     assert.deepStrictEqual([state.t, state.i], ['30', '12']);
 });
 
+test('a value read by a block that waits is read again after it', async () => {
+    const {state} = await check('waits', ({b, whenFlagClicked}) => {
+        whenFlagClicked([
+            b.wait(b.op('operator_multiply', '$s', '$s')),
+            b.set('t', b.op('operator_add', '$s', '$s')),
+            b.wait(b.op('operator_subtract', '$s', '$s')),
+            b.set('i', b.op('operator_add', '$s', '$s'))
+        ]);
+        whenFlagClicked([b.repeat(8, [b.change('s', 1)])]);
+    });
+    assert.deepStrictEqual([state.t, state.i], ['2', '4']);
+});
+
 test('a script that calls itself without warp sees what other scripts wrote', async () => {
     const procedure = noWarp('p', ['a']);
     const {state} = await check('recursion', ({b, define, whenFlagClicked}) => {
@@ -346,6 +364,101 @@ test('chains of equality checks still compile to a switch', async () => {
     assert.match(second.source, /switch \(a\d+\) \{/);
     const none = await check('switch default', inProcedure(procedure, [7], body));
     assert.deepStrictEqual([none.state.i, none.state.t], ['14', '21']);
+});
+
+test('a value from between the cases of a switch is not reused in a later case', async () => {
+    const procedure = warp('p', ['a']);
+    const project = builder();
+    const {b, define, whenFlagClicked} = project;
+    define(procedure, [
+        b.switchOn('"2', [
+            b.caseOf('"1', [b.set('k', 1)]),
+            b.set('t', b.op('operator_add', b.argument('a'), b.argument('a'))),
+            b.caseOf('"2', [b.set('i', b.op('operator_add', b.argument('a'), 100))])
+        ]),
+        b.set('x', b.op('operator_add', b.argument('a'), b.argument('a')))
+    ]);
+    whenFlagClicked([b.call(procedure, [5])]);
+    const {state, source} = await run(project.blocks, true);
+    assert.deepStrictEqual([state.k, state.i, state.x], ['0', '105', '10']);
+    assert.strictEqual(count(source, /\+p0/g), 3);
+});
+
+test('a loop that keeps a variable in a local starts from the value already loaded', async () => {
+    const {state, source} = await check('handoff', inProcedure(warp('p'), [], b => [
+        b.set('s', 3),
+        b.resetTimer(),
+        b.repeat(4, [b.change('i', b.op('operator_multiply', '$s', '$s'))]),
+        b.set('k', b.op('operator_add', '$s', '$s'))
+    ]));
+    assert.deepStrictEqual([state.i, state.k], ['36', '6']);
+    assert.match(source, /^(a\d+) = b0\.value;\n\{\n(?:let a\d+ = b\d+\.value;\n)*let a\d+ = \1;$/m);
+    assert.strictEqual(count(source, /= b0\.value;/g), 1);
+});
+
+test('a value is loaded before the outermost loop that does not write it', async () => {
+    const {state, source} = await check('nested', inProcedure(warp('p'), [], b => [
+        b.set('s', 3),
+        b.set('t', 0),
+        b.resetTimer(),
+        b.repeat(3, [
+            b.change('t', 1),
+            b.repeat(2, [
+                b.goTo(b.op('operator_multiply', '$s', '$t'), '$s'),
+                b.addToList(b.op('operator_add', b.op('operator_add', '$s', '$t'), b.length()))
+            ])
+        ])
+    ]));
+    assert.deepStrictEqual(state.L, ['4', '5', '7', '8', '10', '11']);
+    assert.deepStrictEqual(state.position, ['9', '3', '90']);
+    const outer = source.indexOf('for (var');
+    const inner = source.lastIndexOf('for (var');
+    const load = source.search(LOADED_VARIABLE);
+    assert.ok(load !== -1 && load < outer, 'the load is not before the outer loop');
+    assert.match(source.slice(outer, inner), FORWARDED_STORE);
+    assert.doesNotMatch(source.slice(inner), /b[01]\.value/);
+});
+
+test('the condition of a repeat until reuses a value the loop does not write', async () => {
+    const {state, source} = await check('until', inProcedure(warp('p'), [], b => [
+        b.set('s', 3),
+        b.set('c0', 0),
+        b.resetTimer(),
+        b.until(b.gt('$c0', '$s'), [
+            b.goTo('$c0', '$s'),
+            b.addToList(b.op('operator_add', '$s', '$c0')),
+            b.change('c0', 1)
+        ])
+    ]));
+    assert.deepStrictEqual(state.L, ['3', '4', '5', '6']);
+    assert.match(source, /^a\d+ = b0\.value;\nwhile \(!\(b1\.value > a\d+\)\) \{$/m);
+});
+
+test('a variable only one branch writes is read again after the branches', async () => {
+    const procedure = warp('p', ['a']);
+    const body = b => [
+        b.set('s', 4),
+        b.either(b.gt(b.argument('a'), 0),
+            [b.set('s', b.op('operator_add', '$s', 1))],
+            [b.set('t', b.op('operator_add', '$s', '$s'))]),
+        b.set('i', b.op('operator_multiply', '$s', '$s'))
+    ];
+    const written = await check('written', inProcedure(procedure, [1], body));
+    assert.deepStrictEqual([written.state.s, written.state.t, written.state.i], ['5', '0', '25']);
+    const kept = await check('kept', inProcedure(procedure, [0], body));
+    assert.deepStrictEqual([kept.state.s, kept.state.t, kept.state.i], ['4', '8', '16']);
+});
+
+test('joining a text that was already made does not make it twice', async () => {
+    const procedure = warp('p', ['a']);
+    const {state, source} = await check('join', inProcedure(procedure, [2.5], b => [
+        b.set('t', b.join('"x', b.argument('a'))),
+        b.set('i', b.join('"y', b.argument('a'))),
+        b.set('k', b.join(b.argument('a'), b.argument('a')))
+    ]));
+    assert.deepStrictEqual([state.t, state.i, state.k], ['x2.5', 'y2.5', '2.52.5']);
+    assert.strictEqual(count(source, /"" \+ p0/g), 1);
+    assert.strictEqual(count(source, /^a\d+ = /gm), 1);
 });
 
 const random = seed => () => {

@@ -604,7 +604,7 @@ class JSGenerator {
         }
         case InputOpcode.OP_JOIN: {
             // The left side is already a string, so + stringifies the right side exactly like "" + x would.
-            const right = node.right.opcode === InputOpcode.CAST_STRING ? node.right.inputs.target : node.right;
+            const right = node.right.opcode === InputOpcode.CAST_STRING && !node.right.reuse ? node.right.inputs.target : node.right;
             return binary(at(node.left, Precedence.ADDITIVE), '+', at(right, Precedence.MULTIPLICATIVE), Precedence.ADDITIVE);
         }
         case InputOpcode.OP_LENGTH:
