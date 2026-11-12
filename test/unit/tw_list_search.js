@@ -334,6 +334,106 @@ test('compiled delete all drops the index', () => {
     assert.deepStrictEqual(list.value, []);
 });
 
+const EDIT = 'stage.variables.L.value[5] = "zzz"';
+
+class Editor {
+    getInfo () {
+        return {
+            id: 'editor',
+            name: 'Editor',
+            blocks: [
+                {opcode: 'edit', blockType: 'command', text: 'edit', arguments: {}, compFunc: 'compileEdit'},
+                {opcode: 'edited', blockType: 'reporter', text: 'edited', arguments: {},
+                    compFunc: 'compileEdited'},
+                {opcode: 'twice', blockType: 'loop', text: 'twice', arguments: {}, compFunc: 'compileTwice'},
+                {opcode: 'never', blockType: 'conditional', text: 'never', arguments: {},
+                    compFunc: 'compileEdit'},
+                {opcode: 'around', blockType: 'command', text: 'around [FIND]',
+                    arguments: {FIND: {type: 'string'}}, compFunc: 'compileAround'}
+            ]
+        };
+    }
+    compileEdit () {
+        return `${EDIT};`;
+    }
+    compileEdited () {
+        return `(${EDIT})`;
+    }
+    compileTwice (args, {branch}) {
+        return `for (let pass = 0; pass < 2; pass++) {\nif (pass) ${EDIT};\n${branch(1)}}`;
+    }
+    compileAround (args) {
+        return `stage.variables.before.value = ${args.FIND};\n${EDIT};\n` +
+            `stage.variables.before.value = ${args.FIND};`;
+    }
+    edit () {}
+    edited () {
+        return '';
+    }
+    twice () {}
+    never () {}
+    around () {}
+}
+
+const useEditor = vm => {
+    vm.extensionManager.addBuiltinExtension('editor', Editor);
+    return () => {};
+};
+
+const useOldCompiler = vm => {
+    const compatibility = require('../../src/compiler/old-compiler-compatibility');
+    const {ScriptTreeGenerator, JSGenerator} = vm.exports.i_will_not_ask_for_help_when_these_break();
+    const {Frame} = JSGenerator.unstable_exports;
+    const tree = ScriptTreeGenerator.prototype;
+    const generator = JSGenerator.prototype;
+    const original = {
+        treeStack: tree.descendStackedBlock,
+        treeInput: tree.descendInput,
+        stack: generator.descendStackedBlock,
+        input: generator.descendInput
+    };
+    tree.descendStackedBlock = function (block) {
+        if (block.opcode === 'sensing_oldedit') return {kind: 'test.edit'};
+        if (block.opcode === 'sensing_oldtwice') {
+            return {kind: 'test.twice', body: this.descendSubstack(block, 'SUBSTACK')};
+        }
+        if (block.opcode === 'sensing_oldaround') {
+            return {kind: 'test.around', find: this.descendInputOfBlock(block, 'FIND')};
+        }
+        return original.treeStack.call(this, block);
+    };
+    tree.descendInput = function (block) {
+        if (block.opcode === 'sensing_oldedited') return {kind: 'test.edited'};
+        return original.treeInput.call(this, block);
+    };
+    generator.descendStackedBlock = function (node) {
+        if (node.kind === 'test.edit') {
+            this.source += `${EDIT};\n`;
+        } else if (node.kind === 'test.twice') {
+            this.source += `for (let pass = 0; pass < 2; pass++) {\nif (pass) ${EDIT};\n`;
+            this.descendStack(node.body, new Frame(false));
+            this.source += '}\n';
+        } else if (node.kind === 'test.around') {
+            this.source += `stage.variables.before.value = ${this.descendInput(node.find).asUnknown()};\n`;
+            this.source += `${EDIT};\n`;
+            this.source += `stage.variables.before.value = ${this.descendInput(node.find).asUnknown()};\n`;
+        } else {
+            original.stack.call(this, node);
+        }
+    };
+    generator.descendInput = function (node) {
+        if (node.kind === 'test.edited') return new JSGenerator.unstable_exports.TypedInput(`(${EDIT})`, 2);
+        return original.input.call(this, node);
+    };
+    return () => {
+        tree.descendStackedBlock = original.treeStack;
+        tree.descendInput = original.treeInput;
+        generator.descendStackedBlock = original.stack;
+        generator.descendInput = original.input;
+        compatibility.enabled = false;
+    };
+};
+
 const POKES = {
     'a compatibility layer block': {
         block: {opcode: 'sensing_testpoke'},
@@ -373,10 +473,67 @@ const POKES = {
         block: {opcode: 'control_wait', inputs: {DURATION: [1, [5, '0']]}, next: 'again'},
         install: () => {},
         betweenSteps: true
+    },
+    'the source an extension compiles for a command': {
+        block: {opcode: 'editor_edit'},
+        prepare: useEditor,
+        install: () => {}
+    },
+    'the source an extension compiles for a reporter': {
+        block: {opcode: 'data_setvariableto', inputs: {VALUE: [3, 'edited', [10, '']]},
+            fields: {VARIABLE: ['old', 'old']}},
+        extra: ({add}) => add('edited', {opcode: 'editor_edited'}),
+        prepare: useEditor,
+        install: () => {}
+    },
+    'the source an extension compiles around its branch': {
+        block: {opcode: 'editor_twice', inputs: {SUBSTACK: [2, 'inside']}},
+        extra: ({set, itemNumber}) => set('inside', 'before', itemNumber('insideFind', 'zzz')),
+        prepare: useEditor,
+        install: () => {},
+        before: '6'
+    },
+    'the source an extension compiles for a block with no branch': {
+        block: {opcode: 'editor_never'},
+        prepare: useEditor,
+        install: () => {}
+    },
+    'the source an extension compiles around its input': {
+        block: {opcode: 'editor_around', inputs: {FIND: [3, 'aroundFind', [10, '']]}},
+        extra: ({itemNumber}) => itemNumber('aroundFind', 'zzz'),
+        prepare: useEditor,
+        install: () => {},
+        before: '6'
+    },
+    'a command compiled through the old compiler API': {
+        block: {opcode: 'sensing_oldedit'},
+        prepare: useOldCompiler,
+        install: () => {}
+    },
+    'a reporter compiled through the old compiler API': {
+        block: {opcode: 'data_setvariableto', inputs: {VALUE: [3, 'edited', [10, '']]},
+            fields: {VARIABLE: ['old', 'old']}},
+        extra: ({add}) => add('edited', {opcode: 'sensing_oldedited'}),
+        prepare: useOldCompiler,
+        install: () => {}
+    },
+    'old compiler API source around its branch': {
+        block: {opcode: 'sensing_oldtwice', inputs: {SUBSTACK: [2, 'inside']}},
+        extra: ({set, itemNumber}) => set('inside', 'before', itemNumber('insideFind', 'zzz')),
+        prepare: useOldCompiler,
+        install: () => {},
+        before: '6'
+    },
+    'old compiler API source around its input': {
+        block: {opcode: 'sensing_oldaround', inputs: {FIND: [3, 'aroundFind', [10, '']]}},
+        extra: ({itemNumber}) => itemNumber('aroundFind', 'zzz'),
+        prepare: useOldCompiler,
+        install: () => {},
+        before: '6'
     }
 };
 
-const searchProject = pokeBlock => {
+const searchProject = (pokeBlock, extra, extensions) => {
     const blocks = {};
     const add = (id, block) => {
         blocks[id] = Object.assign({next: null, parent: null, inputs: {}, fields: {}, shadow: false,
@@ -392,6 +549,7 @@ const searchProject = pokeBlock => {
         next: 'poke'});
     set('warmSet', 'before', itemNumber('warmFind', 'zzz'));
     add('poke', Object.assign({next: 'afterNew'}, pokeBlock));
+    if (extra) extra({add, set, itemNumber});
     set('again', 'before', itemNumber('findAgain', 'zzz'));
     blocks.again.next = 'pause';
     add('pause', {opcode: 'control_wait', inputs: {DURATION: [1, [5, '0']]}, next: 'afterNew'});
@@ -410,7 +568,7 @@ const searchProject = pokeBlock => {
                 direction: 90, draggable: false, rotationStyle: 'all around', variables: {}, lists: {}}
         ],
         monitors: [],
-        extensions: [],
+        extensions: extensions || [],
         meta: {semver: '3.0.0', vm: '3.0.0', agent: ''}
     };
 };
@@ -419,8 +577,9 @@ for (const [name, poke] of Object.entries(POKES)) {
     test(`a list edited in place by ${name} is searched again`, async () => {
         const vm = new VirtualMachine();
         vm.setCompilerOptions({enabled: true});
-        if (poke.prepare) poke.prepare(vm);
-        await vm.loadProject(searchProject(poke.block));
+        const restore = poke.prepare ? poke.prepare(vm) : null;
+        await vm.loadProject(searchProject(poke.block, poke.extra,
+            poke.prepare === useEditor ? ['editor'] : []));
         const stage = vm.runtime.getTargetForStage();
         const list = stage.variables.L;
         const edit = () => {
@@ -445,7 +604,8 @@ for (const [name, poke] of Object.entries(POKES)) {
         }
         assert.strictEqual(vm.runtime.threads.length, 0);
         assert.ok(vm.runtime.threads.length === 0 && list._searchIndex, 'the search never used the index path');
-        assert.strictEqual(String(stage.variables.before.value), '0');
+        if (restore) restore();
+        assert.strictEqual(String(stage.variables.before.value), poke.before || '0');
         assert.strictEqual(String(stage.variables.new.value), '6');
         assert.strictEqual(String(stage.variables.old.value), '0');
 

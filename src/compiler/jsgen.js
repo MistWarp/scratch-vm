@@ -190,6 +190,18 @@ const numberLiteral = value => {
  * @param {string} js
  * @returns {Expression}
  */
+const SEARCHING_INPUTS = new Set([
+    InputOpcode.LIST_CONTAINS,
+    InputOpcode.LIST_INDEX_OF,
+    InputOpcode.PROCEDURE_CALL
+]);
+
+const mayRunListSearch = value => {
+    if (Array.isArray(value)) return value.some(mayRunListSearch);
+    if (!(value instanceof IntermediateInput)) return false;
+    return SEARCHING_INPUTS.has(value.opcode) || Object.values(value.inputs).some(mayRunListSearch);
+};
+
 const foreign = js => {
     let depth = 0;
     let quote = null;
@@ -1705,13 +1717,23 @@ class JSGenerator {
      * @param {*} node The extension node's inputs record.
      * @returns {{input: Function, field: Function}}
      */
+    descendForeignInput (input) {
+        const source = this.descendInput(input);
+        return mayRunListSearch(input) ? `(globalState.listsMayHaveChanged(), ${source})` : source;
+    }
+
+    descendForeignStack (stack, frame) {
+        this.source += 'globalState.listsMayHaveChanged();\n';
+        this.descendStack(stack, frame);
+    }
+
     createExtensionInputHelpers (node) {
         const getInput = (name, type) => {
             const value = node.inputs[name];
             if (!value) return '""';
             if (type === 'raw' && value.opcode === InputOpcode.CONSTANT) return `${value.inputs.value}`;
             const inputType = COMPILER_INPUT_TYPES[type];
-            return this.descendInput(inputType ? value.toType(inputType) : value);
+            return this.descendForeignInput(inputType ? value.toType(inputType) : value);
         };
         const input = name => getInput(name);
         input.raw = name => getInput(name, 'raw');
@@ -1800,7 +1822,7 @@ class JSGenerator {
             const savedSource = this.source;
             try {
                 this.source = '';
-                this.descendStack(stack, new Frame(Boolean(options && options.isLoop)));
+                this.descendForeignStack(stack, new Frame(Boolean(options && options.isLoop)));
                 return this.source;
             } finally {
                 this.source = savedSource;
