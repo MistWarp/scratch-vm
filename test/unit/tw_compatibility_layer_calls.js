@@ -29,7 +29,19 @@ const project = build => {
             fields: {VARIABLE: [name, name]}}),
         repeat: (times, body) => add({opcode: 'control_repeat', inputs: {TIMES: [1, [6, String(times)]],
             SUBSTACK: [2, chain(body)]}}),
-        text: value => [1, [10, value]]
+        text: value => [1, [10, value]],
+        reporter: id => [3, id, [10, '']],
+        warp: body => {
+            const proccode = `warp ${n}`;
+            const mutation = warp => ({tagName: 'mutation', children: [], proccode, argumentids: '[]',
+                argumentnames: '[]', argumentdefaults: '[]', warp});
+            const prototype = add({opcode: 'procedures_prototype', shadow: true, mutation: mutation('true')});
+            const definition = add({opcode: 'procedures_definition', topLevel: true, x: 0, y: 0,
+                inputs: {custom_block: [1, prototype]}});
+            blocks[prototype].parent = definition;
+            blocks[definition].next = chain(body);
+            return add({opcode: 'procedures_call', mutation: mutation('true')});
+        }
     };
     const body = build(tools);
     const hat = add({opcode: 'event_whenflagclicked', topLevel: true, x: 0, y: 0});
@@ -62,6 +74,12 @@ const run = async (build, primitives, compiler) => {
             return primitive(args, util);
         };
     }
+    const sequencer = vm.runtime.sequencer;
+    const stepThread = sequencer.stepThread;
+    sequencer.stepThread = thread => {
+        vm.runtime.redrawRequested = true;
+        return stepThread.call(sequencer, thread);
+    };
     let source = '';
     JSGenerator.testingApparatus = {report: (generator, generated) => {
         source += generated;
@@ -86,6 +104,7 @@ const both = async (build, primitives) => {
     const interpreted = await run(build, primitives, false);
     assert.deepStrictEqual(compiled.state, interpreted.state, 'compiled and interpreted results differ');
     assert.deepStrictEqual(compiled.calls, interpreted.calls, 'compiled and interpreted call counts differ');
+    assert.strictEqual(compiled.steps, interpreted.steps, 'compiled and interpreted step counts differ');
     return compiled;
 };
 
@@ -202,6 +221,21 @@ test('a waiting block at the end of a loop does not add a second pause', async (
     assert.strictEqual(calls.sensing_testpromise, 5);
 });
 
+test('a waiting block in the middle of a loop keeps the pause at the end', async () => {
+    const {state, calls} = await both(t => [
+        t.repeat(5, [
+            t.command('sensing_testpromise'),
+            t.change('count'),
+            t.command('sensing_testcommand')
+        ])
+    ], {
+        sensing_testpromise: () => () => Promise.resolve(),
+        sensing_testcommand: () => () => {}
+    });
+    assert.strictEqual(state.count, '5');
+    assert.deepStrictEqual(calls, {sensing_testpromise: 5, sensing_testcommand: 5});
+});
+
 test('inputs are passed to the block on every run', async () => {
     const received = [];
     const {state} = await both(t => [
@@ -221,6 +255,129 @@ test('inputs are passed to the block on every run', async () => {
     });
     assert.deepStrictEqual([state.a, state.b], ['first!', 'second!']);
     assert.deepStrictEqual(received.slice(0, 4), ['first', 'first', 'second', 'second']);
+});
+
+test('a block that yields inside a warp script runs again in the same step', async () => {
+    const frames = [];
+    const {state, calls, steps} = await both(t => [
+        t.warp([
+            t.repeat(3, [
+                t.command('sensing_testyield'),
+                t.change('count')
+            ])
+        ]),
+        t.change('count')
+    ], {
+        sensing_testyield: () => (args, util) => {
+            const frame = util.stackFrame;
+            frame.runs = (frame.runs || 0) + 1;
+            frames.push(frame.runs);
+            if (frame.runs < 3) util.yield();
+        }
+    });
+    assert.strictEqual(state.count, '4');
+    assert.strictEqual(calls.sensing_testyield, 9);
+    assert.deepStrictEqual(frames.slice(0, 9), [1, 2, 3, 1, 2, 3, 1, 2, 3]);
+    assert.strictEqual(steps, 1);
+});
+
+test('a stack frame first used on a later run is kept for the runs after it', async () => {
+    const seen = [];
+    const {calls} = await both(t => [
+        t.command('sensing_testlate'),
+        t.command('sensing_testlate')
+    ], {
+        sensing_testlate: () => {
+            let run = 0;
+            return (args, util) => {
+                run++;
+                if (run % 3 === 1) {
+                    util.yield();
+                    return;
+                }
+                if (run % 3 === 2) {
+                    seen.push(util.stackFrame.mark);
+                    util.stackFrame.mark = run;
+                    util.yield();
+                    return;
+                }
+                seen.push(util.stackFrame.mark);
+            };
+        }
+    });
+    assert.strictEqual(calls.sensing_testlate, 6);
+    assert.deepStrictEqual(seen.slice(0, 4), [undefined, 2, undefined, 5]);
+});
+
+test('a block that returns a promise and also yields waits for the promise', async () => {
+    const {state, calls} = await run(t => [
+        t.set('a', t.command('sensing_testboth')),
+        t.change('count')
+    ], {
+        sensing_testboth: () => (args, util) => {
+            util.yield();
+            return new Promise(resolve => setImmediate(() => resolve('both')));
+        }
+    }, true);
+    assert.deepStrictEqual([state.a, state.count], ['both', '1']);
+    assert.strictEqual(calls.sensing_testboth, 1);
+});
+
+test('a block whose promise rejects lets the script carry on', async () => {
+    const {state, calls} = await both(t => [
+        t.command('sensing_testreject'),
+        t.change('count'),
+        t.command('sensing_testreject'),
+        t.change('count')
+    ], {
+        sensing_testreject: () => () => new Promise((resolve, reject) => setImmediate(() => reject(new Error('no'))))
+    });
+    assert.strictEqual(state.count, '2');
+    assert.strictEqual(calls.sensing_testreject, 2);
+});
+
+test('a block that makes its thread wait is not run again', async () => {
+    const {state, calls} = await run(t => [
+        t.set('a', t.command('sensing_testhold')),
+        t.change('count')
+    ], {
+        sensing_testhold: () => (args, util) => {
+            const thread = util.thread;
+            thread.status = Thread.STATUS_PROMISE_WAIT;
+            setImmediate(() => {
+                thread.status = Thread.STATUS_RUNNING;
+            });
+            return 'ignored';
+        }
+    }, true);
+    assert.deepStrictEqual([state.a, state.count], ['', '1']);
+    assert.strictEqual(calls.sensing_testhold, 1);
+});
+
+test('a waiting block used as the input of another waiting block', async () => {
+    const {state, calls} = await run(t => [
+        t.set('a', t.command('sensing_testwrap', {
+            TEXT: t.reporter(t.command('sensing_testwrap', {TEXT: t.text('x')}))
+        })),
+        t.repeat(2, [
+            t.set('b', t.command('sensing_testwrap', {TEXT: t.text('y')}))
+        ])
+    ], {
+        sensing_testwrap: () => {
+            const waited = new Set();
+            return (args, util) => {
+                if (!waited.has(args.TEXT)) {
+                    waited.add(args.TEXT);
+                    util.yield();
+                    return '';
+                }
+                waited.delete(args.TEXT);
+                return `<${args.TEXT}>`;
+            };
+        }
+    }, true);
+    assert.deepStrictEqual([state.a, state.b], ['<<x>>', '<y>']);
+    assert.strictEqual(calls.sensing_testwrap, 8);
 });
 
 test('an addon block that waits is resumed', async () => {
