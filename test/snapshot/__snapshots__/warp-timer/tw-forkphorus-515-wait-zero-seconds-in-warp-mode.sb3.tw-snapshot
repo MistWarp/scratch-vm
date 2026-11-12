@@ -7,7 +7,7 @@ const b0 = runtime.getOpcodeFunction("sound_setvolumeto");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 checks.push(() => b0 === (runtime.getOpcodeFunction("sound_setvolumeto")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
-yield* executeInCompatibilityLayer({"VOLUME":0,}, b0, false, false, "d", null);
+if (executeInCompatibilityLayerNow({"VOLUME":0,}, b0, "d") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, false, false, "d");
 b1.value = 0;
 runtime.ext_scratch3_looks._say("plan 1", target);
 yield* procedures["Wno refresh"]();
@@ -36,8 +36,8 @@ while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
 }
 thread.timer = null;
-yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "m", null);
-yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "b", null);
+if (executeInCompatibilityLayerNow({"BEATS":0,}, b0, "m") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, true, false, "m");
+if (executeInCompatibilityLayerNow({"DRUM":1,"BEATS":0,}, b1, "b") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b1, true, false, "b");
 runtime.ext_scratch3_motion._moveSteps(0, target);
 if (isStuck()) yield;
 }
@@ -66,8 +66,8 @@ while (thread.timer.timeElapsed() < a1) {
 if (isStuck()) yield;
 }
 thread.timer = null;
-yield* executeInCompatibilityLayer({"BEATS":0,}, b0, true, false, "r", null);
-yield* executeInCompatibilityLayer({"DRUM":1,"BEATS":0,}, b1, true, false, "c", null);
+if (executeInCompatibilityLayerNow({"BEATS":0,}, b0, "r") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, true, false, "r");
+if (executeInCompatibilityLayerNow({"DRUM":1,"BEATS":0,}, b1, "c") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b1, true, false, "c");
 runtime.ext_scratch3_motion._moveSteps(0, target);
 if (isStuck()) yield;
 }

@@ -38,6 +38,6 @@ return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 target.setXY(0, 0);
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "message1" });
-yield* executeInCompatibilityLayer({"SECS":-1,"X":100,"Y":0,}, b0, false, false, "h", null);
+if (executeInCompatibilityLayerNow({"SECS":-1,"X":100,"Y":0,}, b0, "h") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, false, false, "h");
 retire(); return;
 }; })

@@ -10,7 +10,7 @@ return function* genXYZ () {
 var a0;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = 0;
-yield* executeInCompatibilityLayer({"MESSAGE":"Hello!","SECS":0.1,}, b1, false, false, "d", null);
+if (executeInCompatibilityLayerNow({"MESSAGE":"Hello!","SECS":0.1,}, b1, "d") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b1, false, false, "d");
 if (((a0 = +b0.value) === a0 ? a0 : 0) + 2 === 2) {
 runtime.ext_scratch3_looks._say("pass", target);
 }

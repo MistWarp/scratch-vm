@@ -839,7 +839,7 @@ class JSGenerator {
         const node = block.inputs;
         switch (block.opcode) {
         case StackOpcode.ADDON_CALL: {
-            this.source += `${this.descendAddonCall(node)};\n`;
+            this.source += `${this.descendAddonCall(node, true)};\n`;
             break;
         }
 
@@ -862,7 +862,7 @@ class JSGenerator {
 
             const blockType = node.blockType;
             if (blockType === BlockType.COMMAND || blockType === BlockType.HAT) {
-                this.source += `${this.generateCompatibilityLayerCall(node, isLastInLoop)};\n`;
+                this.source += `${this.generateCompatibilityLayerCall(node, isLastInLoop, null, true)};\n`;
             } else if (blockType === BlockType.CONDITIONAL || blockType === BlockType.LOOP) {
                 const branchVariable = this.localVariables.next();
                 this.source += `const ${branchVariable} = createBranchInfo(${blockType === BlockType.LOOP});\n`;
@@ -1490,14 +1490,14 @@ class JSGenerator {
      * @param {*} node
      * @returns {string}
      */
-    descendAddonCall (node) {
+    descendAddonCall (node, isStatement = false) {
         const inputs = this.descendInputRecord(node.arguments);
         const blockFunction = `runtime.getAddonBlock("${sanitize(node.code)}").callback`;
         const blockId = `"${sanitize(node.blockId)}"`;
         if (!node.yields) {
             return `executeAddonBlock(${inputs}, ${blockFunction}, ${blockId})`;
         }
-        return `yield* executeInCompatibilityLayer(${inputs}, ${blockFunction}, ${this.isWarp}, false, ${blockId})`;
+        return this.compatibilityLayerCall(inputs, blockFunction, false, blockId, isStatement);
     }
 
     /**
@@ -1687,10 +1687,10 @@ class JSGenerator {
      * @param {string|null} [frameName] Name of the stack frame variable, if any
      * @returns {string} The JS of the call.
      */
-    generateCompatibilityLayerCall (node, setFlags, frameName = null) {
+    generateCompatibilityLayerCall (node, setFlags, frameName = null, isStatement = false) {
         const opcode = node.opcode;
 
-        let result = 'yield* executeInCompatibilityLayer({';
+        let result = '{';
 
         for (const inputName of Object.keys(node.inputs)) {
             const input = node.inputs[inputName];
@@ -1704,12 +1704,27 @@ class JSGenerator {
         if (node.mutation) {
             result += `"mutation":${JSON.stringify(node.mutation)},`;
         }
+        result += '}';
         const opcodeFunction = this.evaluateOnce(`runtime.getOpcodeFunction("${sanitize(opcode)}")`);
-        result += `}, ${opcodeFunction}, ${this.isWarp}, ${setFlags}, "${sanitize(node.id)}", ${frameName})`;
+        const blockId = `"${sanitize(node.id)}"`;
 
         this.yielded();
 
-        return result;
+        if (frameName !== null) {
+            return `yield* executeInCompatibilityLayer(${result}, ${opcodeFunction}, ${this.isWarp}, ${setFlags}, ${blockId}, ${frameName})`;
+        }
+        return this.compatibilityLayerCall(result, opcodeFunction, setFlags, blockId, isStatement);
+    }
+
+    compatibilityLayerCall (inputs, blockFunction, setFlags, blockId, isStatement) {
+        if (isStatement) {
+            return `if (executeInCompatibilityLayerNow(${inputs}, ${blockFunction}, ${blockId}) === COMPATIBILITY_WAITING) ` +
+                `yield* executeInCompatibilityLayerLater(${blockFunction}, ${this.isWarp}, ${setFlags}, ${blockId})`;
+        }
+        const value = this.localVariables.next();
+        this.expressionTempVariables.push(value);
+        return `(${value} = executeInCompatibilityLayerNow(${inputs}, ${blockFunction}, ${blockId})) === COMPATIBILITY_WAITING ? ` +
+            `yield* executeInCompatibilityLayerLater(${blockFunction}, ${this.isWarp}, ${setFlags}, ${blockId}) : ${value}`;
     }
 
     /**

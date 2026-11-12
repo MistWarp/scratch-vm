@@ -19,7 +19,7 @@ target.setDirection(0);
 if (target.direction === 0) {
 runtime.ext_scratch3_looks._say("pass 3", target);
 }
-yield* executeInCompatibilityLayer({"TOWARDS":"Sprite2",}, b0, false, false, "g", null);
+if (executeInCompatibilityLayerNow({"TOWARDS":"Sprite2",}, b0, "g") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, false, false, "g");
 if (target.direction === 90) {
 runtime.ext_scratch3_looks._say("pass 4", target);
 }

@@ -8,7 +8,7 @@ checks.push(() => b0 === (runtime.getOpcodeFunction("motion_glidesecstoxy")));
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
 target.setXY(-100, -100);
-yield* executeInCompatibilityLayer({"SECS":0,"X":NaN,"Y":100,}, b0, false, false, "b", null);
+if (executeInCompatibilityLayerNow({"SECS":0,"X":NaN,"Y":100,}, b0, "b") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b0, false, false, "b");
 if (limitPrecision(target.x) === 0) {
 runtime.ext_scratch3_looks._say("pass", target);
 } else {

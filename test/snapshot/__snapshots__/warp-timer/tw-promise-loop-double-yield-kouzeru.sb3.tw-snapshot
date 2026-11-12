@@ -12,7 +12,7 @@ while (true) {
 if (!compareEqual(b0.value, b1.value)) {
 runtime.ext_scratch3_looks._say("pass", target);
 b1.value = b0.value;
-yield* executeInCompatibilityLayer({"VALUE":b0.value,"EFFECT":"pitch",}, b2, false, true, "*=8r,g4Pzvxo?aSMcpfX", null);
+if (executeInCompatibilityLayerNow({"VALUE":b0.value,"EFFECT":"pitch",}, b2, "*=8r,g4Pzvxo?aSMcpfX") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b2, false, true, "*=8r,g4Pzvxo?aSMcpfX");
 if (hasResumedFromPromise) {hasResumedFromPromise = false;continue;}
 }
 yield;
