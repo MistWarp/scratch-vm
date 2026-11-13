@@ -94,6 +94,7 @@ const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 return function* genXYZ_recursing_arguments_ (p0,p1,p2,p3) {
 if (("" + p0).toLowerCase() === "initial") {
 b0.value = [];
+b0._searchIndex = null;
 b1.value = 0;
 b2.value = yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 1", yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 2", yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 3", yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 4", "", "", ""), yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 5", "", "", ""), yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 6", "", "", "")), "", ""), "", yield* yieldThenCallGenerator(thread.procedures["Zrecursing arguments eval order %s %s %s %s"], "child 7", "", "", ""));
 if (("" + (b0.value[1 - 1] ?? "")).toLowerCase() === "1/child 4") {
@@ -122,7 +123,7 @@ runtime.ext_scratch3_looks._say("pass recurse arg order - length is correct", ta
 }
 } else {
 b0.value.push("" + b1.value + ("/" + p0));
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 }
 return "";
 }; })

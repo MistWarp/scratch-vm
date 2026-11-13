@@ -1039,7 +1039,7 @@ class JSGenerator {
         case StackOpcode.LIST_ADD: {
             const list = this.referenceVariable(node.list);
             this.source += `${list}.value.push(${this.descendInputAt(node.item, Precedence.LOWEST)});\n`;
-            this.source += `${list}._monitorUpToDate = false;\n`;
+            this.source += `${list}._monitorUpToDate = ${list}._monitorUpToDate > 1 ? 2 : false;\n`;
             break;
         }
         case StackOpcode.LIST_DELETE: {
@@ -1060,6 +1060,7 @@ class JSGenerator {
         }
         case StackOpcode.LIST_DELETE_ALL:
             this.source += `${this.referenceVariable(node.list)}.value = [];\n`;
+            this.source += `${this.referenceVariable(node.list)}._searchIndex = null;\n`;
             break;
         case StackOpcode.LIST_HIDE:
             this.source += `runtime.monitorBlocks.changeBlock({ id: "${sanitize(node.list.id)}", element: "checkbox", value: false }, runtime);\n`;

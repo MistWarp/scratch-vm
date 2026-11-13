@@ -15,6 +15,7 @@ const globalState = {
     Cast: require('../util/cast'),
     log: require('../util/log'),
     blockUtility: require('./compat-block-utility'),
+    listFind: require('./list-search').listFind,
     /** @type{import("../engine/thread")?} */
     thread: null
 };
@@ -300,38 +301,6 @@ baseRuntime += `const compareEqualSlow = (v1, v2) => {
 };
 const compareEqual = (v1, v2) => (typeof v1 === 'number' && typeof v2 === 'number' && v1 === v1 && v2 === v2 || v1 === v2) ? v1 === v2 : compareEqualSlow(v1, v2);`;
 
-baseRuntime += `const listFind = (list, item) => {
-    const itemNumber = +item;
-    const itemString = ('' + item).toLowerCase();
-    if (itemNumber !== itemNumber || (itemNumber === 0 && isNotActuallyZero(item))) {
-        for (let i = 0; i < list.length; i++) {
-            const value = list[i];
-            if (value === item || ('' + value).toLowerCase() === itemString) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    for (let i = 0; i < list.length; i++) {
-        const value = list[i];
-        if (typeof value === 'number') {
-            if (value === itemNumber) {
-                return i;
-            }
-            continue;
-        }
-        const n = +value;
-        if (n !== n || (n === 0 && isNotActuallyZero(value))) {
-            if (('' + value).toLowerCase() === itemString) {
-                return i;
-            }
-        } else if (n === itemNumber) {
-            return i;
-        }
-    }
-    return -1;
-};`;
-
 /**
  * Determine if one value is greater than another.
  * @param {*} v1 First value
@@ -564,10 +533,8 @@ runtimeFunctions.listContains = `const listContains = (list, item) => {
     if (globalState.thread.target.runtime.runtimeOptions.caseSensitiveLists) {
         return list.value.indexOf(item) !== -1;
     }
-    if (list.value.indexOf(item) !== -1) {
-        return true;
-    }
-    return listFind(list.value, item) !== -1;
+    if (list.value.length < 32 && list.value.indexOf(item) !== -1) return true;
+    return globalState.listFind(list, item) !== -1;
 }`;
 
 /**
@@ -580,7 +547,7 @@ runtimeFunctions.listIndexOf = `const listIndexOf = (list, item) => {
     if (globalState.thread.target.runtime.runtimeOptions.caseSensitiveLists) {
         return list.value.indexOf(item) + 1;
     }
-    return listFind(list.value, item) + 1;
+    return globalState.listFind(list, item) + 1;
 }`;
 
 /**

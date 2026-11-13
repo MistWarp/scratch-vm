@@ -9,8 +9,9 @@ const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
 b0.value = [];
+b0._searchIndex = null;
 b0.value.push("thing");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value = 1;
 b2.value = b0.value[b1.value - 1] ?? "";
 if (("" + b2.value).toLowerCase() === "thing") {

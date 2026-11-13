@@ -9,10 +9,11 @@ return function* genXYZ () {
 var a0, a1;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = [];
+b0._searchIndex = null;
 b0.value.push("false");
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push(true);
-b0._monitorUpToDate = false;
+b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b1.value = 1;
 while (!toBoolean(listGet(b0.value, b1.value))) {
 b1.value = ((a0 = +b1.value) === a0 ? a0 : 0) + 1;

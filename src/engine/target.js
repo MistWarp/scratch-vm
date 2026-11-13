@@ -92,6 +92,8 @@ class Target extends EventEmitter {
         this.extensionStorage = {};
 
         this.declRevision = 0;
+
+        this._variableLookupCaches = null;
     }
 
     bumpDeclRevision () {
@@ -100,6 +102,7 @@ class Target extends EventEmitter {
 
     installVariable (variable, id = variable.id) {
         this.variables[id] = variable;
+        this._variableLookupCaches = null;
         this.declRevision++;
         return variable;
     }
@@ -243,9 +246,25 @@ class Target extends EventEmitter {
         if (typeof type !== 'string') type = Variable.SCALAR_TYPE;
         skipStage = skipStage || false;
 
-        for (const varId in this.variables) {
-            const currVar = this.variables[varId];
+        const variables = this.variables;
+        let caches = this._variableLookupCaches;
+        if (caches === null || caches.variables !== variables) {
+            caches = this._variableLookupCaches = {variables, byType: Object.create(null)};
+        }
+        let cache = caches.byType[type];
+        if (cache) {
+            const cached = cache.get(name);
+            if (cached && variables[cached.id] === cached && cached.name === name && cached.type === type) {
+                return cached;
+            }
+        } else {
+            cache = caches.byType[type] = new Map();
+        }
+
+        for (const varId in variables) {
+            const currVar = variables[varId];
             if (currVar.name === name && currVar.type === type) {
+                cache.set(name, currVar);
                 return currVar;
             }
         }
@@ -253,12 +272,7 @@ class Target extends EventEmitter {
         if (!skipStage && this.runtime && !this.isStage) {
             const stage = this.runtime.getTargetForStage();
             if (stage) {
-                for (const varId in stage.variables) {
-                    const currVar = stage.variables[varId];
-                    if (currVar.name === name && currVar.type === type) {
-                        return currVar;
-                    }
-                }
+                return stage.lookupVariableByNameAndType(name, type, true);
             }
         }
 
@@ -396,6 +410,7 @@ class Target extends EventEmitter {
             if (variable.id === id) {
                 const oldName = variable.name;
                 variable.name = newName;
+                this._variableLookupCaches = null;
                 this.declRevision++;
 
                 if (this.runtime) {
@@ -448,6 +463,7 @@ class Target extends EventEmitter {
             const deletedVariableName = this.variables[id].name;
             const deletedVariableWasCloud = this.variables[id].isCloud;
             delete this.variables[id];
+            this._variableLookupCaches = null;
             this.declRevision++;
             if (this.runtime) {
                 if (deletedVariableWasCloud && this.isStage) {

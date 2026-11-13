@@ -75,7 +75,7 @@ test('comparison functions are equivalent to Cast.compare', () => {
 });
 
 test('list search functions are equivalent to Cast.compare', t => {
-    const listFind = evaluateRuntimeFunction('listFind');
+    const {listFind} = require('../../src/compiler/list-search');
     const listContains = evaluateRuntimeFunction('listContains');
     const listIndexOf = evaluateRuntimeFunction('listIndexOf');
     const globalState = jsexecute.scopedEval('globalState');
@@ -93,7 +93,7 @@ test('list search functions are equivalent to Cast.compare', t => {
         }
         for (const list of lists) {
             const expected = list.findIndex(v => Cast.compare(v, item) === 0) + 1;
-            const actualIndex = listFind(list, item) + 1;
+            const actualIndex = listFind({value: list}, item) + 1;
             if (actualIndex !== expected) {
                 assert.fail(
                     `index of ${stringify(item)} in ${stringify(list)} should be ${expected}, got ${actualIndex}`

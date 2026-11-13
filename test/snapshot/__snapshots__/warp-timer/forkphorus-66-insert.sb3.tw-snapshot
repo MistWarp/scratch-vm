@@ -6,6 +6,7 @@
 const b0 = stage.variables["$h5KnZ-ePA3NOi=];]FX"] || stage.lookupOrCreateList("$h5KnZ-ePA3NOi=];]FX", "data");
 return function funXYZ () {
 b0.value = [];
+b0._searchIndex = null;
 b0.value.unshift("a");
 b0._monitorUpToDate = false;
 listInsert(b0, 2, "b");
@@ -15,6 +16,7 @@ thread.procedures["ZassertTrue %b %s"](("" + (b0.value[1 - 1] ?? "")).toLowerCas
 thread.procedures["ZassertTrue %b %s"](("" + (b0.value[2 - 1] ?? "")).toLowerCase() === "b", "2=b");
 thread.procedures["ZassertTrue %b %s"](("" + (b0.value[3 - 1] ?? "")).toLowerCase() === "c", "3=c");
 b0.value = [];
+b0._searchIndex = null;
 thread.procedures["ZassertTrue %b %s"](b0.value.length === 0, "length is 0");
 thread.procedures["ZOK %s"]("");
 retire(); return;

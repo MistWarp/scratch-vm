@@ -28,6 +28,7 @@ class Variable {
         case Variable.LIST_TYPE:
             this.value = [];
             this._monitorUpToDate = false;
+            this._searchIndex = null;
             break;
         case Variable.BROADCAST_MESSAGE_TYPE:
             this.value = this.name;
