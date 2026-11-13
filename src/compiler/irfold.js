@@ -17,7 +17,7 @@ const {IntermediateInput, IntermediateStack} = require('./intermediate');
  * The helpers the generated scripts call, so folded values match runtime values bit for bit.
  */
 const helpers = jsexecute.scopedEval(
-    '({compareEqual, compareGreaterThan, compareLessThan, mod, tan, repeatString, replaceString})'
+    '({compareEqual, compareGreaterThan, compareLessThan, mod, tan, roundTrig, repeatString, replaceString})'
 );
 
 /**
@@ -128,8 +128,8 @@ const MATH_OPERATIONS = {
     [InputOpcode.OP_CEILING]: value => Math.ceil(value),
     [InputOpcode.OP_ROUND]: value => Math.round(value),
     [InputOpcode.OP_SQRT]: value => Math.sqrt(value),
-    [InputOpcode.OP_SIN]: value => Math.round((Math.sin((Math.PI * value) / 180) + 0) * 1e10) / 1e10,
-    [InputOpcode.OP_COS]: value => Math.round(Math.cos((Math.PI * value) / 180) * 1e10) / 1e10,
+    [InputOpcode.OP_SIN]: value => helpers.roundTrig(Math.sin((Math.PI * value) / 180)),
+    [InputOpcode.OP_COS]: value => helpers.roundTrig(Math.cos((Math.PI * value) / 180)),
     [InputOpcode.OP_TAN]: value => helpers.tan(value),
     [InputOpcode.OP_ASIN]: value => (Math.asin(value) * 180) / Math.PI,
     [InputOpcode.OP_ACOS]: value => (Math.acos(value) * 180) / Math.PI,

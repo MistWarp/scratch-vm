@@ -281,6 +281,143 @@ test('scripts get a positive zero from sin and tan of negative zero', async () =
     }
 });
 
+const scratchRound = value => parseFloat(value.toFixed(10));
+const scratchCos = n => scratchRound(Math.cos((Math.PI * n) / 180));
+const fastRound = value => Math.round((value + 0) * 1e10) / 1e10;
+
+const floatBits = new DataView(new ArrayBuffer(8));
+const stepFloat = (value, steps) => {
+    floatBits.setFloat64(0, value);
+    const low = floatBits.getUint32(4) + steps;
+    floatBits.setUint32(0, floatBits.getUint32(0) + Math.floor(low / TWO_32));
+    floatBits.setUint32(4, low >>> 0);
+    return floatBits.getFloat64(0);
+};
+
+const seededRandom = seed => () => {
+    seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+    return seed / TWO_32;
+};
+
+const ROUNDING_EDGES = [
+    0, -0, NaN, Infinity, -Infinity, 1, -1, 0.5, -0.5, 1e-11, -1e-11, 5e-11, -5e-11, 4.9999999999e-11,
+    1 / 2048, -1 / 2048, 3 / 2048, -3 / 2048, 1023 / 2048, -1023 / 2048, 1e21, -1e21, 1.6e16, -1.6e16,
+    2 ** 52, 2 ** 53, (2 ** 51) + 0.5, 450359.9627370496, 225179.98136852478, 124999.99999, 125000.00001,
+    Number.MAX_VALUE, Number.MIN_VALUE, -Number.MIN_VALUE, 79.99999999995, 80, -80, 80.00000000005, 89.99999999995,
+    7.99999999999e11, 8e11, 8.00000000001e11, 0.49990000001e-10, 0.4999e-10, 0.5001e-10
+];
+
+test('trig rounding gives what ten decimal places of toFixed gives', () => {
+    const compiledRound = jsexecute.scopedEval('roundTrig');
+    let ties = 0;
+    let fastDiffers = 0;
+    const check = value => {
+        const expected = scratchRound(value);
+        if (!Object.is(fastRound(value), expected)) fastDiffers++;
+        if (!Object.is(MathUtil.roundTrig(value), expected)) {
+            assert.fail(`roundTrig of ${show(value)} is ${show(expected)}, got ${show(MathUtil.roundTrig(value))}`);
+        }
+        if (!Object.is(compiledRound(value), expected)) {
+            assert.fail(`compiled roundTrig of ${show(value)} is ${show(expected)}, got ${show(compiledRound(value))}`);
+        }
+    };
+
+    for (const value of ROUNDING_EDGES) check(value);
+
+    const random = seededRandom(12345);
+    for (let i = 0; i < 200000; i++) check((random() * 2) - 1);
+    for (let i = 0; i < 200000; i++) check(((random() * 2) - 1) * (10 ** ((random() * 40) - 20)));
+    for (let i = 0; i < 100000; i++) {
+        const tie = (Math.floor(((random() * 2) - 1) * (10 ** (random() * 16))) + 0.5) / 1e10;
+        ties++;
+        for (let step = -3; step <= 3; step++) check(stepFloat(tie, step));
+    }
+    for (let numerator = -4095; numerator <= 4095; numerator += 2) check(numerator / 2048);
+    for (let i = 0; i < 100000; i++) {
+        const whole = Math.floor(((random() * 2) - 1) * (10 ** (random() * 12)));
+        for (const offset of [-2e-4, -1.1e-4, -1e-4, -9e-5, 9e-5, 1e-4, 1.1e-4, 2e-4]) {
+            check((whole + 0.5 + offset) / 1e10);
+        }
+    }
+
+    assert.strictEqual(ties, 100000);
+    assert.ok(fastDiffers > 1000, 'the values include ones that multiplying and rounding gets wrong');
+});
+
+const TIE_ANGLES = [1143.878, -3294.368, -1749.329, 2006.122, -2006.122, 2463.737, 3573.878, -3458.578, 89.943];
+
+test('sin, cos and tan round the way Scratch does on every angle', () => {
+    const operators = new Scratch3OperatorsBlocks({});
+    const compiledRound = jsexecute.scopedEval('roundTrig');
+    const compiledTan = jsexecute.scopedEval('tan');
+    const check = angle => {
+        const radians = (Math.PI * angle) / 180;
+        const sin = scratchSin(angle);
+        const cos = scratchCos(angle);
+        const tan = scratchTan(angle);
+        if (
+            !Object.is(operators.mathop({OPERATOR: 'sin', NUM: angle}), sin) ||
+            !Object.is(operators.mathop({OPERATOR: 'cos', NUM: angle}), cos) ||
+            !Object.is(operators.mathop({OPERATOR: 'tan', NUM: angle}), tan)
+        ) assert.fail(`the blocks disagree with Scratch at ${show(angle)}`);
+        if (
+            !Object.is(compiledRound(Math.sin(radians)), sin) ||
+            !Object.is(compiledRound(Math.cos(radians)), cos) ||
+            !Object.is(compiledTan(angle), tan)
+        ) assert.fail(`the compiled helpers disagree with Scratch at ${show(angle)}`);
+    };
+
+    for (const angle of ANGLES) check(Cast.toNumber(angle));
+    for (const angle of TIE_ANGLES) check(angle);
+    for (let i = -72000; i <= 72000; i++) check(i / 100);
+    for (let i = 0; i < 2000; i++) {
+        check(90 - (10 ** (-i / 100)));
+        check(-90 + (10 ** (-i / 100)));
+        check(270 + (10 ** (-i / 100)));
+    }
+
+    assert.strictEqual(scratchSin(1143.878), 0.897858585);
+    assert.strictEqual(fastRound(Math.sin((Math.PI * 1143.878) / 180)), 0.8978585851);
+    assert.strictEqual(scratchCos(2006.122), -0.8978585851);
+    assert.strictEqual(fastRound(Math.cos((Math.PI * 2006.122) / 180)), -0.897858585);
+    assert.strictEqual(scratchTan(-3458.578), -0.7976610398);
+    assert.strictEqual(fastRound(Math.tan((Math.PI * (-3458.578 % 360)) / 180)), -0.7976610397);
+});
+
+const buildTieScript = stack => {
+    const out = value => stack('data_addtolist', {ITEM: value}, listField('out'));
+    for (const angle of TIE_ANGLES) {
+        for (const operator of ['sin', 'cos', 'tan']) {
+            out(mathop(operator, String(angle)));
+            stack('data_setvariableto', {VALUE: String(angle)}, variableField('v'));
+            out(mathop(operator, variable('v')));
+        }
+    }
+};
+
+test('scripts round sin, cos and tan the way Scratch does', async () => {
+    const expected = [];
+    for (const angle of TIE_ANGLES) {
+        expected.push(
+            scratchSin(angle), scratchSin(angle),
+            scratchCos(angle), scratchCos(angle),
+            scratchTan(angle), scratchTan(angle)
+        );
+    }
+    assert.strictEqual(expected[0], 0.897858585);
+    for (const compile of [true, false]) {
+        const vm = await runProject(makeProject(buildTieScript, {v: ['v', 0]}, {out: ['out', []]}), compile);
+        const actual = vm.runtime.getTargetForStage().variables.out.value;
+        assert.strictEqual(actual.length, expected.length);
+        actual.forEach((value, i) => {
+            assert.ok(
+                Object.is(Cast.toNumber(value), expected[i]),
+                `${compile ? 'compiled' : 'interpreted'} result ${i} is ${show(expected[i])}, got ${show(value)}`
+            );
+        });
+    }
+});
+
 const PROTOTYPE_NAMES = ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf'];
 
 test('variables named after Object.prototype members load, run and save', async () => {
