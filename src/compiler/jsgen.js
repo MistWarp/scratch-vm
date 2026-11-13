@@ -305,6 +305,8 @@ class JSGenerator {
          */
         this.promotionLoop = null;
         this.promotionStore = '';
+        this.reuseLocals = new Map();
+        this.reuseLoaded = null;
         this.isInHat = false;
 
         this.debug = this.target.runtime.debug;
@@ -395,6 +397,10 @@ class JSGenerator {
      * @returns {Expression} Compiled input and how tightly it binds.
      */
     descendInputExpression (block) {
+        if (block.reuse) {
+            const local = this.reuseLocal(block.reuse);
+            if (local) return primary(local);
+        }
         const node = block.inputs;
         const at = (input, precedence) => this.descendInputAt(input, precedence);
         const argument = input => this.descendInputAt(input, Precedence.LOWEST);
@@ -598,7 +604,7 @@ class JSGenerator {
         }
         case InputOpcode.OP_JOIN: {
             // The left side is already a string, so + stringifies the right side exactly like "" + x would.
-            const right = node.right.opcode === InputOpcode.CAST_STRING ? node.right.inputs.target : node.right;
+            const right = node.right.opcode === InputOpcode.CAST_STRING && !node.right.reuse ? node.right.inputs.target : node.right;
             return binary(at(node.left, Precedence.ADDITIVE), '+', at(right, Precedence.MULTIPLICATIVE), Precedence.ADDITIVE);
         }
         case InputOpcode.OP_LENGTH:
@@ -1277,7 +1283,8 @@ class JSGenerator {
             break;
         case StackOpcode.VAR_SET: {
             const varReference = this.referenceVariable(node.variable);
-            this.source += `${this.variableValue(node.variable)} = ${this.descendInputAt(node.value, Precedence.LOWEST)};\n`;
+            const forwarded = block.reuseStore ? this.reuseLocal(block.reuseStore) : null;
+            this.source += `${this.variableValue(node.variable)} = ${forwarded ? `${forwarded} = ` : ''}${this.descendInputAt(node.value, Precedence.LOWEST)};\n`;
             if (node.variable.isCloud) {
                 this.source += `runtime.ioDevices.cloud.requestUpdateVariable("${sanitize(node.variable.name)}", ${varReference}.value);\n`;
             }
@@ -1350,6 +1357,7 @@ class JSGenerator {
                 this.source += `pc[0] = ${this.currentSamplerLocation};\n`;
             }
 
+            this.descendReuseBindings(block);
             const consumed = this.descendEqualsChainAsSwitch(stack.blocks, i);
             if (consumed > 0) {
                 i += consumed - 1;
@@ -1366,6 +1374,35 @@ class JSGenerator {
         // Leaving a stack -- any assumptions made in the current stack do not apply outside of it
         // TODO: in if/else this might create an extra unused object
         this.popFrame();
+    }
+
+    reuseLocal (value) {
+        if (value.kind === 'raw' && this.promotedVariables &&
+            this.promotedVariables.has(this.referenceVariable(value.variable))) return null;
+        let local = this.reuseLocals.get(value);
+        if (!local) {
+            local = this.localVariables.next();
+            this.expressionTempVariables.push(local);
+            this.reuseLocals.set(value, local);
+        }
+        return local;
+    }
+
+    descendReuseBindings (block) {
+        this.reuseLoaded = null;
+        if (!block.reuseBindings) return;
+        for (const {value, node} of block.reuseBindings) {
+            const local = this.reuseLocal(value);
+            if (!local) continue;
+            const reuse = node.reuse;
+            node.reuse = null;
+            this.source += `${local} = ${this.descendInputAt(node, Precedence.LOWEST)};\n`;
+            node.reuse = reuse;
+            if (value.kind === 'raw') {
+                if (!this.reuseLoaded) this.reuseLoaded = new Map();
+                this.reuseLoaded.set(this.referenceVariable(value.variable), local);
+            }
+        }
     }
 
     matchEqualsCaseCondition (condition) {
@@ -1403,6 +1440,7 @@ class JSGenerator {
         while (i < blocks.length) {
             const block = blocks[i];
             if (block.opcode !== StackOpcode.CONTROL_IF_ELSE) break;
+            if (i > start && block.reuseBindings) break;
             const node = block.inputs;
             if (node.whenFalse.blocks.length !== 0) break;
             const body = node.whenTrue;
@@ -1514,6 +1552,8 @@ class JSGenerator {
      * @param {Map<string, boolean>} variables From findPromotableVariables().
      */
     descendWithPromotedVariables (loop, variables) {
+        const loaded = this.reuseLoaded;
+        this.reuseLoaded = null;
         this.promotedVariables = new Map();
         this.promotionLoop = loop;
         this.promotionStore = '';
@@ -1521,7 +1561,7 @@ class JSGenerator {
         for (const [reference, written] of variables) {
             const local = this.localVariables.next();
             this.promotedVariables.set(reference, local);
-            this.source += `let ${local} = ${reference}.value;\n`;
+            this.source += `let ${local} = ${(loaded && loaded.get(reference)) || `${reference}.value`};\n`;
             if (written) this.promotionStore += `${reference}.value = ${local};\n`;
         }
         this.descendStackedBlock(loop);
@@ -1957,5 +1997,6 @@ JSGenerator.unstable_exports = {
 
 // Test hook used by automated snapshot testing.
 JSGenerator.testingApparatus = null;
+JSGenerator.PROMOTION_SAFE_INPUT = PROMOTION_SAFE_INPUT;
 
 module.exports = JSGenerator;

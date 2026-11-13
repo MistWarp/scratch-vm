@@ -6,10 +6,10 @@
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function funXYZ () {
-var a0, a1;
+var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 1", target);
-b0.value = " 0";
-if (((a0 = 0 / ((a1 = +b0.value) === a1 ? a1 : 0)) === a0 ? a0 : 0) + 0 === 0) {
+b0.value = a0 = " 0";
+if (((a1 = 0 / ((a2 = +a0) === a2 ? a2 : 0)) === a1 ? a1 : 0) + 0 === 0) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 runtime.ext_scratch3_looks._say("end", target);

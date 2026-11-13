@@ -19,6 +19,7 @@ const b3 = stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("
 const b4 = stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected");
 checks.push(() => b0 === (stage.variables["mfV;yS}9e:%h5UZ)QyiY"] || stage.lookupOrCreateVariable("mfV;yS}9e:%h5UZ)QyiY", "n")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i")) && b2 === (stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariable("_]6^lq+-%H0{ov`tKt7$", "j")) && b3 === (stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values")) && b4 === (stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected")));
 return function funXYZ_run_test () {
+var a2, a3, a4, a5;
 procedures["Wsetup values"]();
 b0.value = 0;
 b1.value = 0;
@@ -26,17 +27,17 @@ for (var a0 = b3.value.length; a0 > 0; a0--) {
 b1.value = b1.value + 1;
 b2.value = 0;
 for (var a1 = b3.value.length; a1 > 0; a1--) {
-b2.value = b2.value + 1;
-b0.value = b0.value + 1;
-if (!compareEqual(compareGreaterThan(b3.value[b1.value - 1] ?? "", b3.value[b2.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+b2.value = a2 = b2.value + 1;
+b0.value = a3 = b0.value + 1;
+if (!compareEqual(compareGreaterThan(b3.value[b1.value - 1] ?? "", b3.value[a2 - 1] ?? ""), b4.value[a3 - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + (b3.value[b1.value - 1] ?? "") + (" should be > " + (b3.value[b2.value - 1] ?? ""))), target);
 }
-b0.value = b0.value + 1;
-if (!compareEqual(compareEqual(b3.value[b1.value - 1] ?? "", b3.value[b2.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+b0.value = a4 = b0.value + 1;
+if (!compareEqual(compareEqual(b3.value[b1.value - 1] ?? "", b3.value[b2.value - 1] ?? ""), b4.value[a4 - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + (b3.value[b1.value - 1] ?? "") + (" should be = " + (b3.value[b2.value - 1] ?? ""))), target);
 }
-b0.value = b0.value + 1;
-if (!compareEqual(compareLessThan(b3.value[b1.value - 1] ?? "", b3.value[b2.value - 1] ?? ""), b4.value[b0.value - 1] ?? "")) {
+b0.value = a5 = b0.value + 1;
+if (!compareEqual(compareLessThan(b3.value[b1.value - 1] ?? "", b3.value[b2.value - 1] ?? ""), b4.value[a5 - 1] ?? "")) {
 runtime.ext_scratch3_looks._say("fail " + ("" + (b3.value[b1.value - 1] ?? "") + (" should be < " + (b3.value[b2.value - 1] ?? ""))), target);
 }
 }

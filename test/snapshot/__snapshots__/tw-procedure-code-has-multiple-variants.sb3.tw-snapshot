@@ -23,9 +23,10 @@ return "";
 const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n");
 checks.push(() => b0 === (stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n")));
 return function funXYZ_inner () {
-b0.value = 0;
-b0.value = b0.value + 1;
-if (b0.value === 1) {
+var a0, a1;
+b0.value = a0 = 0;
+b0.value = a1 = a0 + 1;
+if (a1 === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";
@@ -36,9 +37,10 @@ return "";
 const b0 = stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n");
 checks.push(() => b0 === (stage.variables["2RhZ|2@pLo8UqcDKlYn4"] || stage.lookupOrCreateVariable("2RhZ|2@pLo8UqcDKlYn4", "n")));
 return function funXYZ_inner () {
-b0.value = 0;
-b0.value = b0.value + 1;
-if (b0.value === 1) {
+var a0, a1;
+b0.value = a0 = 0;
+b0.value = a1 = a0 + 1;
+if (a1 === 1) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 return "";

@@ -35,10 +35,12 @@ const b2 = stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCr
 const b3 = stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected");
 checks.push(() => b0 === (stage.variables["7AH{dO^X;}C[{[l~g-7m"] || stage.lookupOrCreateVariable("7AH{dO^X;}C[{[l~g-7m", "passed")) && b1 === (stage.variables["gPJ}c-PZz?Y+_L][iMU_"] || stage.lookupOrCreateVariable("gPJ}c-PZz?Y+_L][iMU_", "@")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b3 === (stage.variables["FsKqV/2kid0gw0J+Jj(c"] || stage.lookupOrCreateList("FsKqV/2kid0gw0J+Jj(c", "expected")));
 return function funXYZ_validate () {
+var a1;
 b0.value = 1;
 b1.value = 1;
 for (var a0 = b2.value.length; a0 > 0; a0--) {
-if (!compareEqual(b2.value[b1.value - 1] ?? "", b3.value[b1.value - 1] ?? "")) {
+a1 = b1.value;
+if (!compareEqual(b2.value[a1 - 1] ?? "", b3.value[a1 - 1] ?? "")) {
 b0.value = 0;
 runtime.ext_scratch3_looks._say("fail mismatch at index " + b1.value, target);
 }
@@ -63,67 +65,73 @@ const b7 = target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreat
 const b8 = target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i");
 checks.push(() => b0 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-pivot-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-pivot-", "z_pivot")) && b1 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-list-list"] || stage.lookupOrCreateList("EF^k=u-t@S)w60;RP?dZ-list-list", "list")) && b2 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-low-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-low-", "z_low")) && b3 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-high-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-high-", "z_high")) && b4 === (stage.variables["EF^k=u-t@S)w60;RP?dZ-tmp-"] || stage.lookupOrCreateVariable("EF^k=u-t@S)w60;RP?dZ-tmp-", "tmp")) && b5 === (target.variables["JIHtr29*ug5G;5*`f2.K-i-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-i-", "i")) && b6 === (target.variables["JIHtr29*ug5G;5*`f2.K-min pos-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min pos-", "z_min pos")) && b7 === (target.variables["JIHtr29*ug5G;5*`f2.K-min-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-min-", "z_min")) && b8 === (target.variables["JIHtr29*ug5G;5*`f2.K-j-"] || target.lookupOrCreateVariable("JIHtr29*ug5G;5*`f2.K-j-", "z_i")));
 return function funXYZ_qsort__ (p0,p1) {
-var a0, a1, a2, a3, a4, a7, a10, a11, a12, a17, a18, a19, a20, a22, a23, a24, a25;
+var a0, a1, a2, a3, a4, a5, a8, a11, a12, a13, a14, a15, a20, a21, a22, a24;
 if (compareLessThan(p0, p1)) {
-if (!(((a0 = +p1) === a0 ? a0 : 0) - ((a1 = +p0) === a1 ? a1 : 0) <= 7)) {
-b0.value = b1.value[Math.floor(((a2 = ((a3 = +p1) === a3 ? a3 : 0) + ((a4 = +p0) === a4 ? a4 : 0)) === a2 ? a2 : 0) / 2) - 1] ?? "";
+a0 = (a1 = +p1) === a1 ? a1 : 0;
+a2 = (a3 = +p0) === a3 ? a3 : 0;
+if (!(a0 - a2 <= 7)) {
+b0.value = b1.value[Math.floor(((a4 = a0 + a2) === a4 ? a4 : 0) / 2) - 1] ?? "";
 b2.value = p0;
 b3.value = p1;
 while (true) {
+a5 = b0.value;
 {
-let a5 = b2.value;
-let a6 = b0.value;
-while (compareLessThan(listGet(b1.value, a5), a6)) {
-a5 = ((a7 = +a5) === a7 ? a7 : 0) + 1;
-b2.value = a5;
+let a6 = b2.value;
+let a7 = a5;
+while (compareLessThan(listGet(b1.value, a6), a7)) {
+a6 = ((a8 = +a6) === a8 ? a8 : 0) + 1;
+b2.value = a6;
 }
 }
 {
-let a8 = b3.value;
-let a9 = b0.value;
-while (compareGreaterThan(listGet(b1.value, a8), a9)) {
-a8 = ((a10 = +a8) === a10 ? a10 : 0) - 1;
-b3.value = a8;
+let a9 = b3.value;
+let a10 = b0.value;
+while (compareGreaterThan(listGet(b1.value, a9), a10)) {
+a9 = ((a11 = +a9) === a11 ? a11 : 0) - 1;
+b3.value = a9;
 }
 }
-if (compareGreaterThan(b2.value, b3.value)) {
-procedures["Wqsort %s %s"](p0, b3.value);
+a12 = b2.value;
+a13 = b3.value;
+if (compareGreaterThan(a12, a13)) {
+procedures["Wqsort %s %s"](p0, a13);
 procedures["Wqsort %s %s"](b2.value, p1);
 return "";
 } else {
-b4.value = listGet(b1.value, b2.value);
-listReplace(b1, b2.value, listGet(b1.value, b3.value));
-listReplace(b1, b3.value, b4.value);
-b2.value = ((a11 = +b2.value) === a11 ? a11 : 0) + 1;
-b3.value = ((a12 = +b3.value) === a12 ? a12 : 0) - 1;
+b4.value = listGet(b1.value, a12);
+listReplace(b1, a12, listGet(b1.value, a13));
+listReplace(b1, a13, b4.value);
+b2.value = ((a14 = +a12) === a14 ? a14 : 0) + 1;
+b3.value = ((a15 = +a13) === a15 ? a15 : 0) - 1;
 }
 }
 } else {
 b5.value = p0;
 {
-let a13 = b6.value;
-let a14 = b5.value;
-let a15 = b8.value;
-for (var a16 = (a17 = ((a18 = +p1) === a18 ? a18 : 0) - ((a19 = +p0) === a19 ? a19 : 0)) === a17 ? a17 : 0; a16 >= 0.5; a16--) {
-a13 = a14;
-b7.value = listGet(b1.value, a14);
-a15 = ((a20 = +a14) === a20 ? a20 : 0) + 1;
-for (var a21 = (a22 = ((a23 = +p1) === a23 ? a23 : 0) - ((a24 = +a14) === a24 ? a24 : 0)) === a22 ? a22 : 0; a21 >= 0.5; a21--) {
-if (compareLessThan(b1.value[Math.floor(a15) - 1] ?? "", b7.value)) {
-b7.value = b1.value[Math.floor(a15) - 1] ?? "";
-a13 = a15;
+let a16 = b6.value;
+let a17 = b5.value;
+let a18 = b8.value;
+for (var a19 = (a20 = a0 - a2) === a20 ? a20 : 0; a19 >= 0.5; a19--) {
+a16 = a17;
+b7.value = listGet(b1.value, a17);
+a21 = (a22 = +a17) === a22 ? a22 : 0;
+a18 = a21 + 1;
+for (var a23 = (a24 = a0 - a21) === a24 ? a24 : 0; a23 >= 0.5; a23--) {
+if (compareLessThan(b1.value[Math.floor(a18) - 1] ?? "", b7.value)) {
+b7.value = b1.value[Math.floor(a18) - 1] ?? "";
+a16 = a18;
 }
-a15 = a15 + 1;
+a18 = a18 + 1;
 }
-if (!compareEqual(a13, a14)) {
-b4.value = listGet(b1.value, a14);
-listReplace(b1, a14, b7.value);
-listReplace(b1, a13, b4.value);
+if (!compareEqual(a16, a17)) {
+b4.value = listGet(b1.value, a17);
+listReplace(b1, a17, b7.value);
+listReplace(b1, a16, b4.value);
 }
-a14 = ((a25 = +a14) === a25 ? a25 : 0) + 1;
-b6.value = a13;
-b5.value = a14;
-b8.value = a15;
+a17 = a21 + 1;
+b6.value = a16;
+b5.value = a17;
+b8.value = a18;
 }
 }
 }

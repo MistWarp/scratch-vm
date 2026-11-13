@@ -412,10 +412,11 @@ test('generated expressions only use the parentheses they need', async () => {
     }));
 
     // toNotNaN is inlined as ((aN = x) === aN ? aN : 0), so the temporaries are numbered.
-    assert.match(source, /b0\.value = \(\(\w+ = \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\) \* \(\(\(\w+ = \+b1\.value\) === \w+ \? \w+ : 0\) - 3\)\) === \w+ \? \w+ : 0\) \+ \(\(\w+ = \+b0\.value\) === \w+ \? \w+ : 0\);/, 'nested arithmetic');
-    assert.match(source, /b0\.value = \(\(\w+ = b0\.value\) === \w+ \? \w+ : 0\) - 1;/,
+    assert.match(source, /\n\w+ = \(\w+ = \+b0\.value\) === \w+ \? \w+ : 0;\n/, 'a value read twice is cast once');
+    assert.match(source, /b0\.value = \w+ = \(\(\w+ = \w+ \* \(\(\(\w+ = \+b1\.value\) === \w+ \? \w+ : 0\) - 3\)\) === \w+ \? \w+ : 0\) \+ \w+;/, 'nested arithmetic');
+    assert.match(source, /b0\.value = \w+ = \(\(\w+ = \w+\) === \w+ \? \w+ : 0\) - 1;/,
         'adding a negative literal subtracts');
-    assert.match(source, /if \(b0\.value \+ 1 < 10\) \{/, 'conditions are not double wrapped');
+    assert.match(source, /if \(\w+ \+ 1 < 10\) \{/, 'conditions are not double wrapped');
     assert.match(source, /_say\("x=" \+ b0\.value, target\)/, 'joining onto a string needs no cast');
 });
 

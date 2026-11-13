@@ -7,13 +7,15 @@ const b0 = stage.variables["k|@-`:^^Mo+E}$({|2/P"] || stage.lookupOrCreateVariab
 const b1 = stage.variables["t2m05.oW;5f0=GL30@pV"] || stage.lookupOrCreateVariable("t2m05.oW;5f0=GL30@pV", "-Infinity");
 checks.push(() => b0 === (stage.variables["k|@-`:^^Mo+E}$({|2/P"] || stage.lookupOrCreateVariable("k|@-`:^^Mo+E}$({|2/P", "Infinity")) && b1 === (stage.variables["t2m05.oW;5f0=GL30@pV"] || stage.lookupOrCreateVariable("t2m05.oW;5f0=GL30@pV", "-Infinity")));
 return function funXYZ () {
+var a0, a1, a2;
 runtime.ext_scratch3_looks._say("plan 4", target);
-b0.value = Infinity;
-b1.value = -Infinity;
-if (("" + (b0.value + b1.value)).toLowerCase() === "nan") {
+b0.value = a0 = Infinity;
+b1.value = a1 = -Infinity;
+if (("" + (a0 + a1)).toLowerCase() === "nan") {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
-if (("" + (b0.value - b0.value)).toLowerCase() === "nan") {
+a2 = b0.value;
+if (("" + (a2 - a2)).toLowerCase() === "nan") {
 runtime.ext_scratch3_looks._say("pass 1", target);
 }
 if (("" + b0.value * 0).toLowerCase() === "nan") {

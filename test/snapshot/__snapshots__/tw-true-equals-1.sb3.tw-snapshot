@@ -7,14 +7,15 @@ const b0 = stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariab
 const b1 = stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string");
 checks.push(() => b0 === (stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariable("{vwNMZe-LO,q/k3(A,.`", "true as boolean")) && b1 === (stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string")));
 return function funXYZ () {
+var a0;
 runtime.ext_scratch3_looks._say("plan 8", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 runtime.ext_scratch3_looks._say("pass", target);
 b0.value = true;
-b1.value = "true";
-if (!(b1.value.toLowerCase() === "1")) {
+b1.value = a0 = "true";
+if (!(a0.toLowerCase() === "1")) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
 if (!("1" === b1.value.toLowerCase())) {

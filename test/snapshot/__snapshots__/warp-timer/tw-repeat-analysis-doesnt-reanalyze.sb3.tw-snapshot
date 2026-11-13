@@ -21,8 +21,9 @@ const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOr
 const b1 = stage.variables["6h7bpiz0`;;x^G1B3(%["] || stage.lookupOrCreateList("6h7bpiz0`;;x^G1B3(%[", "list");
 checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")) && b1 === (stage.variables["6h7bpiz0`;;x^G1B3(%["] || stage.lookupOrCreateList("6h7bpiz0`;;x^G1B3(%[", "list")));
 return function* genXYZ_a () {
-b0.value = b1.value.length;
-for (var a0 = b0.value; a0 > 0; a0--) {
+var a0;
+b0.value = a0 = b1.value.length;
+for (var a1 = a0; a1 > 0; a1--) {
 b0.value = "bwah";
 if (isStuck()) yield;
 }

@@ -14,15 +14,16 @@ const b0 = stage.variables["5*)/o6gQzEw)31Ah!j:j"] || stage.lookupOrCreateVariab
 const b1 = stage.variables["sYUvu8`..xuGcWX3!B1k"] || stage.lookupOrCreateVariable("sYUvu8`..xuGcWX3!B1k", "1");
 checks.push(() => b0 === (stage.variables["5*)/o6gQzEw)31Ah!j:j"] || stage.lookupOrCreateVariable("5*)/o6gQzEw)31Ah!j:j", "3")) && b1 === (stage.variables["sYUvu8`..xuGcWX3!B1k"] || stage.lookupOrCreateVariable("sYUvu8`..xuGcWX3!B1k", "1")));
 return function* genXYZ () {
-var a0, a1;
+var a0, a1, a2;
 while (!compareGreaterThan(b0.value, 2)) {
 b0.value = ((a0 = +b0.value) === a0 ? a0 : 0) + 1;
 yield;
 }
-if (((a1 = +b1.value) === a1 ? a1 : 0) === 1) {
+a1 = b1.value;
+if (((a2 = +a1) === a2 ? a2 : 0) === 1) {
 procedures["ZOK %s"]("");
 } else {
-if (compareEqual(b1.value, 0)) {
+if (compareEqual(a1, 0)) {
 procedures["ZFAIL %s"]("variable 1 haven't been incremented");
 } else {
 procedures["ZFAIL %s"]("variable 1 got incremented multiple times");

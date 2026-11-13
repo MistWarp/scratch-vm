@@ -23,12 +23,13 @@ const b0 = stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("swi
 const b1 = stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals");
 checks.push(() => b0 === (stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("switchsubj-id", "subj")) && b1 === (stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals")));
 return function funXYZ () {
-b0.value = b1.value[1 - 1] ?? "";
-if (("" + b0.value).toLowerCase() === "hello") {
+var a0;
+b0.value = a0 = b1.value[1 - 1] ?? "";
+if (("" + a0).toLowerCase() === "hello") {
 runtime.ext_scratch3_looks._say("pass string", target);
 retire(); return;
 }
-if (("" + b0.value).toLowerCase() === "world") {
+if (("" + a0).toLowerCase() === "world") {
 runtime.ext_scratch3_looks._say("fail string-wrong-branch", target);
 retire(); return;
 }
@@ -42,13 +43,13 @@ const b0 = stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("swi
 const b1 = stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals");
 checks.push(() => b0 === (stage.variables["switchsubj-id"] || stage.lookupOrCreateVariable("switchsubj-id", "subj")) && b1 === (stage.variables["switchlist-id"] || stage.lookupOrCreateList("switchlist-id", "vals")));
 return function funXYZ () {
-var a0, a1;
-b0.value = b1.value[2 - 1] ?? "";
-if (compareEqual(b0.value, 0)) {
+var a0, a1, a2;
+b0.value = a0 = b1.value[2 - 1] ?? "";
+if (compareEqual(a0, 0)) {
 runtime.ext_scratch3_looks._say("fail numeric-matched-0", target);
 retire(); return;
 }
-if (((a1 = +b0.value) === a1 ? a1 : 0) === 1) {
+if (((a2 = +a0) === a2 ? a2 : 0) === 1) {
 runtime.ext_scratch3_looks._say("fail numeric-matched-1", target);
 retire(); return;
 }
