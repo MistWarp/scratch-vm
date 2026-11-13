@@ -284,7 +284,7 @@ class JSGeneratorStub {
                 if (intermediate.opcode === InputOpcode.CONSTANT) {
                     return new ConstantInput(intermediate.inputs.value, true);
                 }
-                const js = real.descendInput(intermediate);
+                const js = real.descendForeignInput(intermediate);
                 return new TypedInput(js, intermediate);
             },
 
@@ -293,7 +293,7 @@ class JSGeneratorStub {
              * @param {Frame} frame New frame
              */
             descendStack (stack, frame) {
-                real.descendStack(stack, frame);
+                real.descendForeignStack(stack, frame);
             },
 
             yieldLoop: () => real.yieldLoop(),

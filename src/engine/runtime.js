@@ -7,6 +7,7 @@ const Profiler = require('./profiler');
 const Sequencer = require('./sequencer');
 const execute = require('./execute.js');
 const compilerExecute = require('../compiler/jsexecute');
+const listSearch = require('../compiler/list-search');
 const {
     mistsUtils: mistsUtilsCompiler,
     core: mistWarpCompiler,
@@ -209,6 +210,7 @@ class Runtime extends EventEmitter {
         this.sequencer = new Sequencer(this);
 
         this.nameFlowStale = false;
+        this.compiledRawSource = false;
 
         /**
          * Storage container for flyout blocks.
@@ -1250,8 +1252,23 @@ class Runtime extends EventEmitter {
      * @param {!string} opcode The opcode to look up.
      * @return {Function} The function which implements the opcode.
      */
+    emit (type, ...values) {
+        listSearch.listsMayHaveChanged();
+        return super.emit(type, ...values);
+    }
+
     getOpcodeFunction (opcode) {
-        return this._primitives[opcode];
+        let found;
+        if (Object.prototype.hasOwnProperty.call(this._primitives, opcode)) found = this._primitives[opcode];
+        return found;
+    }
+
+    getHatInfo (opcode) {
+        return Object.prototype.hasOwnProperty.call(this._hats, opcode) ? this._hats[opcode] : null;
+    }
+
+    getFlowInfo (opcode) {
+        return Object.prototype.hasOwnProperty.call(this._flowing, opcode) ? this._flowing[opcode] : null;
     }
 
     /**
@@ -1566,7 +1583,7 @@ class Runtime extends EventEmitter {
         const instance = this;
         const newThreads = [];
         // Look up metadata for the relevant hat.
-        const hatMeta = instance._hats[requestedHatOpcode];
+        const hatMeta = instance.getHatInfo(requestedHatOpcode);
         if (this._paused && !hatMeta.edgeActivated && requestedHatOpcode !== 'event_whenbroadcastreceived' &&
             requestedHatOpcode !== 'control_start_as_clone') {
             return newThreads;
@@ -1690,6 +1707,7 @@ class Runtime extends EventEmitter {
         });
 
         this.targets.slice().forEach(this.disposeTarget, this);
+        this.compiledRawSource = false;
         this.extensionStorage = {};
         // tw: explicitly emit a MONITORS_UPDATE instead of relying on implicit behavior of _step()
         if (!this._monitorState.empty()) {

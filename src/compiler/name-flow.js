@@ -267,6 +267,19 @@ const summarize = (runtime, target, stage) => {
     return {sinks, flows, declarations: target.declRevision, stageDeclarations: stage ? stage.declRevision : 0};
 };
 
+const summarizeOrPreserve = (runtime, target, stage) => {
+    try {
+        return summarize(runtime, target, stage);
+    } catch (error) {
+        return {
+            sinks: [ANYTHING],
+            flows: [],
+            declarations: target.declRevision,
+            stageDeclarations: stage ? stage.declRevision : 0
+        };
+    }
+};
+
 const solve = summaries => {
     const incoming = new Map();
     const pending = [];
@@ -321,7 +334,7 @@ const namesReachingLookups = runtime => {
             cached.declarations !== target.declRevision ||
             cached.stageDeclarations !== stageDeclarations
         ) {
-            cache.nameFlow = summarize(runtime, target, stage);
+            cache.nameFlow = summarizeOrPreserve(runtime, target, stage);
         }
         if (unchanged && previous.summaries[summaries.length] !== cache.nameFlow) unchanged = false;
         summaries.push(cache.nameFlow);

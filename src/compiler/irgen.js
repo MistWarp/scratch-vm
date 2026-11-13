@@ -1668,7 +1668,7 @@ class ScriptTreeGenerator {
     walkHat (hatBlock) {
         const nextBlock = hatBlock.next;
         const opcode = hatBlock.opcode;
-        const hatInfo = this.runtime._hats[opcode];
+        const hatInfo = this.runtime.getHatInfo(opcode);
 
         if (this.thread.stackClick) {
             // We still need to treat the hat as a normal block (so executableHat should be false) for
@@ -1737,7 +1737,7 @@ class ScriptTreeGenerator {
         }
 
         // We do need to evaluate empty hats
-        const hatInfo = this.runtime._hats[topBlock.opcode];
+        const hatInfo = this.runtime.getHatInfo(topBlock.opcode);
         const isHat = !!hatInfo;
         if (isHat) {
             this.script.stack = this.walkHat(topBlock);

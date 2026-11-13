@@ -299,7 +299,7 @@ class BlockCached {
         this._blockFunction = runtime.getOpcodeFunction(opcode);
         this._definedBlockFunction = typeof this._blockFunction === 'function';
 
-        const flowing = runtime._flowing[opcode];
+        const flowing = runtime.getFlowInfo(opcode);
         this._isConditional = !!(flowing && flowing.conditional);
         this._isLoop = !!(flowing && flowing.loop);
 

@@ -190,6 +190,18 @@ const numberLiteral = value => {
  * @param {string} js
  * @returns {Expression}
  */
+const SEARCHING_INPUTS = new Set([
+    InputOpcode.LIST_CONTAINS,
+    InputOpcode.LIST_INDEX_OF,
+    InputOpcode.PROCEDURE_CALL
+]);
+
+const mayRunListSearch = value => {
+    if (Array.isArray(value)) return value.some(mayRunListSearch);
+    if (!(value instanceof IntermediateInput)) return false;
+    return SEARCHING_INPUTS.has(value.opcode) || Object.values(value.inputs).some(mayRunListSearch);
+};
+
 const foreign = js => {
     let depth = 0;
     let quote = null;
@@ -446,10 +458,11 @@ class JSGenerator {
             return expression(this.generateCompatibilityLayerCall(node, false), Precedence.YIELD);
 
         case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
-            return foreign(this.oldCompilerStub.descendInputFromNewCompiler(block));
+            return foreign(`(globalState.listsMayHaveChanged(), ${
+                this.oldCompilerStub.descendInputFromNewCompiler(block)})`);
 
         case InputOpcode.EXTENSION:
-            return foreign(this.generateExtensionCompilerSource(node));
+            return foreign(`(globalState.listsMayHaveChanged(), ${this.generateExtensionCompilerSource(node)})`);
 
         case InputOpcode.RAW_SOURCE: {
             // Parenthesized so casts and operators cannot rebind the spliced expression.
@@ -831,11 +844,11 @@ class JSGenerator {
         }
 
         case StackOpcode.EXTENSION:
-            this.source += `{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
+            this.source += `globalState.listsMayHaveChanged();\n{\n${this.generateExtensionCompilerSource(node)};\n}\n`;
             break;
 
         case StackOpcode.EXTENSION_CONTROL:
-            this.source += `{\n${this.generateExtensionControlSource(node)}\n}\n`;
+            this.source += `globalState.listsMayHaveChanged();\n{\n${this.generateExtensionControlSource(node)}\n}\n`;
             break;
 
         case StackOpcode.RAW_SOURCE:
@@ -876,6 +889,7 @@ class JSGenerator {
         }
 
         case InputOpcode.OLD_COMPILER_COMPATIBILITY_LAYER:
+            this.source += 'globalState.listsMayHaveChanged();\n';
             return this.oldCompilerStub.descendStackedBlockFromNewCompiler(block);
 
         case StackOpcode.HAT_EDGE:
@@ -1703,13 +1717,23 @@ class JSGenerator {
      * @param {*} node The extension node's inputs record.
      * @returns {{input: Function, field: Function}}
      */
+    descendForeignInput (input) {
+        const source = this.descendInput(input);
+        return mayRunListSearch(input) ? `(globalState.listsMayHaveChanged(), ${source})` : source;
+    }
+
+    descendForeignStack (stack, frame) {
+        this.source += 'globalState.listsMayHaveChanged();\n';
+        this.descendStack(stack, frame);
+    }
+
     createExtensionInputHelpers (node) {
         const getInput = (name, type) => {
             const value = node.inputs[name];
             if (!value) return '""';
             if (type === 'raw' && value.opcode === InputOpcode.CONSTANT) return `${value.inputs.value}`;
             const inputType = COMPILER_INPUT_TYPES[type];
-            return this.descendInput(inputType ? value.toType(inputType) : value);
+            return this.descendForeignInput(inputType ? value.toType(inputType) : value);
         };
         const input = name => getInput(name);
         input.raw = name => getInput(name, 'raw');
@@ -1798,7 +1822,7 @@ class JSGenerator {
             const savedSource = this.source;
             try {
                 this.source = '';
-                this.descendStack(stack, new Frame(Boolean(options && options.isLoop)));
+                this.descendForeignStack(stack, new Frame(Boolean(options && options.isLoop)));
                 return this.source;
             } finally {
                 this.source = savedSource;
@@ -1858,6 +1882,7 @@ class JSGenerator {
      * @returns {string} JavaScript source.
      */
     generateRawSource (fragments) {
+        this.target.runtime.compiledRawSource = true;
         return fragments.map(fragment => {
             if (fragment.opcode === InputOpcode.CONSTANT) return `${fragment.inputs.value}`;
             if (fragment.opcode === InputOpcode.RAW_SOURCE) return this.generateRawSource(fragment.inputs.fragments);
