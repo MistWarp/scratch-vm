@@ -15,6 +15,7 @@ const {
     IntermediateRepresentation
 } = require('./intermediate');
 const oldCompilerCompatiblity = require('./old-compiler-compatibility.js');
+const {WHOLE_NUMBER, storeKeyOf, argumentKeyOf, namesReachingLookups} = require('./name-flow');
 
 /**
  * @fileoverview Generate intermediate representations from Scratch blocks.
@@ -117,17 +118,21 @@ class ScriptTreeGenerator {
         this.usesTimer = false;
 
         this.namesOfCostumesAndSounds = new Set();
+        let hasWholeNumberName = false;
         for (const target of this.runtime.targets) {
             if (target.isOriginal) {
                 const sprite = target.sprite;
                 for (const costume of sprite.costumes) {
                     this.namesOfCostumesAndSounds.add(costume.name);
+                    hasWholeNumberName = hasWholeNumberName || WHOLE_NUMBER.test(costume.name);
                 }
                 for (const sound of sprite.sounds) {
                     this.namesOfCostumesAndSounds.add(sound.name);
+                    hasWholeNumberName = hasWholeNumberName || WHOLE_NUMBER.test(sound.name);
                 }
             }
         }
+        this.namesReachingLookups = hasWholeNumberName ? namesReachingLookups(this.runtime) : null;
 
         this.oldCompilerStub = (
             oldCompilerCompatiblity.enabled ?
@@ -182,7 +187,12 @@ class ScriptTreeGenerator {
 
         constant += '';
         const numConstant = +constant;
-        const preserve = preserveStrings && this.namesOfCostumesAndSounds.has(constant);
+        const preserve = preserveStrings && this.namesOfCostumesAndSounds.has(constant) && !(
+            typeof preserveStrings === 'string' &&
+            this.namesReachingLookups &&
+            !this.namesReachingLookups.has(preserveStrings) &&
+            WHOLE_NUMBER.test(constant)
+        );
 
         if (!Number.isNaN(numConstant) && (constant.trim() !== '' || constant.includes('\t'))) {
             if (!preserve && numConstant.toString() === constant) {
@@ -836,11 +846,13 @@ class ScriptTreeGenerator {
         case 'control_incr_counter':
             return new IntermediateStackBlock(StackOpcode.CONTORL_INCR_COUNTER);
 
-        case 'data_addtolist':
+        case 'data_addtolist': {
+            const list = this.descendVariable(block, 'LIST', LIST_TYPE);
             return new IntermediateStackBlock(StackOpcode.LIST_ADD, {
-                list: this.descendVariable(block, 'LIST', LIST_TYPE),
-                item: this.descendInputOfBlock(block, 'ITEM', true)
+                list,
+                item: this.descendInputOfBlock(block, 'ITEM', storeKeyOf(block.fields.LIST, list))
             });
+        }
         case 'data_changevariableby': {
             const variable = this.descendVariable(block, 'VARIABLE', SCALAR_TYPE);
             return new IntermediateStackBlock(StackOpcode.VAR_SET, {
@@ -875,23 +887,29 @@ class ScriptTreeGenerator {
             return new IntermediateStackBlock(StackOpcode.VAR_HIDE, {
                 variable: this.descendVariable(block, 'VARIABLE', SCALAR_TYPE)
             });
-        case 'data_insertatlist':
+        case 'data_insertatlist': {
+            const list = this.descendVariable(block, 'LIST', LIST_TYPE);
             return new IntermediateStackBlock(StackOpcode.LIST_INSERT, {
-                list: this.descendVariable(block, 'LIST', LIST_TYPE),
+                list,
                 index: this.descendInputOfBlock(block, 'INDEX'),
-                item: this.descendInputOfBlock(block, 'ITEM', true)
+                item: this.descendInputOfBlock(block, 'ITEM', storeKeyOf(block.fields.LIST, list))
             });
-        case 'data_replaceitemoflist':
+        }
+        case 'data_replaceitemoflist': {
+            const list = this.descendVariable(block, 'LIST', LIST_TYPE);
             return new IntermediateStackBlock(StackOpcode.LIST_REPLACE, {
-                list: this.descendVariable(block, 'LIST', LIST_TYPE),
+                list,
                 index: this.descendInputOfBlock(block, 'INDEX'),
-                item: this.descendInputOfBlock(block, 'ITEM', true)
+                item: this.descendInputOfBlock(block, 'ITEM', storeKeyOf(block.fields.LIST, list))
             });
-        case 'data_setvariableto':
+        }
+        case 'data_setvariableto': {
+            const variable = this.descendVariable(block, 'VARIABLE', SCALAR_TYPE);
             return new IntermediateStackBlock(StackOpcode.VAR_SET, {
-                variable: this.descendVariable(block, 'VARIABLE', SCALAR_TYPE),
-                value: this.descendInputOfBlock(block, 'VALUE', true)
+                variable,
+                value: this.descendInputOfBlock(block, 'VALUE', storeKeyOf(block.fields.VARIABLE, variable))
             });
+        }
         case 'data_showlist':
             return new IntermediateStackBlock(StackOpcode.LIST_SHOW, {
                 list: this.descendVariable(block, 'LIST', LIST_TYPE)
@@ -1271,10 +1289,11 @@ class ScriptTreeGenerator {
         const args = [];
         for (let i = 0; i < paramIds.length; i++) {
             let value;
+            const argumentKey = argumentKeyOf(procedureCode, paramNames[i]);
             if (block.inputs[paramIds[i]] && block.inputs[paramIds[i]].block) {
-                value = this.descendInputOfBlock(block, paramIds[i], true);
+                value = this.descendInputOfBlock(block, paramIds[i], argumentKey);
             } else {
-                value = this.createConstantInput(paramDefaults[i], true);
+                value = this.createConstantInput(paramDefaults[i], argumentKey);
             }
             args.push(value);
         }

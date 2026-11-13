@@ -104,6 +104,7 @@ class Target extends EventEmitter {
         this.variables[id] = variable;
         this._variableLookupCaches = null;
         this.declRevision++;
+        if (this.isOriginal && this.runtime) this.runtime.nameFlowStale = true;
         return variable;
     }
 
@@ -414,6 +415,10 @@ class Target extends EventEmitter {
                 this.declRevision++;
 
                 if (this.runtime) {
+                    for (const target of this.runtime.targets) {
+                        if (target.isOriginal) target.blocks.resetCache();
+                    }
+
                     if (variable.isCloud && this.isStage) {
                         this.runtime.ioDevices.cloud.requestRenameVariable(oldName, newName);
                     }
@@ -465,6 +470,7 @@ class Target extends EventEmitter {
             delete this.variables[id];
             this._variableLookupCaches = null;
             this.declRevision++;
+            if (this.isOriginal && this.runtime) this.runtime.nameFlowStale = true;
             if (this.runtime) {
                 if (deletedVariableWasCloud && this.isStage) {
                     this.runtime.ioDevices.cloud.requestDeleteVariable(deletedVariableName);

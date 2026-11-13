@@ -1,5 +1,6 @@
 const log = require('../util/log');
 const compile = require('../compiler/compile');
+const {refreshNameFlow} = require('../compiler/name-flow');
 
 /**
  * Recycle bin for empty stackFrame objects
@@ -523,6 +524,7 @@ class Thread {
             !this.target.runtime.scriptNeedsCompiler(blocks, topBlock)) {
             return;
         }
+        if (this.target.runtime.nameFlowStale) refreshNameFlow(this.target.runtime);
         const cachedResult = canCache && blocks.getCachedCompileResult(topBlock);
         // If there is a cached error, do not attempt to recompile.
         if (cachedResult && !cachedResult.success) {
