@@ -1,6 +1,8 @@
 const {test} = require('node:test');
 const assert = require('node:assert');
 const Runtime = require('../../src/engine/runtime');
+const Blocks = require('../../src/engine/blocks');
+const Target = require('../../src/engine/target');
 const Thread = require('../../src/engine/thread');
 const VirtualMachine = require('../../src/virtual-machine');
 
@@ -102,11 +104,29 @@ test('while paused only broadcasts, clones and edge-activated hats start', () =>
         control_start_as_clone: {},
         test_whenEdge: {edgeActivated: true}
     };
-    rt.allScriptsByOpcodeDo = opcode => started.push(opcode);
-    rt.setPaused(true);
+    const blocks = new Blocks(rt);
     for (const opcode of Object.keys(rt._hats)) {
-        assert.deepStrictEqual(rt.startHats(opcode), [], opcode);
+        blocks.createBlock({
+            id: opcode,
+            opcode,
+            fields: {},
+            inputs: {},
+            next: null,
+            parent: null,
+            shadow: false,
+            topLevel: true,
+            x: 0,
+            y: 0
+        });
     }
+    rt.addTarget(new Target(rt, blocks));
+    rt._pushThread = id => {
+        started.push(id);
+        return {isCompiled: true, executableHat: false};
+    };
+    rt.setPaused(true);
+    assert.deepStrictEqual(rt.startHats('event_whenkeypressed'), []);
+    for (const opcode of Object.keys(rt._hats)) rt.startHats(opcode);
     assert.deepStrictEqual(started, ['event_whenbroadcastreceived', 'control_start_as_clone', 'test_whenEdge']);
     rt.setPaused(false);
     rt.startHats('event_whenkeypressed');

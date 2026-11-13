@@ -2,9 +2,10 @@
 // Input SHA-256: 70cf221f35f1459c3b81ece31ed7b377098ff26eeafb66eba3788dd82c90bdd5
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariable("{vwNMZe-LO,q/k3(A,.`", "true as boolean");
 const b1 = stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string");
+checks.push(() => b0 === (stage.variables["{vwNMZe-LO,q/k3(A,.`"] || stage.lookupOrCreateVariable("{vwNMZe-LO,q/k3(A,.`", "true as boolean")) && b1 === (stage.variables["DKX$)W98mALB-eeMoj(d"] || stage.lookupOrCreateVariable("DKX$)W98mALB-eeMoj(d", "true as string")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 8", target);
 runtime.ext_scratch3_looks._say("pass", target);

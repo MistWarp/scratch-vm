@@ -4,6 +4,8 @@ const path = require('path');
 const readFileToBuffer = require('../fixtures/readProjectFile').readFileToBuffer;
 const VirtualMachine = require('../../src/virtual-machine');
 const Runtime = require('../../src/engine/runtime');
+const Blocks = require('../../src/engine/blocks');
+const Target = require('../../src/engine/target');
 const MonitorRecord = require('../../src/engine/monitor-record');
 
 test('spec', () => {
@@ -271,10 +273,20 @@ test('handleExtensionButtonPress ignores unknown buttons', () => {
 const makeHatRuntime = fieldValue => {
     const rt = new Runtime();
     rt._hats.test_whenNamed = {restartExistingThreads: false};
-    const target = {id: 'target'};
-    rt.allScriptsByOpcodeDo = (opcode, f) => {
-        f({blockId: 'hat', fieldsOfInputs: {NAME: {value: fieldValue}}}, target);
-    };
+    const blocks = new Blocks(rt);
+    blocks.createBlock({
+        id: 'hat',
+        opcode: 'test_whenNamed',
+        fields: {NAME: {name: 'NAME', value: fieldValue}},
+        inputs: {},
+        next: null,
+        parent: null,
+        shadow: false,
+        topLevel: true,
+        x: 0,
+        y: 0
+    });
+    rt.addTarget(new Target(rt, blocks));
     rt._pushThread = () => ({isCompiled: true, executableHat: false});
     return rt;
 };
@@ -314,4 +326,34 @@ test('getBlocksJSON leaves out entries without JSON', () => {
         ]
     }];
     assert.deepStrictEqual(rt.getBlocksJSON(), [{type: 'test_a'}, {type: 'test_b'}]);
+});
+
+test('moving a target in the execution order places it like a splice for any distance', () => {
+    const names = order => order.map(target => target.name).join('');
+    for (const withStage of [true, false]) {
+        for (const delta of [1, 2, -1, -2, 1.5, -1.5, 0.5, -0.5, 2.999, NaN, Infinity, -Infinity, 100, -100]) {
+            for (let from = 0; from < 5; from++) {
+                const rt = new Runtime();
+                rt.executableTargets = ['S', 'A', 'B', 'C', 'D'].map((name, index) => ({
+                    name,
+                    isStage: withStage && index === 0
+                }));
+                const target = rt.executableTargets[from];
+                if (target.isStage) continue;
+                const expected = rt.executableTargets.slice();
+                const last = expected.length - 1;
+                let to = from + delta;
+                if (to > last) to = last;
+                if (to <= 0) to = withStage ? 1 : 0;
+                if (to !== from) {
+                    expected.splice(from, 1);
+                    expected.splice(to, 0, target);
+                }
+                rt.moveExecutable(target, delta);
+                const label = `stage ${withStage} from ${from} by ${delta}`;
+                assert.strictEqual(names(rt.executableTargets), names(expected), label);
+                assert.strictEqual(Object.keys(rt.executableTargets).length, 5, label);
+            }
+        }
+    }
 });

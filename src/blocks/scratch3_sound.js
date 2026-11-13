@@ -8,6 +8,20 @@ const Clone = require('../util/clone');
  */
 const STORE_WAITING = true;
 
+const copySoundState = soundState => {
+    const effects = soundState.effects;
+    if (
+        typeof effects === 'object' && effects !== null &&
+        Clone.isPlainNumber(effects.pitch) &&
+        Clone.isPlainNumber(effects.pan) &&
+        Clone.isRecordOf(effects, 2) &&
+        Clone.isRecordOf(soundState, 1)
+    ) {
+        return {effects: {...effects}};
+    }
+    return Clone.simple(soundState);
+};
+
 class Scratch3SoundBlocks {
     constructor (runtime) {
         /**
@@ -127,7 +141,7 @@ class Scratch3SoundBlocks {
         if (sourceTarget) {
             const soundState = sourceTarget.getCustomState(Scratch3SoundBlocks.STATE_KEY);
             if (soundState && newTarget) {
-                newTarget.setCustomState(Scratch3SoundBlocks.STATE_KEY, Clone.simple(soundState));
+                newTarget.setCustomState(Scratch3SoundBlocks.STATE_KEY, copySoundState(soundState));
                 this._syncEffectsForTarget(newTarget);
             }
         }

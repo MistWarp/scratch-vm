@@ -55,35 +55,38 @@ runtimeFunctions.startHats = `const startHats = (requestedHat, optMatchFields) =
  * Implements "thread waiting", where scripts are halted until all the scripts have finished executing.
  * @param {Array} threads The list of threads.
  */
-runtimeFunctions.waitThreads = `const waitThreads = function*(threads) {
+const threadsRunningSource = `threads => {
+    let anyRunning = false;
+    for (let i = 0; i < threads.length; i++) {
+        if (threads[i].inThreadList) {
+            anyRunning = true;
+            break;
+        }
+    }
+    if (!anyRunning) {
+        return false;
+    }
+
     const thread = globalState.thread;
     const runtime = thread.target.runtime;
+    let allWaiting = true;
+    for (let i = 0; i < threads.length; i++) {
+        if (!runtime.isWaitingThread(threads[i])) {
+            allWaiting = false;
+            break;
+        }
+    }
+    if (allWaiting) {
+        thread.status = 3;
+    }
+    return true;
+}`;
 
-    while (true) {
-        // determine whether any threads are running
-        let anyRunning = false;
-        for (let i = 0; i < threads.length; i++) {
-            if (threads[i].inThreadList) {
-                anyRunning = true;
-                break;
-            }
-        }
-        if (!anyRunning) {
-            // all threads are finished, can resume
-            return;
-        }
+runtimeFunctions.threadsRunning = `const threadsRunning = ${threadsRunningSource}`;
 
-        let allWaiting = true;
-        for (let i = 0; i < threads.length; i++) {
-            if (!runtime.isWaitingThread(threads[i])) {
-                allWaiting = false;
-                break;
-            }
-        }
-        if (allWaiting) {
-            thread.status = 3; // STATUS_YIELD_TICK
-        }
-
+runtimeFunctions.waitThreads = `const waitThreads = function*(threads) {
+    const stillRunning = ${threadsRunningSource};
+    while (stillRunning(threads)) {
         yield;
     }
 }`;

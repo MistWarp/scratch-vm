@@ -2,7 +2,7 @@
 // Input SHA-256: 29dd30c632645f071bfd450530dab86dc85a2c1cf30564bee984394a790eca6a
 
 // 2 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ () {
 if (runtime.ext_scratch3_control._counter === 10) {
 runtime.ext_scratch3_looks._say("pass global", target);
@@ -12,7 +12,7 @@ retire(); return;
 }; })
 
 // 1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 5", target);
 if (runtime.ext_scratch3_control._counter === 0) {

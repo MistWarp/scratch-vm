@@ -2,9 +2,11 @@
 // Input SHA-256: 33ae042ed2e2affa758cf695de33f44b075e96d01ccb919972d262517492f6fc
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
+checks.push(() => b0 === (stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order")));
 return function* genXYZ () {
+const thread = globalState.thread;
 var a1;
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "3" });
 startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "1" });
@@ -24,15 +26,15 @@ yield;
 }
 thread.timer = null;
 if (((a1 = +listContents(b0)) === a1 ? a1 : 0) === 312) {
-thread.procedures["ZOK %s"]("");
+procedures["ZOK %s"]("");
 } else {
-thread.procedures["ZFAIL %s"]("");
+procedures["ZFAIL %s"]("");
 }
 retire(); return;
 }; })
 
 // Sprite1 ZOK %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_OK_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("pass " + p0, target);
@@ -43,7 +45,7 @@ return "";
 }; })
 
 // Sprite1 ZFAIL %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_FAIL_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("fail " + p0, target);
@@ -54,8 +56,9 @@ return "";
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
+checks.push(() => b0 === (stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order")));
 return function funXYZ () {
 b0.value.push(1);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
@@ -63,8 +66,9 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
+checks.push(() => b0 === (stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order")));
 return function funXYZ () {
 b0.value.push(2);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
@@ -72,8 +76,9 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order");
+checks.push(() => b0 === (stage.variables["C7VGwqE9rvJgpw(oV^?E"] || stage.lookupOrCreateList("C7VGwqE9rvJgpw(oV^?E", "order")));
 return function funXYZ () {
 b0.value.push(3);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;

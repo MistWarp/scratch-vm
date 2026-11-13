@@ -2,11 +2,12 @@
 // Input SHA-256: e6a6f5ea252886949eab2f4b5608526dc3686160d65f6e07c2d864c82db24326
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariable("PJl9-2GypE.OstQk*B_*", "result");
+checks.push(() => b0 === (stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariable("PJl9-2GypE.OstQk*B_*", "result")));
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 1", target);
-yield* thread.procedures["Wa"]();
+yield* procedures["Wa"]();
 if (("" + b0.value).toLowerCase() === "babab") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
@@ -15,10 +16,11 @@ retire(); return;
 }; })
 
 // Sprite1 Wa
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["uEt-Ix{%|r3`}-W%+kdm"] || stage.lookupOrCreateVariable("uEt-Ix{%|r3`}-W%+kdm", "input");
 const b1 = stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariable("PJl9-2GypE.OstQk*B_*", "result");
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "index");
+checks.push(() => b0 === (stage.variables["uEt-Ix{%|r3`}-W%+kdm"] || stage.lookupOrCreateVariable("uEt-Ix{%|r3`}-W%+kdm", "input")) && b1 === (stage.variables["PJl9-2GypE.OstQk*B_*"] || stage.lookupOrCreateVariable("PJl9-2GypE.OstQk*B_*", "result")) && b2 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "index")));
 return function* genXYZ_a () {
 var a1;
 b0.value = "ababa";

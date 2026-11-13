@@ -2,9 +2,10 @@
 // Input SHA-256: a018442bac20400dc82b159894be4f188118b41c2f85528416cdbe2eb221b01f
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A");
 const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A")) && b1 === (stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B")));
 return function* genXYZ () {
 b0.value = 0;
 b1.value = 0;
@@ -17,16 +18,17 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A");
 const b1 = stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "A")) && b1 === (stage.variables["XpJYYJ:ZH%1jU!x!l(ZP"] || stage.lookupOrCreateVariable("XpJYYJ:ZH%1jU!x!l(ZP", "B")));
 return function funXYZ () {
 var a0, a1;
 if (compareGreaterThan(b0.value, 3)) {
 if (compareLessThan(b1.value, b0.value)) {
-thread.procedures["ZOK %s"]("");
+procedures["ZOK %s"]("");
 } else {
-thread.procedures["ZFAIL %s"]("");
+procedures["ZFAIL %s"]("");
 }
 } else {
 target.setCostume(target.currentCostume + 1);
@@ -38,7 +40,7 @@ retire(); return;
 }; })
 
 // Sprite1 ZOK %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_OK_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("pass " + p0, target);
@@ -49,7 +51,7 @@ return "";
 }; })
 
 // Sprite1 ZFAIL %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_FAIL_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("fail " + p0, target);

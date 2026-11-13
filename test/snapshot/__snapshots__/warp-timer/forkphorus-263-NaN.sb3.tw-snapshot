@@ -2,29 +2,30 @@
 // Input SHA-256: 67ab3b26c771f54d4181fa85a76430fdb4603a171c36a918cce1374c89bf9c23
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["rL_u6{W`ET;GKBRHZrag"] || stage.lookupOrCreateVariable("rL_u6{W`ET;GKBRHZrag", "variable");
+checks.push(() => b0 === (stage.variables["rL_u6{W`ET;GKBRHZrag"] || stage.lookupOrCreateVariable("rL_u6{W`ET;GKBRHZrag", "variable")));
 return function funXYZ () {
-thread.procedures["ZassertTrue %b %s"](true, "0/0");
-thread.procedures["ZassertTrue %b %s"](true, "NaN == NaN");
-thread.procedures["ZassertTrue %b %s"](true, "sqrt negative");
+procedures["ZassertTrue %b %s"](true, "0/0");
+procedures["ZassertTrue %b %s"](true, "NaN == NaN");
+procedures["ZassertTrue %b %s"](true, "sqrt negative");
 b0.value = NaN;
-thread.procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "nan", "NaN storable in variables");
-thread.procedures["ZOK %s"]("");
+procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "nan", "NaN storable in variables");
+procedures["ZOK %s"]("");
 retire(); return;
 }; })
 
 // Sprite1 ZassertTrue %b %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_assertTrue__ (p0,p1) {
 if (!toBoolean(p0)) {
-thread.procedures["ZFAIL %s"](p1);
+procedures["ZFAIL %s"](p1);
 }
 return "";
 }; })
 
 // Sprite1 ZOK %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_OK_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("pass " + p0, target);
@@ -35,7 +36,7 @@ return "";
 }; })
 
 // Sprite1 ZFAIL %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_FAIL_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("fail " + p0, target);

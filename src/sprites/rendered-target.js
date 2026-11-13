@@ -7,6 +7,19 @@ const StageLayering = require('../engine/stage-layering');
 const RuntimeEvents = require('../engine/runtime-events');
 const {isMapComment, remapMapCommentText} = require('../serialization/reserved-comments');
 
+const copyEffects = effects => (
+    Clone.isPlainNumber(effects.color) &&
+    Clone.isPlainNumber(effects.fisheye) &&
+    Clone.isPlainNumber(effects.whirl) &&
+    Clone.isPlainNumber(effects.pixelate) &&
+    Clone.isPlainNumber(effects.mosaic) &&
+    Clone.isPlainNumber(effects.brightness) &&
+    Clone.isPlainNumber(effects.ghost) &&
+    Clone.isRecordOf(effects, 7) ?
+        {...effects} :
+        Clone.simple(effects)
+);
+
 /**
  * Rendered target: instance of a sprite (clone), or the stage.
  */
@@ -958,7 +971,7 @@ class RenderedTarget extends Target {
         newClone.size = this.size;
         newClone.currentCostume = this.currentCostume;
         newClone.rotationStyle = this.rotationStyle;
-        newClone.effects = Clone.simple(this.effects);
+        newClone.effects = copyEffects(this.effects);
         newClone.variables = this.duplicateVariables();
         newClone._edgeActivatedHatValues = Clone.simple(this._edgeActivatedHatValues);
         newClone.initDrawable(StageLayering.SPRITE_LAYER);

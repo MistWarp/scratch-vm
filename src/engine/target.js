@@ -93,6 +93,9 @@ class Target extends EventEmitter {
 
         this.declRevision = 0;
 
+        this.scriptStates = null;
+        this.scriptStatesFor = null;
+
         this._variableLookupCaches = null;
     }
 

@@ -11,6 +11,86 @@ const _stackFrameFreeList = [];
 /** Shared by every compiled thread whose script calls no custom blocks. */
 const NO_PROCEDURES = Object.freeze({});
 
+class ScriptState {
+    constructor () {
+        this.thread = null;
+        this.result = null;
+        this.instance = null;
+    }
+
+    toJSON () {
+        return;
+    }
+}
+
+const linkScript = (target, result) => {
+    const checks = [];
+    const procedureCodes = result.procedureCodes;
+    let procedures = NO_PROCEDURES;
+    if (procedureCodes.length !== 0) {
+        procedures = {};
+        for (let i = 0; i < procedureCodes.length; i++) {
+            procedures[procedureCodes[i]] = result.procedures[procedureCodes[i]](target, procedures, checks);
+        }
+    }
+    return {
+        startingFunction: result.startingFunction(target, procedures, checks),
+        procedures,
+        checks,
+        stage: target.runtime.getTargetForStage()
+    };
+};
+
+const isScriptInstanceCurrent = (target, instance) => {
+    if (instance.stage !== target.runtime.getTargetForStage()) return false;
+    const checks = instance.checks;
+    for (let i = 0; i < checks.length; i++) {
+        if (!checks[i]()) return false;
+    }
+    return true;
+};
+
+const pruneScriptStates = (target, states) => {
+    const blocks = target.blocks;
+    for (const [topBlock, state] of states) {
+        state.result = null;
+        state.instance = null;
+        if (!blocks.getBlock(topBlock) && !(state.thread !== null && state.thread.inThreadList)) {
+            states.delete(topBlock);
+        }
+    }
+};
+
+const scriptStateFor = (target, topBlock) => {
+    let states = target.scriptStates;
+    const compiledScripts = target.blocks._cache.compiledScripts;
+    if (target.scriptStatesFor !== compiledScripts) {
+        if (states === null) {
+            states = new Map();
+            target.scriptStates = states;
+        } else {
+            pruneScriptStates(target, states);
+        }
+        target.scriptStatesFor = compiledScripts;
+    }
+    let state = states.get(topBlock);
+    if (typeof state === 'undefined') {
+        state = new ScriptState();
+        states.set(topBlock, state);
+    }
+    return state;
+};
+
+const scriptInstanceFor = (target, state, result) => {
+    let instance = state.instance;
+    if (state.result !== result || !isScriptInstanceCurrent(target, instance)) {
+        instance = linkScript(target, result);
+        state.result = result;
+        state.instance = instance;
+    }
+    return instance;
+};
+
 /**
  * A frame used for each level of the stack. A general purpose
  * place to store a bunch of execution context and parameters
@@ -138,7 +218,7 @@ class _StackFrame {
  * @constructor
  */
 class Thread {
-    constructor (firstBlock) {
+    constructor (firstBlock, started) {
         /**
          * ID of top block of the thread
          * @type {!string}
@@ -156,13 +236,13 @@ class Thread {
          * the block is pushed onto the stack so we know where to exit.
          * @type {Array.<string>}
          */
-        this.stack = [];
+        this.stack = started ? [firstBlock] : [];
 
         /**
          * Stack frames for the thread. Store metadata for the executing blocks.
          * @type {Array.<_StackFrame>}
          */
-        this.stackFrames = [];
+        this.stackFrames = started ? [_StackFrame.create(false)] : [];
 
         /**
          * Status of the thread, one of three states (below)
@@ -177,6 +257,8 @@ class Thread {
         this.isKilled = false;
 
         this.inThreadList = false;
+
+        this.scriptState = null;
 
         /**
          * Target of this thread.
@@ -550,23 +632,16 @@ class Thread {
             }
         }
 
-        const procedureCodes = result.procedureCodes;
-        if (procedureCodes.length === 0) {
-            this.procedures = NO_PROCEDURES;
-        } else {
-            this.procedures = {};
-            for (let i = 0; i < procedureCodes.length; i++) {
-                this.procedures[procedureCodes[i]] = result.procedures[procedureCodes[i]](this);
-            }
-        }
-
-        const startingFunction = result.startingFunction(this);
+        const instance = this.scriptState !== null && canCache && blocks === this.target.blocks ?
+            scriptInstanceFor(this.target, this.scriptState, result) :
+            linkScript(this.target, result);
+        this.procedures = instance.procedures;
         if (result.yields) {
-            this.generator = startingFunction();
+            this.generator = instance.startingFunction();
             this.compiledFunction = null;
         } else {
             this.generator = null;
-            this.compiledFunction = startingFunction;
+            this.compiledFunction = instance.startingFunction;
         }
 
         this.executableHat = result.executableHat;
@@ -582,5 +657,7 @@ class Thread {
 
 // for extensions
 Thread._StackFrame = _StackFrame;
+
+Thread.scriptStateFor = scriptStateFor;
 
 module.exports = Thread;

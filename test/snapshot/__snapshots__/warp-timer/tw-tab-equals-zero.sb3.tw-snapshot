@@ -2,8 +2,9 @@
 // Input SHA-256: 86c1734c101ee85e6f737f891d6ca338d72b17026ab60d289ea7861351c65124
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["Kl,Own0m6{^v3$E{Wsc="] || stage.lookupOrCreateVariable("Kl,Own0m6{^v3$E{Wsc=", "tab in a variable");
+checks.push(() => b0 === (stage.variables["Kl,Own0m6{^v3$E{Wsc="] || stage.lookupOrCreateVariable("Kl,Own0m6{^v3$E{Wsc=", "tab in a variable")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 6", target);
 b0.value = "\t";
@@ -12,8 +13,9 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["Kl,Own0m6{^v3$E{Wsc="] || stage.lookupOrCreateVariable("Kl,Own0m6{^v3$E{Wsc=", "tab in a variable");
+checks.push(() => b0 === (stage.variables["Kl,Own0m6{^v3$E{Wsc="] || stage.lookupOrCreateVariable("Kl,Own0m6{^v3$E{Wsc=", "tab in a variable")));
 return function funXYZ () {
 if (compareEqual(b0.value, "0")) {
 runtime.ext_scratch3_looks._say("pass \\t in a variable = string 0", target);

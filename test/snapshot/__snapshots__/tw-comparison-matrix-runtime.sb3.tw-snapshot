@@ -2,23 +2,24 @@
 // Input SHA-256: 698b7a46d7ae7b0ea802888a6515a629f9a13721cae399629902031b0aa9c633
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 0", target);
-thread.procedures["Wrun test"]();
+procedures["Wrun test"]();
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
 // Sprite1 Wrun test
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["mfV;yS}9e:%h5UZ)QyiY"] || stage.lookupOrCreateVariable("mfV;yS}9e:%h5UZ)QyiY", "n");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i");
 const b2 = stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariable("_]6^lq+-%H0{ov`tKt7$", "j");
 const b3 = stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values");
 const b4 = stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected");
+checks.push(() => b0 === (stage.variables["mfV;yS}9e:%h5UZ)QyiY"] || stage.lookupOrCreateVariable("mfV;yS}9e:%h5UZ)QyiY", "n")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "i")) && b2 === (stage.variables["_]6^lq+-%H0{ov`tKt7$"] || stage.lookupOrCreateVariable("_]6^lq+-%H0{ov`tKt7$", "j")) && b3 === (stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values")) && b4 === (stage.variables["3lyKRepBc$tx)EWlpr!y"] || stage.lookupOrCreateList("3lyKRepBc$tx)EWlpr!y", "expected")));
 return function funXYZ_run_test () {
-thread.procedures["Wsetup values"]();
+procedures["Wsetup values"]();
 b0.value = 0;
 b1.value = 0;
 for (var a0 = b3.value.length; a0 > 0; a0--) {
@@ -44,8 +45,9 @@ return "";
 }; })
 
 // Sprite1 Wsetup values
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values");
+checks.push(() => b0 === (stage.variables["n^wm8jw#b24sggt.S^tD"] || stage.lookupOrCreateList("n^wm8jw#b24sggt.S^tD", "values")));
 return function funXYZ_setup_values () {
 b0.value = [];
 b0._searchIndex = null;

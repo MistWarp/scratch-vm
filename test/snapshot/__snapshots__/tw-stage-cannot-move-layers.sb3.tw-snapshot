@@ -2,9 +2,11 @@
 // Input SHA-256: 5592b1a64924003352fa3d2d9157c797689a702f55ba39c73a5e0bc862f57e59
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
+const thread = globalState.thread;
 runtime.ext_scratch3_looks._say("plan 1", target);
 b0.value = "Initial";
 thread.timer = timer();
@@ -15,14 +17,18 @@ while (thread.timer.timeElapsed() < a0) {
 yield;
 }
 thread.timer = null;
-yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "Test 1" }));
+var a1 = startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "Test 1" });
+while (threadsRunning(a1)) {
+yield;
+}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function funXYZ () {
 if (("" + b0.value).toLowerCase() === "initial") {
 runtime.ext_scratch3_looks._say("pass", target);
@@ -31,14 +37,15 @@ retire(); return;
 }; })
 
 // Stage script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ () {
 retire(); return;
 }; })
 
 // Stage script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = target.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || target.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (target.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || target.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function funXYZ () {
 b0.value = "Stage callback";
 retire(); return;

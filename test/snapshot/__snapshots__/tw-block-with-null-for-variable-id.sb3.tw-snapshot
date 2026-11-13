@@ -2,22 +2,30 @@
 // Input SHA-256: 99bb22ac4fb2542ce3c21fa7d2025f03d15392a33850585a4d12f4ec558663ac
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1");
 const b1 = stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1")) && b1 === (stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2")));
 return function* genXYZ () {
 runtime.ext_scratch3_looks._say("plan 2", target);
 b0.value = 1;
 b1.value = 2;
-yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "check 1" }));
-yield* waitThreads(startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "check 2" }));
+var a0 = startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "check 1" });
+while (threadsRunning(a0)) {
+yield;
+}
+var a1 = startHats("event_whenbroadcastreceived", { BROADCAST_OPTION: "check 2" });
+while (threadsRunning(a1)) {
+yield;
+}
 runtime.ext_scratch3_looks._say("end", target);
 retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "variable 1")));
 return function funXYZ () {
 var a0;
 if (((a0 = +b0.value) === a0 ? a0 : 0) === 1) {
@@ -27,8 +35,9 @@ retire(); return;
 }; })
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2");
+checks.push(() => b0 === (stage.variables[")|GMR5fz;%F_H,c0wGVM"] || stage.lookupOrCreateVariable(")|GMR5fz;%F_H,c0wGVM", "variable 2")));
 return function funXYZ () {
 var a0;
 if (((a0 = +b0.value) === a0 ? a0 : 0) === 2) {

@@ -2,9 +2,10 @@
 // Input SHA-256: 95d4c128e84ee992b48ed20653ba70b0f6c2d404c4f7088fa654676cd6b7c53c
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list");
 const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i");
+checks.push(() => b0 === (stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list")) && b1 === (stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i")));
 return function* genXYZ () {
 var a0;
 runtime.ext_scratch3_looks._say("plan 1", target);
@@ -16,7 +17,7 @@ b0.value.push(7);
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 b0.value.push("final");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
-yield* thread.procedures["Wtest"]();
+yield* procedures["Wtest"]();
 if (((a0 = +b1.value) === a0 ? a0 : 0) === 4) {
 runtime.ext_scratch3_looks._say("pass", target);
 }
@@ -25,10 +26,11 @@ retire(); return;
 }; })
 
 // Sprite1 Wtest
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 const b1 = stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i");
 const b2 = stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list");
+checks.push(() => b0 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")) && b1 === (stage.variables[",23fjp~KN1aMG|;66K@Z"] || stage.lookupOrCreateVariable(",23fjp~KN1aMG|;66K@Z", "i")) && b2 === (stage.variables[";~q(!vt3c.Jrz2M]ZMy]"] || stage.lookupOrCreateList(";~q(!vt3c.Jrz2M]ZMy]", "some list")));
 return function* genXYZ_test () {
 var a0;
 b0.value = "";

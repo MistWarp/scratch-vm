@@ -2,10 +2,11 @@
 // Input SHA-256: d758181c076886d498d4e14ea70e79759694c2f18910f309a1bb82861025f740
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["T}0U^Nr!iDn]OXVLQ!DT"] || stage.lookupOrCreateList("T}0U^Nr!iDn]OXVLQ!DT", "lol");
 const b1 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"] || stage.lookupOrCreateVariable("xiK*4nt~,{Bb#*%f|{9p", "i");
 const b2 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
+checks.push(() => b0 === (stage.variables["T}0U^Nr!iDn]OXVLQ!DT"] || stage.lookupOrCreateList("T}0U^Nr!iDn]OXVLQ!DT", "lol")) && b1 === (stage.variables["xiK*4nt~,{Bb#*%f|{9p"] || stage.lookupOrCreateVariable("xiK*4nt~,{Bb#*%f|{9p", "i")) && b2 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function funXYZ () {
 runtime.ext_scratch3_looks._say("plan 3", target);
 b0.value = [];
@@ -21,7 +22,7 @@ b2.value = b0.value[b1.value + 1 - 1] ?? "";
 if (("" + b2.value).toLowerCase() === "") {
 runtime.ext_scratch3_looks._say("pass", target);
 }
-thread.procedures["Zdo funny"]();
+procedures["Zdo funny"]();
 b2.value = b0.value[b1.value - 1 - 1] ?? "";
 if (("" + b2.value).toLowerCase() === "thing") {
 runtime.ext_scratch3_looks._say("pass", target);
@@ -31,8 +32,9 @@ retire(); return;
 }; })
 
 // Sprite1 Zdo funny
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["xiK*4nt~,{Bb#*%f|{9p"] || stage.lookupOrCreateVariable("xiK*4nt~,{Bb#*%f|{9p", "i");
+checks.push(() => b0 === (stage.variables["xiK*4nt~,{Bb#*%f|{9p"] || stage.lookupOrCreateVariable("xiK*4nt~,{Bb#*%f|{9p", "i")));
 return function funXYZ_do_funny () {
 b0.value = 2;
 return "";

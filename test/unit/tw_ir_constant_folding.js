@@ -355,7 +355,7 @@ test('folding never drops an input whose evaluation could be observed', async ()
 
     assert.match(source, /_say\(false, target\);\n\w+\.ext_scratch3_looks\._say\(false, target\)/,
         'a pure operand and a short-circuited call fold to false');
-    assert.match(source, /_say\(toBoolean\(thread\.procedures\["Zside effect"\]\(\)\) && false, target\)/,
+    assert.match(source, /_say\(toBoolean\(procedures\["Zside effect"\]\(\)\) && false, target\)/,
         'a call on the evaluated side stays');
 });
 

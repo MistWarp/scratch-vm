@@ -41,6 +41,8 @@ let stepThreadsInnerProfilerId = -1;
  */
 let executeProfilerId = -1;
 
+const MAX_DONE_THREADS_KEPT = 128;
+
 class Sequencer {
     constructor (runtime) {
         /**
@@ -56,6 +58,8 @@ class Sequencer {
         this.runtime = runtime;
 
         this.activeThread = null;
+
+        this.doneThreadsNotKept = 0;
     }
 
     /**
@@ -88,6 +92,8 @@ class Sequencer {
         // Whether `stepThreads` has run through a full single tick.
         let ranFirstTick = false;
         const doneThreads = [];
+        const pausedThreads = this.runtime._pausedThreads;
+        this.doneThreadsNotKept = 0;
         let iterationsUntilTimeCheck = 1;
         let iterationsSinceTimeCheck = 0;
         let elapsedAtLastTimeCheck = 0;
@@ -175,10 +181,18 @@ class Sequencer {
                         nextActiveThread++;
                     } else {
                         thread.inThreadList = false;
-                        if (this.runtime.threadMap.get(thread.getId()) === thread) {
-                            this.runtime.threadMap.delete(thread.getId());
+                        this.runtime._threadMapStale = true;
+                        if (
+                            doneThreads.length < MAX_DONE_THREADS_KEPT ||
+                            thread.updateMonitor ||
+                            thread.stackClick ||
+                            thread.requestScriptGlowInFrame ||
+                            (pausedThreads !== null && pausedThreads.has(thread))
+                        ) {
+                            doneThreads.push(thread);
+                        } else {
+                            this.doneThreadsNotKept++;
                         }
-                        doneThreads.push(thread);
                     }
                 }
                 this.runtime.threads.length = nextActiveThread;
@@ -438,7 +452,6 @@ class Sequencer {
      */
     retireThread (thread) {
         thread.stack = [];
-        thread.stackFrame = [];
         thread.requestScriptGlowInFrame = false;
         thread.status = Thread.STATUS_DONE;
         if (thread.isCompiled) {

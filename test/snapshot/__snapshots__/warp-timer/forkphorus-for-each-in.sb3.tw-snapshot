@@ -2,9 +2,10 @@
 // Input SHA-256: 4a00d758e882b2fe0b57020459268c0db38afb7aee290e57f045a5dab2ece743
 
 // Sprite1 script
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 const b0 = stage.variables["om$AKtHax/H0kJUzYbbi"] || stage.lookupOrCreateVariable("om$AKtHax/H0kJUzYbbi", "i");
 const b1 = stage.variables["7Oj/v$#js7a33uH`xGl;"] || stage.lookupOrCreateVariable("7Oj/v$#js7a33uH`xGl;", "dummy");
+checks.push(() => b0 === (stage.variables["om$AKtHax/H0kJUzYbbi"] || stage.lookupOrCreateVariable("om$AKtHax/H0kJUzYbbi", "i")) && b1 === (stage.variables["7Oj/v$#js7a33uH`xGl;"] || stage.lookupOrCreateVariable("7Oj/v$#js7a33uH`xGl;", "dummy")));
 return function* genXYZ () {
 var a1, a2, a3, a5, a6, a7, a9, a10, a11, a13, a14, a15, a17, a18, a19, a21, a22, a24, a25, a26;
 b0.value = "no change";
@@ -13,89 +14,89 @@ var a0 = 0; while (a0 < 10) { a0++; b0.value = a0;
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a2 = +b0.value) === a2 ? a2 : 0) === 10, "i = 10 (each 10)");
-thread.procedures["ZassertTrue %b %s"](((a3 = +b1.value) === a3 ? a3 : 0) === 10, "dummy = 10 (each 10)");
+procedures["ZassertTrue %b %s"](((a2 = +b0.value) === a2 ? a2 : 0) === 10, "i = 10 (each 10)");
+procedures["ZassertTrue %b %s"](((a3 = +b1.value) === a3 ? a3 : 0) === 10, "dummy = 10 (each 10)");
 b0.value = "no change";
 b1.value = 0;
 var a4 = 0; while (a4 < 1) { a4++; b0.value = a4;
 b1.value = ((a5 = +b1.value) === a5 ? a5 : 0) + 1;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a6 = +b0.value) === a6 ? a6 : 0) === 1, "i = 1 (each 1)");
-thread.procedures["ZassertTrue %b %s"](((a7 = +b1.value) === a7 ? a7 : 0) === 1, "dummy = 1 (each 1)");
+procedures["ZassertTrue %b %s"](((a6 = +b0.value) === a6 ? a6 : 0) === 1, "i = 1 (each 1)");
+procedures["ZassertTrue %b %s"](((a7 = +b1.value) === a7 ? a7 : 0) === 1, "dummy = 1 (each 1)");
 b0.value = "no change";
 b1.value = 0;
-thread.procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each 0)");
-thread.procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each 0)");
+procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each 0)");
+procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each 0)");
 b0.value = "no change";
 b1.value = 0;
-thread.procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each -5)");
-thread.procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each -5)");
+procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each -5)");
+procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each -5)");
 b0.value = "no change";
 b1.value = 0;
-thread.procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each aaaaaa)");
-thread.procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each aaaaaa)");
+procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each aaaaaa)");
+procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each aaaaaa)");
 b0.value = "no change";
 b1.value = 0;
 var a8 = 0; while (a8 < 5.9) { a8++; b0.value = a8;
 b1.value = ((a9 = +b1.value) === a9 ? a9 : 0) + 1;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a10 = +b0.value) === a10 ? a10 : 0) === 6, "i = 6 (each 5.9)");
-thread.procedures["ZassertTrue %b %s"](((a11 = +b1.value) === a11 ? a11 : 0) === 6, "dummy = 6 (each 5.9)");
+procedures["ZassertTrue %b %s"](((a10 = +b0.value) === a10 ? a10 : 0) === 6, "i = 6 (each 5.9)");
+procedures["ZassertTrue %b %s"](((a11 = +b1.value) === a11 ? a11 : 0) === 6, "dummy = 6 (each 5.9)");
 b0.value = "no change";
 b1.value = 0;
 var a12 = 0; while (a12 < 5.1) { a12++; b0.value = a12;
 b1.value = ((a13 = +b1.value) === a13 ? a13 : 0) + 1;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a14 = +b0.value) === a14 ? a14 : 0) === 6, "i = 6 (each 5.1)");
-thread.procedures["ZassertTrue %b %s"](((a15 = +b1.value) === a15 ? a15 : 0) === 6, "dummy = 6 (each 5.1)");
+procedures["ZassertTrue %b %s"](((a14 = +b0.value) === a14 ? a14 : 0) === 6, "i = 6 (each 5.1)");
+procedures["ZassertTrue %b %s"](((a15 = +b1.value) === a15 ? a15 : 0) === 6, "dummy = 6 (each 5.1)");
 b0.value = "no change";
 b1.value = 0;
-thread.procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each -0.1)");
-thread.procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each -0.1)");
+procedures["ZassertTrue %b %s"](("" + b0.value).toLowerCase() === "no change", "i = no change (each -0.1)");
+procedures["ZassertTrue %b %s"](compareEqual(b1.value, 0), "dummy = 0 (each -0.1)");
 b0.value = "no change";
 b1.value = 0;
 var a16 = 0; while (a16 < 0.1) { a16++; b0.value = a16;
 b1.value = ((a17 = +b1.value) === a17 ? a17 : 0) + 1;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a18 = +b0.value) === a18 ? a18 : 0) === 1, "i = 1 (each 0.1)");
-thread.procedures["ZassertTrue %b %s"](((a19 = +b1.value) === a19 ? a19 : 0) === 1, "dummy = 1 (each 0.1)");
+procedures["ZassertTrue %b %s"](((a18 = +b0.value) === a18 ? a18 : 0) === 1, "i = 1 (each 0.1)");
+procedures["ZassertTrue %b %s"](((a19 = +b1.value) === a19 ? a19 : 0) === 1, "dummy = 1 (each 0.1)");
 b0.value = "no change";
 var a20 = 0; while (a20 < 5) { a20++; b0.value = a20;
 b0.value = 8;
 b1.value = 9;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a21 = +b0.value) === a21 ? a21 : 0) === 8, "i = 8 (each 5 w/set)");
-thread.procedures["ZassertTrue %b %s"](((a22 = +b1.value) === a22 ? a22 : 0) === 9, "dummy = 9 (each 5 w/set)");
+procedures["ZassertTrue %b %s"](((a21 = +b0.value) === a21 ? a21 : 0) === 8, "i = 8 (each 5 w/set)");
+procedures["ZassertTrue %b %s"](((a22 = +b1.value) === a22 ? a22 : 0) === 9, "dummy = 9 (each 5 w/set)");
 b0.value = "no change";
 b1.value = 1;
 var a23 = 0; while (a23 < 5) { a23++; b0.value = a23;
-thread.procedures["ZassertTrue %b %s"](compareEqual(b0.value, b1.value), "i = dummy (each 5 w/set+dummy check)");
+procedures["ZassertTrue %b %s"](compareEqual(b0.value, b1.value), "i = dummy (each 5 w/set+dummy check)");
 b1.value = ((a24 = +b1.value) === a24 ? a24 : 0) + 1;
 b0.value = 9999;
 yield;
 }
-thread.procedures["ZassertTrue %b %s"](((a25 = +b0.value) === a25 ? a25 : 0) === 9999, "i = 9999 (after each 5 w/set+dummy check)");
-thread.procedures["ZassertTrue %b %s"](((a26 = +b1.value) === a26 ? a26 : 0) === 6, "dummy = 6 (after each 5 w/set+dummy check)");
-thread.procedures["ZOK %s"]("ok");
+procedures["ZassertTrue %b %s"](((a25 = +b0.value) === a25 ? a25 : 0) === 9999, "i = 9999 (after each 5 w/set+dummy check)");
+procedures["ZassertTrue %b %s"](((a26 = +b1.value) === a26 ? a26 : 0) === 6, "dummy = 6 (after each 5 w/set+dummy check)");
+procedures["ZOK %s"]("ok");
 retire(); return;
 }; })
 
 // Sprite1 ZassertTrue %b %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_assertTrue__ (p0,p1) {
 if (!toBoolean(p0)) {
-thread.procedures["ZFAIL %s"](p1);
+procedures["ZFAIL %s"](p1);
 }
 return "";
 }; })
 
 // Sprite1 ZOK %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_OK_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("pass " + p0, target);
@@ -106,7 +107,7 @@ return "";
 }; })
 
 // Sprite1 ZFAIL %s
-(function factoryXYZ(thread) { const target = thread.target; const runtime = target.runtime; const stage = runtime.getTargetForStage();
+(function factoryXYZ(target, procedures, checks) { const runtime = target.runtime; const stage = runtime.getTargetForStage();
 return function funXYZ_FAIL_ (p0) {
 runtime.ext_scratch3_looks._say("plan 1", target);
 runtime.ext_scratch3_looks._say("fail " + p0, target);
