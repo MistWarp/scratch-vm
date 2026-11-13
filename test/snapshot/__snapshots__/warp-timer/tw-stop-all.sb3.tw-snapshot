@@ -27,9 +27,9 @@ const b0 = runtime.getOpcodeFunction("event_whengreaterthan");
 const b1 = stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable");
 checks.push(() => b0 === (runtime.getOpcodeFunction("event_whengreaterthan")) && b1 === (stage.variables["`jEk@4|i[#Fk?(8x)AV.-my variable"] || stage.lookupOrCreateVariable("`jEk@4|i[#Fk?(8x)AV.-my variable", "my variable")));
 return function* genXYZ () {
-var a0;
+var a0, a1;
 {
-const resolvedValue = toBoolean(yield* executeInCompatibilityLayer({"VALUE":0,"WHENGREATERTHANMENU":"TIMER",}, b0, false, false, "i", null));
+const resolvedValue = toBoolean((a0 = executeInCompatibilityLayerNow({"VALUE":0,"WHENGREATERTHANMENU":"TIMER",}, b0, "i")) === COMPATIBILITY_WAITING ? yield* executeInCompatibilityLayerLater(b0, false, false, "i") : a0);
 const id = "i";
 const hasOldEdgeValue = target.hasEdgeActivatedValue(id);
 const oldEdgeValue = target.updateEdgeActivatedValue(id, resolvedValue);
@@ -39,7 +39,7 @@ retire(); return;
 }
 yield;
 }
-if (((a0 = +b1.value) === a0 ? a0 : 0) === 1) {
+if (((a1 = +b1.value) === a1 ? a1 : 0) === 1) {
 runtime.ext_scratch3_looks._say("end", target);
 }
 retire(); return;

@@ -210,6 +210,72 @@ const executeInCompatibilityLayer = function*(inputs, blockFunction, isWarp, use
     // todo: do we have to do anything extra if status is STATUS_DONE?
 
     return finish(returnValue);
+};
+const COMPATIBILITY_WAITING = {};
+let compatibilityInputs = null;
+let compatibilityFrame = null;
+let compatibilityValue;
+const executeInCompatibilityLayerNow = (inputs, blockFunction, blockId) => {
+    const thread = globalState.thread;
+    const blockUtility = globalState.blockUtility;
+    blockUtility.init(thread, blockId, null);
+    globalState.listsMayHaveChanged();
+    const returnValue = typeof blockFunction === 'function' ? blockFunction(inputs, blockUtility) : '';
+    if (thread.status === 0 /* STATUS_RUNNING */ && !isPromise(returnValue)) {
+        return returnValue;
+    }
+    compatibilityInputs = inputs;
+    compatibilityFrame = thread.compatibilityStackFrame || {};
+    compatibilityValue = returnValue;
+    return COMPATIBILITY_WAITING;
+};
+const executeInCompatibilityLayerLater = function*(blockFunction, isWarp, useFlags, blockId) {
+    const thread = globalState.thread;
+    const blockUtility = globalState.blockUtility;
+    const inputs = compatibilityInputs;
+    const stackFrame = compatibilityFrame;
+    let returnValue = compatibilityValue;
+    compatibilityInputs = null;
+    compatibilityFrame = null;
+    compatibilityValue = null;
+
+    if (isPromise(returnValue)) {
+        returnValue = yield* waitPromise(returnValue);
+        if (useFlags) hasResumedFromPromise = true;
+        return returnValue;
+    }
+
+    if (thread.status === 1 /* STATUS_PROMISE_WAIT */ || thread.status === 4 /* STATUS_DONE */) {
+        yield;
+        return '';
+    }
+
+    while (thread.status === 2 /* STATUS_YIELD */ || thread.status === 3 /* STATUS_YIELD_TICK */) {
+        if (thread.status === 2 /* STATUS_YIELD */) {
+            thread.status = 0; // STATUS_RUNNING
+            if (!isWarp || isStuck()) {
+                yield;
+            }
+        } else {
+            yield;
+        }
+
+        blockUtility.init(thread, blockId, stackFrame);
+        globalState.listsMayHaveChanged();
+        returnValue = typeof blockFunction === 'function' ? blockFunction(inputs, blockUtility) : '';
+        if (isPromise(returnValue)) {
+            returnValue = yield* waitPromise(returnValue);
+            if (useFlags) hasResumedFromPromise = true;
+            return returnValue;
+        }
+
+        if (thread.status === 1 /* STATUS_PROMISE_WAIT */ || thread.status === 4 /* STATUS_DONE */) {
+            yield;
+            return '';
+        }
+    }
+
+    return returnValue;
 }`;
 
 /**

@@ -332,7 +332,7 @@ b6.value = ((a2 = +b6.value) === a2 ? a2 : 0) - 1;
 if (compareEqual(b0.value, b7 ? b7.value : 0)) {
 b6.value = ((a3 = +b6.value) === a3 ? a3 : 0) + 1;
 } else {
-yield* executeInCompatibilityLayer({"QUESTION":"ERROR: Unkown direction (" + ("" + b0.value + ")"),}, b8, false, false, "/", null);
+if (executeInCompatibilityLayerNow({"QUESTION":"ERROR: Unkown direction (" + ("" + b0.value + ")"),}, b8, "/") === COMPATIBILITY_WAITING) yield* executeInCompatibilityLayerLater(b8, false, false, "/");
 runtime.stopAll();
 retire(); throw 1;
 }
