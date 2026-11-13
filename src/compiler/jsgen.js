@@ -429,10 +429,7 @@ class JSGenerator {
         case InputOpcode.CAST_NUMBER_OR_NAN:
             return unaryPlus(at(node.target, Precedence.UNARY));
         case InputOpcode.CAST_NUMBER_INDEX:
-            return expression(
-                `${at(node.target.toType(InputType.NUMBER_OR_NAN), Precedence.BITWISE_OR)} | 0`,
-                Precedence.BITWISE_OR
-            );
+            return primary(`Math.floor(${argument(node.target.toType(InputType.NUMBER_OR_NAN))})`);
         case InputOpcode.CAST_STRING:
             return expression(`"" + ${at(node.target, Precedence.MULTIPLICATIVE)}`, Precedence.ADDITIVE);
         case InputOpcode.CAST_COLOR:
@@ -690,7 +687,7 @@ class JSGenerator {
             return primary(`Math.round(${argument(node.value)})`);
         case InputOpcode.OP_SIN:
             return expression(
-                `Math.round(Math.sin(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) * 1e10) / 1e10`,
+                `Math.round((Math.sin(Math.PI * ${at(node.value, Precedence.EXPONENT)} / 180) + 0) * 1e10) / 1e10`,
                 Precedence.MULTIPLICATIVE
             );
         case InputOpcode.OP_SQRT:

@@ -14,7 +14,7 @@ const ArgumentType = require('../../src/extension-support/argument-type');
 
 const NUMBERS = ['NaN', '-Infinity', '-1e+308', '-7', '-1', '-0.5', '-0', '0', '0.5', '1', '4', '7', '1e+308', 'Infinity'];
 const STRINGS = ['', ' ', '\t', '0', '00', '1', '1.0', '-0', 'abc', 'ABC', 'Hello World', 'true', 'TRUE', 'false', '1e3', 'NaN', 'Infinity', '🎉'];
-const INDEXES = ['-1', '0', '1', '2', '1.5', '5', '11', 'abc', ''];
+const INDEXES = ['-1', '0', '1', '2', '1.5', '5', '11', 'abc', '', '4294967297', '-4294967295'];
 
 const BINARY_OPERATORS = [
     {opcode: 'operator_add', inputs: ['NUM1', 'NUM2'], values: NUMBERS},

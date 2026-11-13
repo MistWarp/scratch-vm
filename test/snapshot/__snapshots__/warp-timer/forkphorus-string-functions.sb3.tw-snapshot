@@ -143,7 +143,7 @@ b0.value = [];
 b0._searchIndex = null;
 b1.value = ("" + p0).length;
 for (var a0 = ("" + p1).length; a0 > 0; a0--) {
-b0.value.unshift(("" + p0)[(+b1.value | 0) - 1] || "");
+b0.value.unshift(("" + p0)[Math.floor(+b1.value) - 1] || "");
 b0._monitorUpToDate = false;
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) - 1;
 if (isStuck()) yield;
@@ -178,7 +178,7 @@ b0.value = "false";
 b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-b1.value.push(("" + p0)[(b2.value | 0) - 1] || "");
+b1.value.push(("" + p0)[Math.floor(b2.value) - 1] || "");
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (b1.value.length > ("" + p1).length) {
 b1.value.shift();
@@ -205,7 +205,7 @@ b0._searchIndex = null;
 b1.value = 0;
 for (var a0 = ("" + p1).length; a0 > 0; a0--) {
 b1.value = ((a1 = +b1.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[(b1.value | 0) - 1] || "");
+b0.value.push(("" + p0)[Math.floor(b1.value) - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (isStuck()) yield;
 }
@@ -226,7 +226,7 @@ b1.value = -1;
 b2.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[(b2.value | 0) - 1] || "");
+b0.value.push(("" + p0)[Math.floor(b2.value) - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (b0.value.length > ("" + p1).length) {
 b0.value.shift();
@@ -257,13 +257,13 @@ b2.value = "";
 b3.value = 0;
 for (var a0 = ("" + p0).length; a0 > 0; a0--) {
 b3.value = ((a1 = +b3.value) === a1 ? a1 : 0) + 1;
-b0.value.push(("" + p0)[(b3.value | 0) - 1] || "");
+b0.value.push(("" + p0)[Math.floor(b3.value) - 1] || "");
 b0._monitorUpToDate = b0._monitorUpToDate > 1 ? 2 : false;
 if (b0.value.length > ("" + p1).length) {
 b0.value.shift();
 b0._monitorUpToDate = false;
 }
-b1.value.push(("" + p0)[(b3.value | 0) - 1] || "");
+b1.value.push(("" + p0)[Math.floor(b3.value) - 1] || "");
 b1._monitorUpToDate = b1._monitorUpToDate > 1 ? 2 : false;
 if (compareEqual(listContents(b0), p1)) {
 for (var a2 = ("" + p1).length; a2 > 0; a2--) {

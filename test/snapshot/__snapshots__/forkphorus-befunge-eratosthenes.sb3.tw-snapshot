@@ -99,7 +99,7 @@ const b15 = stage.variables["o4+OyKx[M=quu6p{=kRl-ascii2-list"] || stage.lookupO
 const b16 = stage.variables["o4+OyKx[M=quu6p{=kRl-numbers-list"] || stage.lookupOrCreateList("o4+OyKx[M=quu6p{=kRl-numbers-list", "numbers");
 return function* genXYZ_step () {
 var a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16;
-b0.value = ("" + listGet(b1.value, b2.value))[(+b3.value | 0) - 1] || "";
+b0.value = ("" + listGet(b1.value, b2.value))[Math.floor(+b3.value) - 1] || "";
 if (b0.value.toLowerCase() === ">") {
 b4.value = b6 ? b6.value : 0;
 }
@@ -164,8 +164,8 @@ b4.value = b8 ? b8.value : 0;
 }
 if (("" + b0.value).toLowerCase() === "\"") {
 yield* thread.procedures["Znext char"]();
-while (!((("" + listGet(b1.value, b2.value))[(+b3.value | 0) - 1] || "").toLowerCase() === "\"")) {
-thread.procedures["Wascii to number %s"](("" + listGet(b1.value, b2.value))[(+b3.value | 0) - 1] || "");
+while (!((("" + listGet(b1.value, b2.value))[Math.floor(+b3.value) - 1] || "").toLowerCase() === "\"")) {
+thread.procedures["Wascii to number %s"](("" + listGet(b1.value, b2.value))[Math.floor(+b3.value) - 1] || "");
 thread.procedures["Zpush %n"](b11.value);
 yield* thread.procedures["Znext char"]();
 yield;
@@ -189,14 +189,14 @@ b13._monitorUpToDate = b13._monitorUpToDate > 1 ? 2 : false;
 }
 if (("" + b0.value).toLowerCase() === ",") {
 yield* thread.procedures["Zpop %n"](1);
-thread.procedures["ZFAIL %s"]("did not expect ascii output: " + (b14.value[(((a11 = +(b10.value[1 - 1] ?? "")) === a11 ? a11 : 0) + 1 | 0) - 1] ?? ""));
+thread.procedures["ZFAIL %s"]("did not expect ascii output: " + (b14.value[Math.floor(((a11 = +(b10.value[1 - 1] ?? "")) === a11 ? a11 : 0) + 1) - 1] ?? ""));
 }
 if (("" + b0.value).toLowerCase() === "#") {
 yield* thread.procedures["Znext char"]();
 }
 if (("" + b0.value).toLowerCase() === "g") {
 yield* thread.procedures["Zpop %n"](2);
-yield* thread.procedures["Zascii to number but it lies %s"](("" + (b1.value[(((a12 = +(b10.value[1 - 1] ?? "")) === a12 ? a12 : 0) + 1 | 0) - 1] ?? ""))[(((a13 = +(b10.value[2 - 1] ?? "")) === a13 ? a13 : 0) + 1 | 0) - 1] || "");
+yield* thread.procedures["Zascii to number but it lies %s"](("" + (b1.value[Math.floor(((a12 = +(b10.value[1 - 1] ?? "")) === a12 ? a12 : 0) + 1) - 1] ?? ""))[Math.floor(((a13 = +(b10.value[2 - 1] ?? "")) === a13 ? a13 : 0) + 1) - 1] || "");
 thread.procedures["Zpush %n"](b11.value);
 }
 if (("" + b0.value).toLowerCase() === "p") {
@@ -216,7 +216,7 @@ listReplace(b1, b10.value[1 - 1] ?? "", "" + listGet(b1.value, b10.value[1 - 1] 
 yield;
 }
 }
-thread.procedures["Winsert %s %n %s"](listGet(b1.value, b10.value[1 - 1] ?? ""), b10.value[2 - 1] ?? "", b15.value[(((a16 = +(b10.value[3 - 1] ?? "")) === a16 ? a16 : 0) + 1 | 0) - 1] ?? "");
+thread.procedures["Winsert %s %n %s"](listGet(b1.value, b10.value[1 - 1] ?? ""), b10.value[2 - 1] ?? "", b15.value[Math.floor(((a16 = +(b10.value[3 - 1] ?? "")) === a16 ? a16 : 0) + 1) - 1] ?? "");
 listReplace(b1, b10.value[1 - 1] ?? "", b11.value);
 }
 if (("" + b0.value).toLowerCase() === "&") {
@@ -402,7 +402,7 @@ b1.value = target.currentCostume + 1 + 96;
 b2.value = 0;
 for (var a0 = b3.value.length; a0 > 0; a0--) {
 b2.value = ((a1 = +b2.value) === a1 ? a1 : 0) + 1;
-if (compareEqual(b3.value[(b2.value | 0) - 1] ?? "", p0)) {
+if (compareEqual(b3.value[Math.floor(b2.value) - 1] ?? "", p0)) {
 b1.value = b2.value - 1;
 return "";
 }
